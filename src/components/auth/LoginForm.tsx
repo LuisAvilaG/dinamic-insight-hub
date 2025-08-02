@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
-  onLogin: (email: string, password: string, remember: boolean) => void;
+  onLogin: (email: string, role: string, remember: boolean) => void;
 }
 
 export const LoginForm = ({ onLogin }: LoginFormProps) => {
@@ -16,16 +18,47 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      onLogin(email, password, remember);
+    try {
+      // Consultar la tabla Cuentas para validar credenciales
+      const { data, error } = await supabase
+        .from('Cuentas')
+        .select('Correo, "Contraseña", Rol')
+        .eq('Correo', email)
+        .eq('Contraseña', password)
+        .single();
+
+      if (error || !data) {
+        toast({
+          title: "Error de autenticación",
+          description: "Email o contraseña incorrectos",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Login exitoso
+      toast({
+        title: "Bienvenido",
+        description: `Acceso autorizado como ${data.Rol || 'Usuario'}`,
+      });
+      
+      onLogin(email, data.Rol || 'Usuario', remember);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo conectar con el servidor",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

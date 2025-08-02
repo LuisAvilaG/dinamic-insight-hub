@@ -18,27 +18,31 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string>('');
 
-  const handleLogin = (email: string, password: string, remember: boolean) => {
-    // Simple authentication logic - in real app, validate with backend
-    if (email && password) {
-      setIsAuthenticated(true);
-      if (remember) {
-        localStorage.setItem('dinamic_auth', 'true');
-      }
+  const handleLogin = (email: string, role: string, remember: boolean) => {
+    setIsAuthenticated(true);
+    setUserRole(role);
+    if (remember) {
+      localStorage.setItem('dinamic_auth', 'true');
+      localStorage.setItem('dinamic_user_role', role);
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setUserRole('');
     localStorage.removeItem('dinamic_auth');
+    localStorage.removeItem('dinamic_user_role');
   };
 
   // Check for saved authentication
   useState(() => {
     const savedAuth = localStorage.getItem('dinamic_auth');
+    const savedRole = localStorage.getItem('dinamic_user_role');
     if (savedAuth === 'true') {
       setIsAuthenticated(true);
+      setUserRole(savedRole || '');
     }
   });
 
