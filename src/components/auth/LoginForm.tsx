@@ -28,7 +28,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       // Consultar la tabla Cuentas para validar credenciales
       const { data, error } = await supabase
         .from('Cuentas')
-        .select('Correo, "Contraseña", Rol')
+        .select('Correo, Contraseña, Rol')
         .eq('Correo', email)
         .eq('Contraseña', password)
         .single();
@@ -44,12 +44,13 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       }
 
       // Login exitoso
+      const userData = data as any;
       toast({
         title: "Bienvenido",
-        description: `Acceso autorizado como ${data.Rol || 'Usuario'}`,
+        description: `Acceso autorizado como ${userData.Rol || 'Usuario'}`,
       });
       
-      onLogin(email, data.Rol || 'Usuario', remember);
+      onLogin(email, userData.Rol || 'Usuario', remember);
     } catch (error) {
       toast({
         title: "Error",
