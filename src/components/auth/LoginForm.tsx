@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoginFormProps {
   onLogin: (email: string, role: string, remember: boolean) => void;
@@ -26,21 +27,26 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
     try {
       console.log('Intentando login con:', { email, password });
       
-      // Fetch directo a la API de Supabase
-      const response = await fetch(
-        `https://rytfakmpznrithljllyl.supabase.co/rest/v1/Cuentas?Correo=eq.${email}&Password=eq.${password}`,
-        {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dGZha21wem5yaXRobGpsbHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTI2MzYsImV4cCI6MjA2OTcyODYzNn0.fpbvpK8eIeOJayhuFDmm-KBWWDA6kekkOcM0DpwsVko',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dGZha21wem5yaXRobGpsbHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTI2MzYsImV4cCI6MjA2OTcyODYzNn0.fpbvpK8eIeOJayhuFDmm-KBWWDA6kekkOcM0DpwsVko'
-          }
-        }
-      );
+      // Usar el cliente de Supabase correctamente
+      const { data, error } = await supabase
+        .from('Cuentas')
+        .select('*')
+        .eq('Correo', email)
+        .eq('Contraseña', password)
+        .single();
 
-      const data = await response.json();
-      console.log('Respuesta de Supabase:', data);
+      if (error) {
+        console.error('Error de Supabase:', error);
+        toast({
+          title: "Error de autenticación",
+          description: "Email o contraseña incorrectos",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
-      if (!data || data.length === 0) {
+      if (!data) {
         console.log('Sin datos encontrados');
         toast({
           title: "Error de autenticación",
@@ -52,20 +58,19 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       }
 
       // Login exitoso
-      const userData = data[0];
-      console.log('Datos del usuario:', userData);
+      console.log('Datos del usuario:', data);
       
       toast({
-        title: "Bienvenido",
-        description: `Acceso autorizado como ${userData.Rol || 'Usuario'}`,
+        title: "¡Bienvenido a Dinamic Software!",
+        description: `Acceso autorizado como ${data.Rol || 'Usuario'}`,
       });
       
-      onLogin(email, userData.Rol || 'Usuario', remember);
+      onLogin(email, data.Rol || 'Usuario', remember);
     } catch (error) {
       console.error('Error en login:', error);
       toast({
-        title: "Error",
-        description: "No se pudo conectar con el servidor",
+        title: "Error de conexión",
+        description: "No se pudo conectar con el servidor. Verifica tu conexión.",
         variant: "destructive",
       });
     } finally {
@@ -74,26 +79,40 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary-light to-secondary p-4 pattern-geometric">
-      <Card className="w-full max-w-md shadow-2xl border-0">
-        <CardHeader className="text-center space-y-6">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-            <div className="text-white text-2xl font-bold">DS</div>
+    <div className="min-h-screen flex items-center justify-center p-4 pattern-dinamic bg-gradient-to-br from-background via-primary/5 to-secondary/5">
+      <div className="absolute inset-0 pattern-dinamic opacity-50"></div>
+      
+      <Card className="w-full max-w-md shadow-dinamic border-0 bg-card/95 backdrop-blur-sm relative z-10">
+        <CardHeader className="text-center space-y-6 pb-8">
+          {/* Logo de Dinamic Software */}
+          <div className="mx-auto w-24 h-24 dinamic-icon flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple opacity-90"></div>
+            <div className="relative z-10 flex items-center justify-center">
+              <Zap className="w-12 h-12 text-white" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/20"></div>
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Dinamic Software
+          
+          <div className="space-y-3">
+            <CardTitle className="text-3xl font-bold dinamic-logo">
+              DINAMIC
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2">
-              Business Intelligence Platform
+            <div className="text-lg font-semibold text-primary">
+              SOFTWARE
+            </div>
+            <CardDescription className="text-muted-foreground text-base">
+              Generamos innovación, buscamos crecimiento
             </CardDescription>
+            <div className="text-sm text-muted-foreground/80">
+              Business Intelligence Platform
+            </div>
           </div>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -101,12 +120,12 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11"
+                className="h-12 border-2 focus:border-primary transition-smooth"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -115,13 +134,13 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-11 pr-10"
+                  className="h-12 pr-12 border-2 focus:border-primary transition-smooth"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-11 w-11 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-12 w-12 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -145,26 +164,33 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 </Label>
               </div>
               
-              <Button variant="link" className="p-0 h-auto text-primary hover:text-secondary">
+              <Button variant="link" className="p-0 h-auto text-primary hover:text-secondary transition-smooth">
                 ¿Olvidaste tu contraseña?
               </Button>
             </div>
             
             <Button
               type="submit"
-              className="w-full h-11 btn-gradient"
+              className="w-full h-12 btn-dinamic text-lg font-semibold"
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  <span>Iniciando sesión...</span>
+                </div>
               ) : (
                 <>
-                  <LogIn className="mr-2 h-4 w-4" />
+                  <LogIn className="mr-2 h-5 w-5" />
                   Iniciar Sesión
                 </>
               )}
             </Button>
           </form>
+          
+          <div className="text-center text-xs text-muted-foreground">
+            © 2024 Dinamic Software. Todos los derechos reservados.
+          </div>
         </CardContent>
       </Card>
     </div>

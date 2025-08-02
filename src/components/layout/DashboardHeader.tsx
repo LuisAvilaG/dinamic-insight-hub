@@ -18,7 +18,7 @@ import {
   Settings, 
   User, 
   LogOut,
-  Menu
+  Zap
 } from "lucide-react";
 
 interface DashboardHeaderProps {
@@ -30,17 +30,19 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
   const [notifications] = useState(3); // Mock notification count
 
   return (
-    <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6 shadow-sm">
+    <header className="h-16 bg-white/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-6 shadow-sm relative z-10">
       {/* Left section */}
       <div className="flex items-center space-x-4">
         <SidebarTrigger className="md:hidden" />
         
         <div className="hidden md:flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-            <div className="text-white text-sm font-bold">DS</div>
+          <div className="w-10 h-10 dinamic-icon flex items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple"></div>
+            <Zap className="w-5 h-5 text-white relative z-10" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Dinamic Software</h1>
+            <h1 className="text-lg font-bold dinamic-logo">DINAMIC</h1>
+            <div className="text-xs text-primary font-semibold">SOFTWARE</div>
           </div>
         </div>
       </div>
@@ -54,7 +56,7 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
             placeholder="Buscar reportes, dashboards..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-accent/50 border-0 focus:bg-background"
+            className="pl-10 bg-accent/50 border-0 focus:bg-background focus:border-primary transition-smooth"
           />
         </div>
       </div>
@@ -62,12 +64,12 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
       {/* Right section */}
       <div className="flex items-center space-x-3">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 transition-smooth">
           <Bell className="h-5 w-5" />
           {notifications > 0 && (
             <Badge 
               variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-gradient-to-r from-secondary to-primary border-0"
             >
               {notifications}
             </Badge>
@@ -75,7 +77,7 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
         </Button>
 
         {/* Settings */}
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" className="hover:bg-primary/10 transition-smooth">
           <Settings className="h-5 w-5" />
         </Button>
 
@@ -85,7 +87,7 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
                 <AvatarImage src="/placeholder-avatar.jpg" alt="Usuario" />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
+                <AvatarFallback className="dinamic-icon text-white font-bold">
                   DS
                 </AvatarFallback>
               </Avatar>
@@ -104,12 +106,12 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
             
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem>
+            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth">
               <User className="mr-2 h-4 w-4" />
               <span>Perfil</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem>
+            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth">
               <Settings className="mr-2 h-4 w-4" />
               <span>Configuración</span>
             </DropdownMenuItem>
@@ -118,7 +120,7 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
             
             <DropdownMenuItem 
               onClick={onLogout}
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive hover:bg-destructive/10 transition-smooth"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Cerrar Sesión</span>

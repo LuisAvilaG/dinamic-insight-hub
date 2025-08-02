@@ -34,6 +34,8 @@ export default {
 					foreground: 'hsl(var(--secondary-foreground))',
 					light: 'hsl(var(--secondary-light))'
 				},
+				'accent-purple': 'hsl(var(--accent-purple))',
+				'accent-teal': 'hsl(var(--accent-teal))',
 				dark: {
 					DEFAULT: 'hsl(var(--dark))',
 					foreground: 'hsl(var(--dark-foreground))'
@@ -93,11 +95,22 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-dinamic': {
+					'0%, 100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					},
+					'50%': {
+						opacity: '0.8',
+						transform: 'scale(1.05)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-dinamic': 'pulse-dinamic 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
 			}
 		}
 	},

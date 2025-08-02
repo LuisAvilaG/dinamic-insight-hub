@@ -74,16 +74,18 @@ export const DashboardSidebar = () => {
   };
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-dark text-dark-foreground`}>
-      <SidebarHeader className="p-4 border-b border-white/10">
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-white/95 backdrop-blur-sm text-foreground shadow-lg`}>
+      <SidebarHeader className="p-4 border-b border-border/50">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-            <div className="text-white text-lg font-bold">DS</div>
+          <div className="w-12 h-12 dinamic-icon flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple"></div>
+            <Zap className="w-6 h-6 text-white relative z-10" />
           </div>
           {!collapsed && (
             <div>
-              <h2 className="text-lg font-bold text-white">Dinamic</h2>
-              <p className="text-xs text-white/70">Business Intelligence</p>
+              <h2 className="text-xl font-bold dinamic-logo">DINAMIC</h2>
+              <p className="text-sm text-primary font-semibold">SOFTWARE</p>
+              <p className="text-xs text-muted-foreground">Business Intelligence</p>
             </div>
           )}
         </div>
@@ -91,7 +93,7 @@ export const DashboardSidebar = () => {
 
       <SidebarContent className="p-2">
         <SidebarGroup>
-          <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""} text-white/60 text-xs uppercase tracking-wider px-3 py-2`}>
+          <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""} text-muted-foreground text-xs uppercase tracking-wider px-3 py-2 font-semibold`}>
             Departamentos
           </SidebarGroupLabel>
           
@@ -105,19 +107,19 @@ export const DashboardSidebar = () => {
                       className={({ isActive: navIsActive }) => {
                         const active = navIsActive || isActive(item.url);
                         return `
-                          flex items-center space-x-3 px-3 py-3 rounded-lg transition-all duration-200
+                          flex items-center space-x-3 px-3 py-3 rounded-xl transition-all duration-200 group
                           ${active 
-                            ? "bg-gradient-to-r from-primary/20 to-secondary/20 text-white border-l-4 border-primary" 
-                            : "text-white/70 hover:text-white hover:bg-white/5"
+                            ? "bg-gradient-to-r from-primary/10 via-secondary/10 to-accent-purple/10 text-primary border-l-4 border-primary shadow-sm" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                           }
                         `;
                       }}
                     >
-                      <item.icon className={`${collapsed ? "h-6 w-6" : "h-5 w-5"} flex-shrink-0`} />
+                      <item.icon className={`${collapsed ? "h-6 w-6" : "h-5 w-5"} flex-shrink-0 transition-colors group-hover:text-primary`} />
                       {!collapsed && (
                         <div className="flex-1 min-w-0">
                           <div className="font-medium">{item.title}</div>
-                          <div className="text-xs opacity-60 truncate">{item.description}</div>
+                          <div className="text-xs opacity-70 truncate">{item.description}</div>
                         </div>
                       )}
                     </NavLink>
