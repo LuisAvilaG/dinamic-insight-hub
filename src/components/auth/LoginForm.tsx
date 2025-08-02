@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
@@ -25,15 +24,24 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
     setIsLoading(true);
     
     try {
-      // Consultar la tabla Cuentas para validar credenciales
-      const { data, error } = await supabase
-        .from('Cuentas')
-        .select('Correo, Contraseña, Rol')
-        .eq('Correo', email)
-        .eq('Contraseña', password)
-        .single();
+      console.log('Intentando login con:', { email, password });
+      
+      // Fetch directo a la API de Supabase
+      const response = await fetch(
+        `https://rytfakmpznrithljllyl.supabase.co/rest/v1/Cuentas?Correo=eq.${email}&password=eq.${password}`,
+        {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dGZha21wem5yaXRobGpsbHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTI2MzYsImV4cCI6MjA2OTcyODYzNn0.fpbvpK8eIeOJayhuFDmm-KBWWDA6kekkOcM0DpwsVko',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dGZha21wem5yaXRobGpsbHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTI2MzYsImV4cCI6MjA2OTcyODYzNn0.fpbvpK8eIeOJayhuFDmm-KBWWDA6kekkOcM0DpwsVko'
+          }
+        }
+      );
 
-      if (error || !data) {
+      const data = await response.json();
+      console.log('Respuesta de Supabase:', data);
+
+      if (!data || data.length === 0) {
+        console.log('Sin datos encontrados');
         toast({
           title: "Error de autenticación",
           description: "Email o contraseña incorrectos",
@@ -44,7 +52,9 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       }
 
       // Login exitoso
-      const userData = data as any;
+      const userData = data[0];
+      console.log('Datos del usuario:', userData);
+      
       toast({
         title: "Bienvenido",
         description: `Acceso autorizado como ${userData.Rol || 'Usuario'}`,
@@ -52,6 +62,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       
       onLogin(email, userData.Rol || 'Usuario', remember);
     } catch (error) {
+      console.error('Error en login:', error);
       toast({
         title: "Error",
         description: "No se pudo conectar con el servidor",
