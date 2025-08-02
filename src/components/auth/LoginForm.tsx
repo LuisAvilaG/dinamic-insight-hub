@@ -28,7 +28,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       
       // Fetch directo a la API de Supabase
       const response = await fetch(
-        `https://rytfakmpznrithljllyl.supabase.co/rest/v1/Cuentas?Correo=eq.${email}&password=eq.${password}`,
+        `https://rytfakmpznrithljllyl.supabase.co/rest/v1/Cuentas?Correo=eq.${email}&Password=eq.${password}`,
         {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dGZha21wem5yaXRobGpsbHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTI2MzYsImV4cCI6MjA2OTcyODYzNn0.fpbvpK8eIeOJayhuFDmm-KBWWDA6kekkOcM0DpwsVko',
