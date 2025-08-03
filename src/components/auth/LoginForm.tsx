@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, LogIn, Zap } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import dinamicLogo from "@/assets/dinamic-logo.png";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -85,12 +86,12 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       <Card className="w-full max-w-md shadow-dinamic border-0 bg-card/95 backdrop-blur-sm relative z-10">
         <CardHeader className="text-center space-y-6 pb-8">
           {/* Logo de Dinamic Software */}
-          <div className="mx-auto w-24 h-24 dinamic-icon flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple opacity-90"></div>
-            <div className="relative z-10 flex items-center justify-center">
-              <Zap className="w-12 h-12 text-white" />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/20"></div>
+          <div className="mx-auto w-32 h-24 flex items-center justify-center">
+            <img 
+              src={dinamicLogo} 
+              alt="Dinamic Software" 
+              className="w-full h-full object-contain"
+            />
           </div>
           
           <div className="space-y-3">

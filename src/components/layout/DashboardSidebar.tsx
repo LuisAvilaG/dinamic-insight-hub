@@ -20,6 +20,7 @@ import {
   Zap,
   Home
 } from "lucide-react";
+import dinamicLogo from "@/assets/dinamic-logo.png";
 
 const navigationItems = [
   {
@@ -77,9 +78,12 @@ export const DashboardSidebar = () => {
     <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-white/95 backdrop-blur-sm text-foreground shadow-lg`}>
       <SidebarHeader className="p-4 border-b border-border/50">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 dinamic-icon flex items-center justify-center flex-shrink-0 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple"></div>
-            <Zap className="w-6 h-6 text-white relative z-10" />
+          <div className="w-12 h-8 flex items-center justify-center flex-shrink-0">
+            <img 
+              src={dinamicLogo} 
+              alt="Dinamic Software" 
+              className="w-full h-full object-contain"
+            />
           </div>
           {!collapsed && (
             <div>
