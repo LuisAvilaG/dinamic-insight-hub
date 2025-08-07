@@ -18,7 +18,8 @@ import {
   Search, 
   Users, 
   Zap,
-  Home
+  Home,
+  FileText
 } from "lucide-react";
 import dinamicLogo from "@/assets/dinamic-logo.png";
 
@@ -58,6 +59,12 @@ const navigationItems = [
     url: "/dinamic",
     icon: Zap,
     description: "Herramientas Dinamic"
+  },
+  {
+    title: "Reportes",
+    url: "/reportes",
+    icon: FileText,
+    description: "Gestión de reportes"
   }
 ];
 

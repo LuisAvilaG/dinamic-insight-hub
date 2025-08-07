@@ -12,6 +12,8 @@ import { FinancieroPage } from "./pages/FinancieroPage";
 import { ConsultoriaPage } from "./pages/ConsultoriaPage";
 import { DirectivoPage } from "./pages/DirectivoPage";
 import { DinamicPage } from "./pages/DinamicPage";
+import { ReportManager } from "./components/reports/ReportManager";
+import { ReportViewer } from "./pages/ReportViewer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +75,8 @@ const App = () => {
               <Route path="/consultoria" element={<ConsultoriaPage />} />
               <Route path="/directivo" element={<DirectivoPage />} />
               <Route path="/dinamic" element={<DinamicPage />} />
+              <Route path="/reportes" element={<ReportManager />} />
+              <Route path="/reportes/:id" element={<ReportViewer />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
