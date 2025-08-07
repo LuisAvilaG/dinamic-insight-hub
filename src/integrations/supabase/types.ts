@@ -16,19 +16,49 @@ export type Database = {
     Tables: {
       Cuentas: {
         Row: {
-          Contraseña: string
           Correo: string
+          Password: string
           Rol: string | null
         }
         Insert: {
-          Contraseña: string
           Correo: string
+          Password: string
           Rol?: string | null
         }
         Update: {
-          Contraseña?: string
           Correo?: string
+          Password?: string
           Rol?: string | null
+        }
+        Relationships: []
+      }
+      reportes: {
+        Row: {
+          created_at: string
+          departamento: string
+          descripcion: string | null
+          id: string
+          iframe_code: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          departamento: string
+          descripcion?: string | null
+          id?: string
+          iframe_code: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          departamento?: string
+          descripcion?: string | null
+          id?: string
+          iframe_code?: string
+          nombre?: string
+          updated_at?: string
         }
         Relationships: []
       }
