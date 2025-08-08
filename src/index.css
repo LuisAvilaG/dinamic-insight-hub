@@ -2,69 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dinamic Software Design System - Basado en la imagen oficial */
+/* Dinamic Software Design System 2025 - Tendencias modernas */
 
 @layer base {
   :root {
-    /* Core brand colors - Basados en la imagen de Dinamic Software */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 15%;
+    /* Modern 2025 Design Foundation */
+    --background: 252 253 255; /* Fondo ligeramente azulado */
+    --foreground: 15 23 42; /* Gris oscuro suave */
     
-    /* Dinamic brand palette - Colores exactos de la imagen */
-    --primary: 194 100% 50%; /* #00BFFF - Azul cyan vibrante */
-    --primary-foreground: 0 0% 98%;
-    --primary-light: 194 100% 70%; /* #66D9FF - Azul claro */
+    /* Dinamic brand palette - Actualizado con tendencias 2025 */
+    --primary: 199 89% 48%; /* #0EA5E9 - Azul sky más suave */
+    --primary-foreground: 248 250 252;
+    --primary-light: 190 100% 75%; /* Azul claro premium */
+    --primary-dark: 188 95% 35%; /* Azul oscuro premium */
     
-    --secondary: 320 100% 50%; /* #FF00BF - Magenta vibrante */
-    --secondary-foreground: 0 0% 98%;
-    --secondary-light: 320 70% 70%; /* #FF66D9 - Magenta claro */
+    --secondary: 315 85% 55%; /* #E879F9 - Magenta más suave */
+    --secondary-foreground: 248 250 252;
+    --secondary-light: 320 75% 75%; /* Magenta claro */
+    --secondary-dark: 310 95% 40%; /* Magenta oscuro */
     
-    --accent-purple: 280 100% 40%; /* #8000FF - Púrpura */
-    --accent-teal: 180 100% 40%; /* #00CCCC - Verde azulado */
+    --accent-purple: 269 81% 64%; /* #A855F7 - Púrpura moderno */
+    --accent-teal: 173 58% 39%; /* #0D9488 - Teal profesional */
+    --accent-orange: 24 95% 53%; /* #F97316 - Naranja vibrante */
     
-    --dark: 0 0% 8%; /* #141414 - Gris muy oscuro */
-    --dark-foreground: 0 0% 98%;
+    --dark: 15 23 42; /* Slate profesional */
+    --dark-foreground: 248 250 252;
     
-    /* UI colors */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
+    /* Modern UI colors con mejor contraste */
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
     
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 241 245 249; /* Fondo más sutil */
+    --muted-foreground: 100 116 139;
     
-    --accent: 210 20% 96%;
-    --accent-foreground: 0 0% 15%;
+    --accent: 241 245 249;
+    --accent-foreground: 15 23 42;
     
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 248 250 252;
     
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 194 100% 50%;
+    --border: 226 232 240; /* Bordes más suaves */
+    --input: 226 232 240;
+    --ring: 199 89% 48%;
     
-    /* Design system tokens */
-    --radius: 0.75rem;
+    /* Modern design tokens */
+    --radius: 1rem; /* Bordes más redondeados */
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.5rem;
     
-    /* Gradients - Inspirados en la imagen */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-secondary: linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--secondary-light)));
-    --gradient-dark: linear-gradient(135deg, hsl(var(--dark)), hsl(var(--accent-purple)));
-    --gradient-dinamic: linear-gradient(135deg, #00BFFF 0%, #FF00BF 50%, #8000FF 100%);
-    --gradient-dinamic-soft: linear-gradient(135deg, rgba(0,191,255,0.1) 0%, rgba(255,0,191,0.1) 50%, rgba(128,0,255,0.1) 100%);
+    /* Modern gradients 2025 */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    --gradient-mesh: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent-purple)) 35%, hsl(var(--secondary)) 100%);
+    --gradient-soft: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--secondary) / 0.1) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+    --gradient-dinamic: linear-gradient(135deg, #0EA5E9 0%, #E879F9 50%, #A855F7 100%);
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 10px 25px -5px hsl(var(--primary) / 0.25);
-    --shadow-secondary: 0 10px 25px -5px hsl(var(--secondary) / 0.25);
-    --shadow-dinamic: 0 20px 40px -10px rgba(0,191,255,0.3);
+    /* Modern shadows 2025 */
+    --shadow-soft: 0 1px 3px 0 rgb(15 23 42 / 0.04), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+    --shadow-medium: 0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+    --shadow-large: 0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.05);
+    --shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.04);
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --shadow-brand: 0 20px 40px -10px hsl(var(--primary) / 0.25);
     
-    /* Transitions */
-    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Modern transitions */
+    --transition-micro: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -130,97 +136,144 @@
 }
 
 @layer components {
-  /* Dinamic Software gradients */
+  /* Modern 2025 gradients */
   .gradient-dinamic {
     background: var(--gradient-dinamic);
   }
   
-  .gradient-dinamic-soft {
-    background: var(--gradient-dinamic-soft);
+  .gradient-mesh {
+    background: var(--gradient-mesh);
   }
   
-  .gradient-primary {
-    background: var(--gradient-primary);
+  .gradient-soft {
+    background: var(--gradient-soft);
   }
   
-  .gradient-secondary {
-    background: var(--gradient-secondary);
+  .gradient-glass {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
   
-  .gradient-dark {
-    background: var(--gradient-dark);
+  /* Modern shadows 2025 */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
   }
   
-  /* Professional shadows */
-  .shadow-primary {
-    box-shadow: var(--shadow-primary);
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
   }
   
-  .shadow-secondary {
-    box-shadow: var(--shadow-secondary);
+  .shadow-large {
+    box-shadow: var(--shadow-large);
   }
   
-  .shadow-dinamic {
-    box-shadow: var(--shadow-dinamic);
+  .shadow-xl-custom {
+    box-shadow: var(--shadow-xl);
   }
   
-  /* Smooth transitions */
+  .shadow-glass {
+    box-shadow: var(--shadow-glass);
+  }
+  
+  .shadow-brand {
+    box-shadow: var(--shadow-brand);
+  }
+  
+  /* Modern transitions */
+  .transition-micro {
+    transition: var(--transition-micro);
+  }
+  
   .transition-smooth {
     transition: var(--transition-normal);
   }
   
-  /* Professional card styles */
-  .card-professional {
-    @apply bg-card border border-border rounded-xl shadow-md hover:shadow-lg transition-smooth;
+  /* Modern card styles 2025 */
+  .card-modern {
+    @apply bg-card border border-border rounded-2xl shadow-soft hover:shadow-medium transition-smooth;
   }
   
   .card-interactive {
-    @apply card-professional hover:scale-[1.02] hover:shadow-dinamic cursor-pointer;
+    @apply card-modern hover:scale-[1.01] hover:shadow-brand cursor-pointer;
   }
   
-  /* Dinamic geometric patterns */
-  .pattern-dinamic {
+  .card-glass {
+    @apply gradient-glass border border-white/20 rounded-2xl shadow-glass backdrop-blur-md;
+  }
+  
+  /* Modern glassmorphism */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  
+  /* Modern patterns 2025 */
+  .pattern-modern {
     background-image: 
-      linear-gradient(45deg, transparent 40%, hsl(var(--primary) / 0.05) 50%, transparent 60%),
-      linear-gradient(-45deg, transparent 40%, hsl(var(--secondary) / 0.05) 50%, transparent 60%),
-      linear-gradient(90deg, transparent 40%, hsl(var(--accent-purple) / 0.03) 50%, transparent 60%);
-    background-size: 40px 40px, 40px 40px, 60px 60px;
+      radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, hsl(var(--secondary) / 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 50% 0%, hsl(var(--accent-purple) / 0.03) 0%, transparent 50%);
+    background-size: 100px 100px, 150px 150px, 200px 200px;
   }
   
-  .pattern-geometric {
+  .pattern-mesh {
     background-image: 
-      linear-gradient(45deg, transparent 40%, hsl(var(--primary) / 0.05) 50%, transparent 60%),
-      linear-gradient(-45deg, transparent 40%, hsl(var(--secondary) / 0.05) 50%, transparent 60%);
-    background-size: 30px 30px;
+      linear-gradient(45deg, hsl(var(--primary) / 0.03) 25%, transparent 25%),
+      linear-gradient(-45deg, hsl(var(--primary) / 0.03) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, hsl(var(--secondary) / 0.03) 75%),
+      linear-gradient(-45deg, transparent 75%, hsl(var(--secondary) / 0.03) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
   
-  /* Professional button variants */
-  .btn-gradient {
-    @apply bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-dinamic hover:shadow-lg transition-smooth hover:scale-105;
+  /* Modern buttons 2025 */
+  .btn-modern {
+    @apply bg-primary text-primary-foreground rounded-xl shadow-medium hover:shadow-large transition-smooth hover:scale-[1.02] font-medium;
   }
   
-  .btn-dinamic {
+  .btn-gradient-modern {
     background: var(--gradient-dinamic);
-    @apply text-white shadow-dinamic hover:shadow-lg transition-smooth hover:scale-105;
+    @apply text-white rounded-xl shadow-brand hover:shadow-xl-custom transition-smooth hover:scale-[1.02] font-medium;
   }
   
-  .btn-outline-gradient {
-    @apply border-2 border-transparent bg-gradient-to-r from-primary to-secondary bg-clip-border text-primary hover:text-primary-foreground hover:bg-clip-padding transition-smooth;
+  .btn-glass {
+    @apply glass-effect text-foreground rounded-xl hover:bg-white/30 transition-smooth font-medium;
   }
 
-  /* Dinamic logo styles */
-  .dinamic-logo {
+  /* Modern logo styles */
+  .dinamic-logo-modern {
     background: var(--gradient-dinamic);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
   }
 
-  .dinamic-icon {
+  .dinamic-icon-modern {
+    @apply rounded-2xl shadow-brand;
     background: var(--gradient-dinamic);
-    @apply rounded-xl shadow-dinamic;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .dinamic-icon-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s;
+  }
+  
+  .dinamic-icon-modern:hover::before {
+    left: 100%;
   }
 }
 

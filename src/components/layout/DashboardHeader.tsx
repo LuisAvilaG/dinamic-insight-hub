@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,13 +11,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SearchBar } from "@/components/search/SearchBar";
 import { 
-  Search, 
   Bell, 
   Settings, 
   User, 
-  LogOut,
-  Zap
+  LogOut
 } from "lucide-react";
 
 interface DashboardHeaderProps {
@@ -26,50 +24,46 @@ interface DashboardHeaderProps {
 }
 
 export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [notifications] = useState(3); // Mock notification count
 
   return (
-    <header className="h-16 bg-white/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-6 shadow-sm relative z-10">
-      {/* Left section */}
+    <header className="h-20 glass-effect border-b border-white/20 flex items-center justify-between px-6 shadow-soft relative z-10">
+      {/* Left section - Logo */}
       <div className="flex items-center space-x-4">
-        <SidebarTrigger className="md:hidden" />
+        <SidebarTrigger className="md:hidden btn-glass" />
         
-        <div className="hidden md:flex items-center space-x-3">
-          <div className="w-10 h-10 dinamic-icon flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple"></div>
-            <Zap className="w-5 h-5 text-white relative z-10" />
+        <div className="hidden md:flex items-center space-x-4">
+          <div className="relative">
+            <img 
+              src="/lovable-uploads/9b828b6e-2c36-4919-b6e0-7ef42a97c137.png" 
+              alt="Dinamic Software" 
+              className="h-12 w-auto object-contain"
+            />
           </div>
-          <div>
-            <h1 className="text-lg font-bold dinamic-logo">DINAMIC</h1>
-            <div className="text-xs text-primary font-semibold">SOFTWARE</div>
+          <div className="border-l border-white/20 pl-4">
+            <h1 className="text-xl font-black dinamic-logo-modern">DINAMIC</h1>
+            <div className="text-xs font-bold text-primary tracking-widest">SOFTWARE</div>
           </div>
         </div>
       </div>
 
-      {/* Center section - Search */}
-      <div className="flex-1 max-w-md mx-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Buscar reportes, dashboards..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-accent/50 border-0 focus:bg-background focus:border-primary transition-smooth"
-          />
-        </div>
+      {/* Center section - Modern Search */}
+      <div className="flex-1 max-w-xl mx-6">
+        <SearchBar />
       </div>
 
-      {/* Right section */}
-      <div className="flex items-center space-x-3">
+      {/* Right section - Modern Actions */}
+      <div className="flex items-center space-x-2">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 transition-smooth">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative glass-effect hover:bg-white/30 transition-smooth rounded-xl h-11 w-11"
+        >
           <Bell className="h-5 w-5" />
           {notifications > 0 && (
             <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-gradient-to-r from-secondary to-primary border-0"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-gradient-dinamic border-0 shadow-brand"
             >
               {notifications}
             </Badge>
@@ -77,52 +71,56 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
         </Button>
 
         {/* Settings */}
-        <Button variant="ghost" size="icon" className="hover:bg-primary/10 transition-smooth">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="glass-effect hover:bg-white/30 transition-smooth rounded-xl h-11 w-11"
+        >
           <Settings className="h-5 w-5" />
         </Button>
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
+            <Button variant="ghost" className="relative h-11 w-11 rounded-xl glass-effect hover:bg-white/30 transition-smooth">
+              <Avatar className="h-9 w-9">
                 <AvatarImage src="/placeholder-avatar.jpg" alt="Usuario" />
-                <AvatarFallback className="dinamic-icon text-white font-bold">
+                <AvatarFallback className="dinamic-icon-modern text-white font-bold text-sm">
                   DS
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Usuario Admin</p>
-                <p className="text-xs leading-none text-muted-foreground">
+          <DropdownMenuContent className="w-64 mt-2 bg-white/95 backdrop-blur-md border-white/20 shadow-large rounded-2xl" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal p-4">
+              <div className="flex flex-col space-y-2">
+                <p className="text-base font-semibold leading-none">Usuario Admin</p>
+                <p className="text-sm leading-none text-muted-foreground">
                   admin@dinamicsoftware.com
                 </p>
               </div>
             </DropdownMenuLabel>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border/50" />
             
-            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth">
-              <User className="mr-2 h-4 w-4" />
+            <DropdownMenuItem className="hover:bg-accent/50 transition-smooth m-1 rounded-xl p-3">
+              <User className="mr-3 h-4 w-4" />
               <span>Perfil</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth">
-              <Settings className="mr-2 h-4 w-4" />
+            <DropdownMenuItem className="hover:bg-accent/50 transition-smooth m-1 rounded-xl p-3">
+              <Settings className="mr-3 h-4 w-4" />
               <span>Configuración</span>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border/50" />
             
             <DropdownMenuItem 
               onClick={onLogout}
-              className="text-destructive focus:text-destructive hover:bg-destructive/10 transition-smooth"
+              className="text-destructive focus:text-destructive hover:bg-destructive/10 transition-smooth m-1 rounded-xl p-3"
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="mr-3 h-4 w-4" />
               <span>Cerrar Sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
