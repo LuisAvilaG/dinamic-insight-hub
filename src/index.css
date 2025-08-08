@@ -6,71 +6,76 @@
 
 @layer base {
   :root {
-    /* Modern 2025 Design Foundation */
-    --background: 252 253 255; /* Fondo ligeramente azulado */
-    --foreground: 15 23 42; /* Gris oscuro suave */
+    /* Modern Stripe-inspired Design Foundation */
+    --background: 255 255 255; /* Pure white background */
+    --foreground: 15 23 42; /* Slate-900 for text */
     
-    /* Dinamic brand palette - Actualizado con tendencias 2025 */
-    --primary: 199 89% 48%; /* #0EA5E9 - Azul sky más suave */
-    --primary-foreground: 248 250 252;
-    --primary-light: 190 100% 75%; /* Azul claro premium */
-    --primary-dark: 188 95% 35%; /* Azul oscuro premium */
+    /* Stripe-inspired gradient palette */
+    --primary: 99 102 241; /* Indigo-500 - Modern purple-blue */
+    --primary-foreground: 255 255 255;
+    --primary-light: 139 92 246; /* Violet-500 */
+    --primary-dark: 67 56 202; /* Indigo-600 */
     
-    --secondary: 315 85% 55%; /* #E879F9 - Magenta más suave */
-    --secondary-foreground: 248 250 252;
-    --secondary-light: 320 75% 75%; /* Magenta claro */
-    --secondary-dark: 310 95% 40%; /* Magenta oscuro */
+    --secondary: 14 165 233; /* Sky-500 - Bright blue */
+    --secondary-foreground: 255 255 255;
+    --secondary-light: 56 189 248; /* Sky-400 */
+    --secondary-dark: 2 132 199; /* Sky-600 */
     
-    --accent-purple: 269 81% 64%; /* #A855F7 - Púrpura moderno */
-    --accent-teal: 173 58% 39%; /* #0D9488 - Teal profesional */
-    --accent-orange: 24 95% 53%; /* #F97316 - Naranja vibrante */
+    --accent-purple: 168 85 247; /* Purple-500 */
+    --accent-cyan: 6 182 212; /* Cyan-500 */
+    --accent-emerald: 16 185 129; /* Emerald-500 */
+    --accent-orange: 251 146 60; /* Orange-400 */
     
-    --dark: 15 23 42; /* Slate profesional */
-    --dark-foreground: 248 250 252;
+    /* Neutral grays */
+    --dark: 15 23 42; /* Slate-900 */
+    --dark-foreground: 255 255 255;
     
-    /* Modern UI colors con mejor contraste */
+    /* Subtle UI colors */
     --card: 255 255 255;
     --card-foreground: 15 23 42;
     
     --popover: 255 255 255;
     --popover-foreground: 15 23 42;
     
-    --muted: 241 245 249; /* Fondo más sutil */
-    --muted-foreground: 100 116 139;
+    --muted: 248 250 252; /* Slate-50 */
+    --muted-foreground: 100 116 139; /* Slate-500 */
     
-    --accent: 241 245 249;
+    --accent: 248 250 252;
     --accent-foreground: 15 23 42;
     
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 248 250 252;
+    --destructive: 239 68 68; /* Red-500 */
+    --destructive-foreground: 255 255 255;
     
-    --border: 226 232 240; /* Bordes más suaves */
-    --input: 226 232 240;
-    --ring: 199 89% 48%;
+    --border: 226 232 240; /* Slate-200 */
+    --input: 241 245 249; /* Slate-100 */
+    --ring: 99 102 241; /* Indigo-500 */
     
     /* Modern design tokens */
-    --radius: 1rem; /* Bordes más redondeados */
-    --radius-lg: 1.25rem;
-    --radius-xl: 1.5rem;
+    --radius: 0.75rem; /* 12px */
+    --radius-lg: 1rem; /* 16px */
+    --radius-xl: 1.5rem; /* 24px */
     
-    /* Modern gradients 2025 */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
-    --gradient-mesh: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent-purple)) 35%, hsl(var(--secondary)) 100%);
-    --gradient-soft: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--secondary) / 0.1) 100%);
-    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
-    --gradient-dinamic: linear-gradient(135deg, #0EA5E9 0%, #E879F9 50%, #A855F7 100%);
+    /* Stripe-inspired gradients */
+    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --gradient-secondary: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+    --gradient-mesh: linear-gradient(135deg, #6366f1 0%, #8b5cf6 35%, #0ea5e9 100%);
+    --gradient-brand: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+    --gradient-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
     
-    /* Modern shadows 2025 */
-    --shadow-soft: 0 1px 3px 0 rgb(15 23 42 / 0.04), 0 1px 2px -1px rgb(15 23 42 / 0.04);
-    --shadow-medium: 0 4px 6px -1px rgb(15 23 42 / 0.07), 0 2px 4px -2px rgb(15 23 42 / 0.06);
-    --shadow-large: 0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.05);
-    --shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.04);
-    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    --shadow-brand: 0 20px 40px -10px hsl(var(--primary) / 0.25);
+    /* Modern shadows */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --shadow-brand: 0 20px 40px -10px rgba(99, 102, 241, 0.25);
+    --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.05), 0 1px 3px 0 rgba(99, 102, 241, 0.1);
     
-    /* Modern transitions */
-    --transition-micro: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Fluid transitions */
+    --transition-all: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -136,9 +141,9 @@
 }
 
 @layer components {
-  /* Modern 2025 gradients */
-  .gradient-dinamic {
-    background: var(--gradient-dinamic);
+  /* Stripe-inspired gradients */
+  .gradient-brand {
+    background: var(--gradient-brand);
   }
   
   .gradient-mesh {
@@ -151,129 +156,121 @@
   
   .gradient-glass {
     background: var(--gradient-glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
   
-  /* Modern shadows 2025 */
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
-  }
-  
-  .shadow-medium {
-    box-shadow: var(--shadow-medium);
-  }
-  
-  .shadow-large {
-    box-shadow: var(--shadow-large);
-  }
-  
-  .shadow-xl-custom {
-    box-shadow: var(--shadow-xl);
-  }
-  
-  .shadow-glass {
-    box-shadow: var(--shadow-glass);
-  }
-  
-  .shadow-brand {
+  /* Modern shadows */
+  .shadow-stripe {
     box-shadow: var(--shadow-brand);
   }
   
-  /* Modern transitions */
-  .transition-micro {
-    transition: var(--transition-micro);
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  /* Fluid transitions */
+  .transition-all {
+    transition: var(--transition-all);
   }
   
   .transition-smooth {
     transition: var(--transition-normal);
   }
   
-  /* Modern card styles 2025 */
-  .card-modern {
-    @apply bg-card border border-border rounded-2xl shadow-soft hover:shadow-medium transition-smooth;
+  /* Modern card styles */
+  .card-stripe {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all;
   }
   
   .card-interactive {
-    @apply card-modern hover:scale-[1.01] hover:shadow-brand cursor-pointer;
+    @apply card-stripe hover:scale-[1.01] hover:shadow-stripe cursor-pointer;
   }
   
   .card-glass {
-    @apply gradient-glass border border-white/20 rounded-2xl shadow-glass backdrop-blur-md;
+    @apply gradient-glass border border-white/20 rounded-2xl shadow-xl backdrop-blur-md;
   }
   
   /* Modern glassmorphism */
-  .glass-effect {
-    background: rgba(255, 255, 255, 0.25);
+  .glass-modern {
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
-  /* Modern patterns 2025 */
-  .pattern-modern {
+  /* Stripe-inspired patterns */
+  .pattern-fluid {
     background-image: 
-      radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, hsl(var(--secondary) / 0.04) 0%, transparent 50%),
-      radial-gradient(circle at 50% 0%, hsl(var(--accent-purple) / 0.03) 0%, transparent 50%);
-    background-size: 100px 100px, 150px 150px, 200px 200px;
+      radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
   }
   
-  .pattern-mesh {
+  .pattern-mesh-subtle {
     background-image: 
-      linear-gradient(45deg, hsl(var(--primary) / 0.03) 25%, transparent 25%),
-      linear-gradient(-45deg, hsl(var(--primary) / 0.03) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, hsl(var(--secondary) / 0.03) 75%),
-      linear-gradient(-45deg, transparent 75%, hsl(var(--secondary) / 0.03) 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      linear-gradient(45deg, rgba(99, 102, 241, 0.02) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(99, 102, 241, 0.02) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(139, 92, 246, 0.02) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(139, 92, 246, 0.02) 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
   }
   
-  /* Modern buttons 2025 */
-  .btn-modern {
-    @apply bg-primary text-primary-foreground rounded-xl shadow-medium hover:shadow-large transition-smooth hover:scale-[1.02] font-medium;
+  /* Modern buttons */
+  .btn-stripe {
+    @apply bg-indigo-500 text-white rounded-lg shadow-sm hover:bg-indigo-600 hover:shadow-md transition-all font-medium;
   }
   
-  .btn-gradient-modern {
-    background: var(--gradient-dinamic);
-    @apply text-white rounded-xl shadow-brand hover:shadow-xl-custom transition-smooth hover:scale-[1.02] font-medium;
+  .btn-gradient-stripe {
+    background: var(--gradient-brand);
+    @apply text-white rounded-lg shadow-stripe hover:shadow-xl transition-all font-medium hover:scale-[1.02];
   }
   
-  .btn-glass {
-    @apply glass-effect text-foreground rounded-xl hover:bg-white/30 transition-smooth font-medium;
+  .btn-glass-stripe {
+    @apply glass-modern text-slate-700 rounded-lg hover:bg-white/90 transition-all font-medium;
   }
 
   /* Modern logo styles */
-  .dinamic-logo-modern {
-    background: var(--gradient-dinamic);
+  .logo-stripe {
+    background: var(--gradient-brand);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
   }
 
-  .dinamic-icon-modern {
-    @apply rounded-2xl shadow-brand;
-    background: var(--gradient-dinamic);
+  .icon-stripe {
+    @apply rounded-xl shadow-stripe;
+    background: var(--gradient-brand);
     position: relative;
     overflow: hidden;
   }
   
-  .dinamic-icon-modern::before {
+  .icon-stripe::before {
     content: '';
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.6s;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s ease;
   }
   
-  .dinamic-icon-modern:hover::before {
+  .icon-stripe:hover::before {
     left: 100%;
+  }
+  
+  /* Input styles */
+  .input-stripe {
+    @apply bg-white border border-slate-200 rounded-lg shadow-sm hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all;
+  }
+  
+  /* Search styles */
+  .search-stripe {
+    @apply bg-white/90 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm hover:shadow-md focus-within:shadow-stripe focus-within:border-indigo-500 transition-all;
   }
 }
 

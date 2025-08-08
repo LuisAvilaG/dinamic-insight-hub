@@ -100,18 +100,18 @@ export const SearchBar = ({ className = "" }: SearchBarProps) => {
           placeholder="Buscar reportes, dashboards..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-12 pr-4 h-12 bg-white/80 backdrop-blur-sm border-border/50 rounded-2xl shadow-soft focus:shadow-medium focus:bg-white transition-smooth text-base"
+          className="pl-12 pr-4 h-12 search-stripe text-base placeholder:text-slate-400"
         />
         {isLoading && (
           <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
       </div>
 
       {/* Dropdown de resultados */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md border border-border/50 rounded-2xl shadow-large z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-xl z-50 max-h-96 overflow-y-auto">
           {results.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">
               <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />

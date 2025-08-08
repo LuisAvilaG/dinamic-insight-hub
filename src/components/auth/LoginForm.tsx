@@ -88,31 +88,30 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 pattern-dinamic bg-gradient-to-br from-background via-primary/5 to-secondary/5">
-      <div className="absolute inset-0 pattern-dinamic opacity-50"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 pattern-fluid bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/50">
+      <div className="absolute inset-0 pattern-mesh-subtle"></div>
       
-      <Card className="w-full max-w-md shadow-dinamic border-0 bg-card/95 backdrop-blur-sm relative z-10">
+      <Card className="w-full max-w-md shadow-xl border-0 card-glass relative z-10">
         <CardHeader className="text-center space-y-6 pb-8">
-          {/* Logo de Dinamic Software */}
-          <div className="mx-auto w-32 h-24 flex items-center justify-center">
+          <div className="mx-auto w-40 h-20 flex items-center justify-center">
             <img 
-              src={dinamicLogo} 
+              src="/lovable-uploads/9b828b6e-2c36-4919-b6e0-7ef42a97c137.png" 
               alt="Dinamic Software" 
               className="w-full h-full object-contain"
             />
           </div>
           
           <div className="space-y-3">
-            <CardTitle className="text-3xl font-bold dinamic-logo">
+            <CardTitle className="text-3xl font-black logo-stripe">
               DINAMIC
             </CardTitle>
-            <div className="text-lg font-semibold text-primary">
+            <div className="text-lg font-bold text-indigo-600">
               SOFTWARE
             </div>
-            <CardDescription className="text-muted-foreground text-base">
+            <CardDescription className="text-slate-600 text-base">
               Generamos innovación, buscamos crecimiento
             </CardDescription>
-            <div className="text-sm text-muted-foreground/80">
+            <div className="text-sm text-slate-500">
               Business Intelligence Platform
             </div>
           </div>
@@ -121,7 +120,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -129,12 +128,12 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-12 border-2 focus:border-primary transition-smooth"
+                className="h-12 input-stripe text-base"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
+              <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Contraseña</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -143,19 +142,19 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12 pr-12 border-2 focus:border-primary transition-smooth"
+                  className="h-12 pr-12 input-stripe text-base"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-12 w-12 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-12 w-12 hover:bg-transparent text-slate-400 hover:text-slate-600"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </Button>
               </div>
@@ -168,19 +167,19 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                   checked={remember}
                   onCheckedChange={(checked) => setRemember(checked as boolean)}
                 />
-                <Label htmlFor="remember" className="text-sm">
+                <Label htmlFor="remember" className="text-sm text-slate-600">
                   Recordarme
                 </Label>
               </div>
               
-              <Button variant="link" className="p-0 h-auto text-primary hover:text-secondary transition-smooth">
+              <Button variant="link" className="p-0 h-auto text-indigo-600 hover:text-indigo-800 transition-all">
                 ¿Olvidaste tu contraseña?
               </Button>
             </div>
             
             <Button
               type="submit"
-              className="w-full h-12 btn-dinamic text-lg font-semibold"
+              className="w-full h-12 btn-gradient-stripe text-lg font-semibold"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -197,7 +196,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
             </Button>
           </form>
           
-          <div className="text-center text-xs text-muted-foreground">
+          <div className="text-center text-xs text-slate-500">
             © 2024 Dinamic Software. Todos los derechos reservados.
           </div>
         </CardContent>

@@ -27,10 +27,10 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
   const [notifications] = useState(3); // Mock notification count
 
   return (
-    <header className="h-20 glass-effect border-b border-white/20 flex items-center justify-between px-6 shadow-soft relative z-10">
+    <header className="h-20 glass-modern border-b border-slate-200/60 flex items-center justify-between px-6 shadow-sm relative z-10">
       {/* Left section - Logo */}
       <div className="flex items-center space-x-4">
-        <SidebarTrigger className="md:hidden btn-glass" />
+        <SidebarTrigger className="md:hidden btn-glass-stripe" />
         
         <div className="hidden md:flex items-center space-x-4">
           <div className="relative">
@@ -40,9 +40,9 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
               className="h-12 w-auto object-contain"
             />
           </div>
-          <div className="border-l border-white/20 pl-4">
-            <h1 className="text-xl font-black dinamic-logo-modern">DINAMIC</h1>
-            <div className="text-xs font-bold text-primary tracking-widest">SOFTWARE</div>
+          <div className="border-l border-slate-200 pl-4">
+            <h1 className="text-xl font-black logo-stripe">DINAMIC</h1>
+            <div className="text-xs font-bold text-indigo-600 tracking-widest">SOFTWARE</div>
           </div>
         </div>
       </div>
@@ -58,12 +58,12 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="relative glass-effect hover:bg-white/30 transition-smooth rounded-xl h-11 w-11"
+          className="relative glass-modern hover:bg-white/60 transition-all rounded-xl h-11 w-11"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5 text-slate-600" />
           {notifications > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-gradient-dinamic border-0 shadow-brand"
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-gradient-brand border-0 shadow-stripe text-white"
             >
               {notifications}
             </Badge>
@@ -74,51 +74,51 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="glass-effect hover:bg-white/30 transition-smooth rounded-xl h-11 w-11"
+          className="glass-modern hover:bg-white/60 transition-all rounded-xl h-11 w-11"
         >
-          <Settings className="h-5 w-5" />
+          <Settings className="h-5 w-5 text-slate-600" />
         </Button>
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-11 w-11 rounded-xl glass-effect hover:bg-white/30 transition-smooth">
+            <Button variant="ghost" className="relative h-11 w-11 rounded-xl glass-modern hover:bg-white/60 transition-all">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="/placeholder-avatar.jpg" alt="Usuario" />
-                <AvatarFallback className="dinamic-icon-modern text-white font-bold text-sm">
+                <AvatarFallback className="icon-stripe text-white font-bold text-sm">
                   DS
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           
-          <DropdownMenuContent className="w-64 mt-2 bg-white/95 backdrop-blur-md border-white/20 shadow-large rounded-2xl" align="end" forceMount>
+          <DropdownMenuContent className="w-64 mt-2 bg-white/95 backdrop-blur-md border-slate-200/60 shadow-xl rounded-2xl" align="end" forceMount>
             <DropdownMenuLabel className="font-normal p-4">
               <div className="flex flex-col space-y-2">
-                <p className="text-base font-semibold leading-none">Usuario Admin</p>
-                <p className="text-sm leading-none text-muted-foreground">
+                <p className="text-base font-semibold leading-none text-slate-900">Usuario Admin</p>
+                <p className="text-sm leading-none text-slate-500">
                   admin@dinamicsoftware.com
                 </p>
               </div>
             </DropdownMenuLabel>
             
-            <DropdownMenuSeparator className="bg-border/50" />
+            <DropdownMenuSeparator className="bg-slate-200/60" />
             
-            <DropdownMenuItem className="hover:bg-accent/50 transition-smooth m-1 rounded-xl p-3">
-              <User className="mr-3 h-4 w-4" />
-              <span>Perfil</span>
+            <DropdownMenuItem className="hover:bg-slate-50 transition-all m-1 rounded-xl p-3">
+              <User className="mr-3 h-4 w-4 text-slate-600" />
+              <span className="text-slate-700">Perfil</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="hover:bg-accent/50 transition-smooth m-1 rounded-xl p-3">
-              <Settings className="mr-3 h-4 w-4" />
-              <span>Configuración</span>
+            <DropdownMenuItem className="hover:bg-slate-50 transition-all m-1 rounded-xl p-3">
+              <Settings className="mr-3 h-4 w-4 text-slate-600" />
+              <span className="text-slate-700">Configuración</span>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator className="bg-border/50" />
+            <DropdownMenuSeparator className="bg-slate-200/60" />
             
             <DropdownMenuItem 
               onClick={onLogout}
-              className="text-destructive focus:text-destructive hover:bg-destructive/10 transition-smooth m-1 rounded-xl p-3"
+              className="text-red-600 focus:text-red-700 hover:bg-red-50 transition-all m-1 rounded-xl p-3"
             >
               <LogOut className="mr-3 h-4 w-4" />
               <span>Cerrar Sesión</span>
