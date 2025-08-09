@@ -27,104 +27,78 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
   const [notifications] = useState(3); // Mock notification count
 
   return (
-    <header className="h-20 glass-modern border-b border-slate-200/60 flex items-center justify-between px-6 shadow-sm relative z-10">
-      {/* Left section - Logo */}
-      <div className="flex items-center space-x-4">
-        <SidebarTrigger className="md:hidden btn-glass-stripe" />
-        
-        <div className="hidden md:flex items-center space-x-4">
-          <div className="relative">
+    <header className="stripe-card border-b border-border bg-white/95 backdrop-blur-sm h-16">
+      <div className="flex items-center justify-between h-full px-6">
+        {/* Logo and brand */}
+        <div className="flex items-center space-x-4">
+          <SidebarTrigger className="text-foreground hover:bg-muted" />
+          <div className="flex items-center space-x-3">
             <img 
               src="/lovable-uploads/9b828b6e-2c36-4919-b6e0-7ef42a97c137.png" 
               alt="Dinamic Software" 
-              className="h-12 w-auto object-contain"
+              className="w-8 h-8 object-contain"
             />
-          </div>
-          <div className="border-l border-slate-200 pl-4">
-            <h1 className="text-xl font-black logo-stripe">DINAMIC</h1>
-            <div className="text-xs font-bold text-indigo-600 tracking-widest">SOFTWARE</div>
+            <span className="stripe-logo-text text-xl font-bold hidden sm:block">
+              Dinamic Software
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Center section - Modern Search */}
-      <div className="flex-1 max-w-xl mx-6">
-        <SearchBar />
-      </div>
-
-      {/* Right section - Modern Actions */}
-      <div className="flex items-center space-x-2">
-        {/* Notifications */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="relative glass-modern hover:bg-white/60 transition-all rounded-xl h-11 w-11"
-        >
-          <Bell className="h-5 w-5 text-slate-600" />
-          {notifications > 0 && (
-            <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-gradient-brand border-0 shadow-stripe text-white"
-            >
-              {notifications}
-            </Badge>
-          )}
-        </Button>
-
-        {/* Settings */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="glass-modern hover:bg-white/60 transition-all rounded-xl h-11 w-11"
-        >
-          <Settings className="h-5 w-5 text-slate-600" />
-        </Button>
+        {/* Search bar */}
+        <div className="flex-1 max-w-xl mx-6">
+          <SearchBar />
+        </div>
 
         {/* User menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-11 w-11 rounded-xl glass-modern hover:bg-white/60 transition-all">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src="/placeholder-avatar.jpg" alt="Usuario" />
-                <AvatarFallback className="icon-stripe text-white font-bold text-sm">
-                  DS
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          
-          <DropdownMenuContent className="w-64 mt-2 bg-white/95 backdrop-blur-md border-slate-200/60 shadow-xl rounded-2xl" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal p-4">
-              <div className="flex flex-col space-y-2">
-                <p className="text-base font-semibold leading-none text-slate-900">Usuario Admin</p>
-                <p className="text-sm leading-none text-slate-500">
-                  admin@dinamicsoftware.com
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            
-            <DropdownMenuSeparator className="bg-slate-200/60" />
-            
-            <DropdownMenuItem className="hover:bg-slate-50 transition-all m-1 rounded-xl p-3">
-              <User className="mr-3 h-4 w-4 text-slate-600" />
-              <span className="text-slate-700">Perfil</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem className="hover:bg-slate-50 transition-all m-1 rounded-xl p-3">
-              <Settings className="mr-3 h-4 w-4 text-slate-600" />
-              <span className="text-slate-700">Configuración</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator className="bg-slate-200/60" />
-            
-            <DropdownMenuItem 
-              onClick={onLogout}
-              className="text-red-600 focus:text-red-700 hover:bg-red-50 transition-all m-1 rounded-xl p-3"
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              <span>Cerrar Sesión</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center space-x-3">
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hover:bg-muted">
+            <Bell className="h-5 w-5" />
+            {notifications > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs stripe-icon text-white">
+                {notifications}
+              </Badge>
+            )}
+          </Button>
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hover:bg-muted">
+            <Settings className="h-5 w-5" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-muted">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="#" alt="Usuario" />
+                  <AvatarFallback className="stripe-icon text-white text-sm">
+                    U
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 stripe-card" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none text-foreground">Usuario</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    usuario@dinamicsoftware.com
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-foreground hover:bg-muted">
+                <User className="mr-2 h-4 w-4" />
+                <span>Perfil</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-foreground hover:bg-muted">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Configuración</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onLogout} className="text-foreground hover:bg-muted">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar sesión</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import dinamicLogo from "@/assets/dinamic-logo.png";
+import dinamicLogo from "/lovable-uploads/9b828b6e-2c36-4919-b6e0-7ef42a97c137.png";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -88,119 +88,148 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 pattern-fluid bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/50">
-      <div className="absolute inset-0 pattern-mesh-subtle"></div>
-      
-      <Card className="w-full max-w-md shadow-xl border-0 card-glass relative z-10">
-        <CardHeader className="text-center space-y-6 pb-8">
-          <div className="mx-auto w-40 h-20 flex items-center justify-center">
-            <img 
-              src="/lovable-uploads/9b828b6e-2c36-4919-b6e0-7ef42a97c137.png" 
-              alt="Dinamic Software" 
-              className="w-full h-full object-contain"
-            />
-          </div>
-          
-          <div className="space-y-3">
-            <CardTitle className="text-3xl font-black logo-stripe">
-              DINAMIC
-            </CardTitle>
-            <div className="text-lg font-bold text-indigo-600">
-              SOFTWARE
-            </div>
-            <CardDescription className="text-slate-600 text-base">
-              Generamos innovación, buscamos crecimiento
-            </CardDescription>
-            <div className="text-sm text-slate-500">
-              Business Intelligence Platform
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu.email@empresa.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-12 input-stripe text-base"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-12 pr-12 input-stripe text-base"
+    <div className="min-h-screen stripe-section bg-background">
+      <div className="stripe-container">
+        <div className="stripe-two-col min-h-screen">
+          {/* Left side - Hero content */}
+          <div className="flex flex-col justify-center space-y-8 py-12">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <img 
+                  src="/lovable-uploads/9b828b6e-2c36-4919-b6e0-7ef42a97c137.png" 
+                  alt="Dinamic Software" 
+                  className="w-12 h-12 object-contain"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-12 w-12 hover:bg-transparent text-slate-400 hover:text-slate-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </Button>
+                <span className="stripe-logo-text text-2xl font-bold">
+                  Dinamic Software
+                </span>
+              </div>
+              <div className="space-y-4">
+                <h1 className="stripe-heading-xl text-foreground">
+                  Unified, global Business Intelligence to grow your revenue
+                </h1>
+                <p className="stripe-text-lg max-w-lg">
+                  Tu plataforma integral para la toma de decisiones inteligentes. 
+                  Generamos innovación, buscamos crecimiento con tecnología de vanguardia.
+                </p>
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={remember}
-                  onCheckedChange={(checked) => setRemember(checked as boolean)}
-                />
-                <Label htmlFor="remember" className="text-sm text-slate-600">
-                  Recordarme
-                </Label>
+            {/* Feature highlights */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span className="text-sm text-muted-foreground">
+                  Reportes en tiempo real y análisis avanzado
+                </span>
               </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span className="text-sm text-muted-foreground">
+                  Dashboard intuitivo y fácil de usar
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span className="text-sm text-muted-foreground">
+                  Integración completa entre departamentos
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Login form */}
+          <div className="flex flex-col justify-center py-12">
+            <div className="max-w-sm mx-auto w-full space-y-6">
+              <div className="text-center space-y-2">
+                <h2 className="stripe-heading-lg text-foreground">
+                  Iniciar sesión
+                </h2>
+                <p className="text-muted-foreground">
+                  Accede a tu cuenta para continuar
+                </p>
+              </div>
+
+              <Card className="stripe-card p-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                      Correo electrónico
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      className="stripe-input w-full"
+                      placeholder="tu@ejemplo.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                      Contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        required
+                        className="stripe-input w-full pr-10"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="remember"
+                        checked={remember}
+                        onCheckedChange={(checked) => setRemember(checked as boolean)}
+                      />
+                      <label htmlFor="remember" className="text-muted-foreground">
+                        Recordarme
+                      </label>
+                    </div>
+                    <button type="button" className="text-primary hover:text-primary/80">
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="stripe-btn-primary w-full stripe-hover-lift"
+                  >
+                    {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+                  </button>
+                </form>
+              </Card>
               
-              <Button variant="link" className="p-0 h-auto text-indigo-600 hover:text-indigo-800 transition-all">
-                ¿Olvidaste tu contraseña?
-              </Button>
+              <div className="text-center text-xs text-muted-foreground">
+                © 2024 Dinamic Software. Todos los derechos reservados.
+              </div>
             </div>
-            
-            <Button
-              type="submit"
-              className="w-full h-12 btn-gradient-stripe text-lg font-semibold"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                  <span>Iniciando sesión...</span>
-                </div>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-5 w-5" />
-                  Iniciar Sesión
-                </>
-              )}
-            </Button>
-          </form>
-          
-          <div className="text-center text-xs text-slate-500">
-            © 2024 Dinamic Software. Todos los derechos reservados.
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

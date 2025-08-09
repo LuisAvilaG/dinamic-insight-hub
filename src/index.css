@@ -2,82 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dinamic Software Design System 2025 - Tendencias modernas */
+/* Stripe-inspired Design System 2025 */
 
 @layer base {
   :root {
-    /* Modern Stripe-inspired Design Foundation */
-    --background: 255 255 255; /* Pure white background */
-    --foreground: 15 23 42; /* Slate-900 for text */
+    /* Stripe Core Colors */
+    --background: 255 255 255; /* #FFFFFF - Pure white background */
+    --foreground: 10 37 64; /* #0A2540 - Stripe dark blue for text */
     
-    /* Stripe-inspired gradient palette */
-    --primary: 99 102 241; /* Indigo-500 - Modern purple-blue */
+    /* Primary Stripe purple gradient */
+    --primary: 99 91 255; /* #635BFF - Stripe primary purple */
     --primary-foreground: 255 255 255;
-    --primary-light: 139 92 246; /* Violet-500 */
-    --primary-dark: 67 56 202; /* Indigo-600 */
+    --primary-light: 122 119 255; /* #7A77FF - Lighter purple for gradients */
+    --primary-dark: 88 80 236; /* Darker purple */
     
-    --secondary: 14 165 233; /* Sky-500 - Bright blue */
+    /* Secondary colors */
+    --secondary: 107 124 147; /* #6B7C93 - Stripe secondary gray */
     --secondary-foreground: 255 255 255;
-    --secondary-light: 56 189 248; /* Sky-400 */
-    --secondary-dark: 2 132 199; /* Sky-600 */
+    --secondary-light: 139 155 180;
+    --secondary-dark: 75 92 109;
     
-    --accent-purple: 168 85 247; /* Purple-500 */
-    --accent-cyan: 6 182 212; /* Cyan-500 */
-    --accent-emerald: 16 185 129; /* Emerald-500 */
-    --accent-orange: 251 146 60; /* Orange-400 */
+    /* Accent colors for highlights */
+    --accent-blue: 0 122 255; /* Stripe blue accent */
+    --accent-green: 0 214 111; /* Stripe success green */
+    --accent-orange: 255 123 0; /* Stripe warning orange */
+    --accent-red: 255 77 79; /* Stripe error red */
     
-    /* Neutral grays */
-    --dark: 15 23 42; /* Slate-900 */
+    /* Neutral grays following Stripe pattern */
+    --dark: 10 37 64; /* #0A2540 - Main text color */
     --dark-foreground: 255 255 255;
     
-    /* Subtle UI colors */
+    /* UI element colors */
     --card: 255 255 255;
-    --card-foreground: 15 23 42;
+    --card-foreground: 10 37 64;
     
     --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
+    --popover-foreground: 10 37 64;
     
-    --muted: 248 250 252; /* Slate-50 */
-    --muted-foreground: 100 116 139; /* Slate-500 */
+    --muted: 248 250 252; /* Very light gray background */
+    --muted-foreground: 107 124 147; /* #6B7C93 - Stripe secondary gray */
     
     --accent: 248 250 252;
-    --accent-foreground: 15 23 42;
+    --accent-foreground: 10 37 64;
     
-    --destructive: 239 68 68; /* Red-500 */
+    --destructive: 255 77 79; /* Stripe red */
     --destructive-foreground: 255 255 255;
     
-    --border: 226 232 240; /* Slate-200 */
-    --input: 241 245 249; /* Slate-100 */
-    --ring: 99 102 241; /* Indigo-500 */
+    --border: 230 230 230; /* #E6E6E6 - Light gray borders */
+    --input: 248 250 252; /* Light input background */
+    --ring: 99 91 255; /* Focus ring using primary purple */
     
-    /* Modern design tokens */
-    --radius: 0.75rem; /* 12px */
-    --radius-lg: 1rem; /* 16px */
-    --radius-xl: 1.5rem; /* 24px */
+    /* Stripe design tokens - 6px border radius as specified */
+    --radius: 0.375rem; /* 6px - Stripe standard */
+    --radius-lg: 0.5rem; /* 8px - Slightly larger */
+    --radius-xl: 0.75rem; /* 12px - Large elements */
     
-    /* Stripe-inspired gradients */
-    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-secondary: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-    --gradient-mesh: linear-gradient(135deg, #6366f1 0%, #8b5cf6 35%, #0ea5e9 100%);
-    --gradient-brand: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-    --gradient-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
+    /* Stripe-inspired gradients using exact colors */
+    --gradient-primary: linear-gradient(135deg, #635BFF 0%, #7A77FF 100%);
+    --gradient-secondary: linear-gradient(135deg, #6B7C93 0%, #8B9DC3 100%);
+    --gradient-mesh: linear-gradient(135deg, #635BFF 0%, #7A77FF 35%, #0A2540 100%);
+    --gradient-brand: linear-gradient(135deg, #635BFF 0%, #7A77FF 100%);
+    --gradient-soft: linear-gradient(135deg, rgba(99, 91, 255, 0.1) 0%, rgba(122, 119, 255, 0.1) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
     
-    /* Modern shadows */
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    --shadow-brand: 0 20px 40px -10px rgba(99, 102, 241, 0.25);
-    --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.05), 0 1px 3px 0 rgba(99, 102, 241, 0.1);
+    /* Stripe-style subtle shadows */
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    --shadow-stripe: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     
-    /* Fluid transitions */
-    --transition-all: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Stripe smooth transitions */
+    --transition-all: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 15%;
@@ -136,141 +138,131 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Inter', 'Roboto', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
 @layer components {
-  /* Stripe-inspired gradients */
-  .gradient-brand {
-    background: var(--gradient-brand);
+  /* Stripe-inspired component classes */
+  .stripe-gradient-primary {
+    background: var(--gradient-primary);
   }
   
-  .gradient-mesh {
-    background: var(--gradient-mesh);
-  }
-  
-  .gradient-soft {
+  .stripe-gradient-subtle {
     background: var(--gradient-soft);
   }
   
-  .gradient-glass {
+  .stripe-glass {
     background: var(--gradient-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
   
-  /* Modern shadows */
-  .shadow-stripe {
-    box-shadow: var(--shadow-brand);
+  /* Stripe card styles - clean and minimal */
+  .stripe-card {
+    @apply bg-white border border-border rounded-md shadow-sm hover:shadow-md transition-all;
+    box-shadow: var(--shadow-card);
   }
   
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
+  .stripe-card-interactive {
+    @apply stripe-card hover:translate-y-[-1px] cursor-pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  /* Fluid transitions */
-  .transition-all {
+  .stripe-card-hover:hover {
+    box-shadow: var(--shadow-stripe);
+  }
+  
+  /* Stripe button styles */
+  .stripe-btn-primary {
+    background: var(--gradient-primary);
+    @apply text-white rounded-md font-medium hover:opacity-90 transition-all;
+    padding: 12px 24px;
+    border: none;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .stripe-btn-secondary {
+    @apply bg-white text-foreground border border-border rounded-md font-medium hover:bg-muted transition-all;
+    padding: 12px 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* Stripe input styles */
+  .stripe-input {
+    @apply bg-white border border-border rounded-md px-3 py-2 text-sm;
+    box-shadow: var(--shadow-xs);
     transition: var(--transition-all);
   }
   
-  .transition-smooth {
-    transition: var(--transition-normal);
+  .stripe-input:focus {
+    @apply border-primary ring-1 ring-primary outline-none;
+    box-shadow: var(--shadow-sm);
   }
   
-  /* Modern card styles */
-  .card-stripe {
-    @apply bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all;
+  /* Stripe layout utilities */
+  .stripe-section {
+    @apply py-16 lg:py-24; /* Generous whitespace */
   }
   
-  .card-interactive {
-    @apply card-stripe hover:scale-[1.01] hover:shadow-stripe cursor-pointer;
+  .stripe-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  .card-glass {
-    @apply gradient-glass border border-white/20 rounded-2xl shadow-xl backdrop-blur-md;
+  .stripe-two-col {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center;
   }
   
-  /* Modern glassmorphism */
-  .glass-modern {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  /* Stripe typography */
+  .stripe-heading-xl {
+    @apply text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground leading-tight;
+    letter-spacing: -0.02em;
   }
   
-  /* Stripe-inspired patterns */
-  .pattern-fluid {
+  .stripe-heading-lg {
+    @apply text-3xl lg:text-4xl font-bold text-foreground leading-tight;
+    letter-spacing: -0.015em;
+  }
+  
+  .stripe-text-lg {
+    @apply text-lg text-muted-foreground leading-relaxed;
+  }
+  
+  /* Stripe patterns and backgrounds */
+  .stripe-bg-gradient {
+    background: linear-gradient(135deg, rgba(99, 91, 255, 0.03) 0%, rgba(122, 119, 255, 0.03) 100%);
+  }
+  
+  .stripe-pattern-subtle {
     background-image: 
-      radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 60%),
-      radial-gradient(ellipse at 50% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
-  }
-  
-  .pattern-mesh-subtle {
-    background-image: 
-      linear-gradient(45deg, rgba(99, 102, 241, 0.02) 25%, transparent 25%),
-      linear-gradient(-45deg, rgba(99, 102, 241, 0.02) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, rgba(139, 92, 246, 0.02) 75%),
-      linear-gradient(-45deg, transparent 75%, rgba(139, 92, 246, 0.02) 75%);
-    background-size: 40px 40px;
-    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
-  }
-  
-  /* Modern buttons */
-  .btn-stripe {
-    @apply bg-indigo-500 text-white rounded-lg shadow-sm hover:bg-indigo-600 hover:shadow-md transition-all font-medium;
-  }
-  
-  .btn-gradient-stripe {
-    background: var(--gradient-brand);
-    @apply text-white rounded-lg shadow-stripe hover:shadow-xl transition-all font-medium hover:scale-[1.02];
-  }
-  
-  .btn-glass-stripe {
-    @apply glass-modern text-slate-700 rounded-lg hover:bg-white/90 transition-all font-medium;
+      radial-gradient(circle at 25% 25%, rgba(99, 91, 255, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(122, 119, 255, 0.04) 0%, transparent 50%);
   }
 
-  /* Modern logo styles */
-  .logo-stripe {
-    background: var(--gradient-brand);
+  /* Stripe logo and branding */
+  .stripe-logo-text {
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-weight: 800;
-    letter-spacing: -0.04em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
-  .icon-stripe {
-    @apply rounded-xl shadow-stripe;
-    background: var(--gradient-brand);
-    position: relative;
-    overflow: hidden;
+  .stripe-icon {
+    @apply rounded-md;
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-sm);
   }
   
-  .icon-stripe::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transition: left 0.6s ease;
+  /* Clean animations */
+  .stripe-hover-lift {
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  .icon-stripe:hover::before {
-    left: 100%;
-  }
-  
-  /* Input styles */
-  .input-stripe {
-    @apply bg-white border border-slate-200 rounded-lg shadow-sm hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all;
-  }
-  
-  /* Search styles */
-  .search-stripe {
-    @apply bg-white/90 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm hover:shadow-md focus-within:shadow-stripe focus-within:border-indigo-500 transition-all;
+  .stripe-hover-lift:hover {
+    transform: translateY(-1px);
   }
 }
 
