@@ -15,6 +15,7 @@ import { DinamicPage } from "./pages/DinamicPage";
 import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
 import NotFound from "./pages/NotFound";
+import UsersAdmin from "./pages/UsersAdmin";
 
 const queryClient = new QueryClient();
 
@@ -66,7 +67,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <DashboardLayout onLogout={handleLogout}>
+          <DashboardLayout onLogout={handleLogout} userRole={userRole}>
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardHome />} />
@@ -77,6 +78,10 @@ const App = () => {
               <Route path="/dinamic" element={<DinamicPage />} />
               <Route path="/reportes" element={<ReportManager />} />
               <Route path="/reportes/:id" element={<ReportViewer />} />
+              <Route
+                path="/admin/usuarios"
+                element={userRole === 'Admin' ? <UsersAdmin /> : <Navigate to="/dashboard" replace />}
+              />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

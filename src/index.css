@@ -6,23 +6,23 @@
 
 @layer base {
   :root {
-    /* Core brand colors - Basados en la imagen de Dinamic Software */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 15%;
+    /* Core brand colors - Corporate style */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 0 0% 12%; /* #1F1F1F */
     
-    /* Dinamic brand palette - Colores exactos de la imagen */
-    --primary: 194 100% 50%; /* #00BFFF - Azul cyan vibrante */
+    /* Corporate palette */
+    --primary: 211 100% 50%; /* #007BFF */
     --primary-foreground: 0 0% 98%;
-    --primary-light: 194 100% 70%; /* #66D9FF - Azul claro */
+    --primary-light: 211 100% 60%;
     
-    --secondary: 320 100% 50%; /* #FF00BF - Magenta vibrante */
-    --secondary-foreground: 0 0% 98%;
-    --secondary-light: 320 70% 70%; /* #FF66D9 - Magenta claro */
+    --secondary: 220 10% 65%; /* neutral gray for secondary elements */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 220 10% 75%;
     
-    --accent-purple: 280 100% 40%; /* #8000FF - Púrpura */
-    --accent-teal: 180 100% 40%; /* #00CCCC - Verde azulado */
+    --accent-purple: 255 45% 47%; /* #673AB7 */
+    --accent-teal: 340 82% 54%; /* #E91E63 as fuchsia accent (used in gradient) */
     
-    --dark: 0 0% 8%; /* #141414 - Gris muy oscuro */
+    --dark: 0 0% 8%;
     --dark-foreground: 0 0% 98%;
     
     /* UI colors */

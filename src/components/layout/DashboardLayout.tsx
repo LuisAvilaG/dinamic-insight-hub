@@ -6,13 +6,14 @@ import { DashboardHeader } from "./DashboardHeader";
 interface DashboardLayoutProps {
   children: React.ReactNode;
   onLogout: () => void;
+  userRole?: string;
 }
 
-export const DashboardLayout = ({ children, onLogout }: DashboardLayoutProps) => {
+export const DashboardLayout = ({ children, onLogout, userRole }: DashboardLayoutProps) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <DashboardSidebar />
+        <DashboardSidebar userRole={userRole} />
         
         <div className="flex-1 flex flex-col">
           <DashboardHeader onLogout={onLogout} />

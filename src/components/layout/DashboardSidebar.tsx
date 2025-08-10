@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -68,7 +67,7 @@ const navigationItems = [
   }
 ];
 
-export const DashboardSidebar = () => {
+export const DashboardSidebar = ({ userRole }: { userRole?: string }) => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -81,8 +80,13 @@ export const DashboardSidebar = () => {
     return currentPath.startsWith(path);
   };
 
+  const items = [...navigationItems];
+  if (userRole === "Admin") {
+    items.push({ title: "Usuarios", url: "/admin/usuarios", icon: Users, description: "Gestión de usuarios" });
+  }
+
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-white/95 backdrop-blur-sm text-foreground shadow-lg`}>
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-white text-foreground shadow-sm`}>
       <SidebarHeader className="p-4 border-b border-border/50">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-8 flex items-center justify-center flex-shrink-0">
@@ -94,8 +98,7 @@ export const DashboardSidebar = () => {
           </div>
           {!collapsed && (
             <div>
-              <h2 className="text-xl font-bold dinamic-logo">DINAMIC</h2>
-              <p className="text-sm text-primary font-semibold">SOFTWARE</p>
+              <h2 className="text-xl font-bold text-foreground">Dinamic Software</h2>
               <p className="text-xs text-muted-foreground">Business Intelligence</p>
             </div>
           )}
@@ -105,28 +108,28 @@ export const DashboardSidebar = () => {
       <SidebarContent className="p-2">
         <SidebarGroup>
           <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""} text-muted-foreground text-xs uppercase tracking-wider px-3 py-2 font-semibold`}>
-            Departamentos
+            Navegación
           </SidebarGroupLabel>
           
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
-              {navigationItems.map((item) => (
+              {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-12">
+                  <SidebarMenuButton asChild className="h-11">
                     <NavLink
                       to={item.url}
                       className={({ isActive: navIsActive }) => {
                         const active = navIsActive || isActive(item.url);
                         return `
-                          flex items-center space-x-3 px-3 py-3 rounded-xl transition-all duration-200 group
+                          flex items-center space-x-3 px-3 py-2 rounded-md transition-all duration-200 group
                           ${active 
-                            ? "bg-gradient-to-r from-primary/10 via-secondary/10 to-accent-purple/10 text-primary border-l-4 border-primary shadow-sm" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                            ? "bg-muted text-foreground border border-border" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                           }
                         `;
                       }}
                     >
-                      <item.icon className={`${collapsed ? "h-6 w-6" : "h-5 w-5"} flex-shrink-0 transition-colors group-hover:text-primary`} />
+                      <item.icon className={`${collapsed ? "h-6 w-6" : "h-5 w-5"} flex-shrink-0`} />
                       {!collapsed && (
                         <div className="flex-1 min-w-0">
                           <div className="font-medium">{item.title}</div>

@@ -17,18 +17,33 @@ export type Database = {
       Cuentas: {
         Row: {
           Correo: string
+          created_at: string
+          Estado: string
+          Nombre: string | null
           Password: string
           Rol: string | null
+          UltimoAcceso: string | null
+          updated_at: string
         }
         Insert: {
           Correo: string
+          created_at?: string
+          Estado?: string
+          Nombre?: string | null
           Password: string
           Rol?: string | null
+          UltimoAcceso?: string | null
+          updated_at?: string
         }
         Update: {
           Correo?: string
+          created_at?: string
+          Estado?: string
+          Nombre?: string | null
           Password?: string
           Rol?: string | null
+          UltimoAcceso?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
