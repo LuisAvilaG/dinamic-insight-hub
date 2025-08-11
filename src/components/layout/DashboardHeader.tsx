@@ -20,13 +20,15 @@ import {
   LogOut,
   Zap
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ReportSearch } from "@/components/search/ReportSearch";
 
 interface DashboardHeaderProps {
   onLogout: () => void;
 }
 
 export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const [notifications] = useState(3); // Mock notification count
 
   return (
@@ -49,16 +51,7 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
 
       {/* Center section - Search */}
       <div className="flex-1 max-w-md mx-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Buscar reportes, dashboards..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-accent/50 border-0 focus:bg-background focus:border-primary transition-smooth"
-          />
-        </div>
+        <ReportSearch />
       </div>
 
       {/* Right section */}
@@ -77,7 +70,7 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
         </Button>
 
         {/* Settings */}
-        <Button variant="ghost" size="icon" className="hover:bg-primary/10 transition-smooth">
+        <Button variant="ghost" size="icon" className="hover:bg-primary/10 transition-smooth" onClick={() => navigate('/perfil')}>
           <Settings className="h-5 w-5" />
         </Button>
 
@@ -106,12 +99,12 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
             
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth">
+            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth" onClick={() => navigate('/perfil')}>
               <User className="mr-2 h-4 w-4" />
               <span>Perfil</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth">
+            <DropdownMenuItem className="hover:bg-primary/10 transition-smooth" onClick={() => navigate('/perfil')}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Configuración</span>
             </DropdownMenuItem>

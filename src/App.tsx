@@ -16,6 +16,7 @@ import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
 import NotFound from "./pages/NotFound";
 import UsersAdmin from "./pages/UsersAdmin";
+import ProfileSettings from "./pages/ProfileSettings";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => {
   const handleLogin = (email: string, role: string, remember: boolean) => {
     setIsAuthenticated(true);
     setUserRole(role);
+    localStorage.setItem('dinamic_user_email', email);
     if (remember) {
       localStorage.setItem('dinamic_auth', 'true');
       localStorage.setItem('dinamic_user_role', role);

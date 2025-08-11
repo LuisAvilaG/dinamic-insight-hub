@@ -16,8 +16,10 @@ export type Database = {
     Tables: {
       Cuentas: {
         Row: {
+          avatar_url: string | null
           Correo: string
           created_at: string
+          departamento: string | null
           Estado: string
           Nombre: string | null
           Password: string
@@ -26,8 +28,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           Correo: string
           created_at?: string
+          departamento?: string | null
           Estado?: string
           Nombre?: string | null
           Password: string
@@ -36,8 +40,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           Correo?: string
           created_at?: string
+          departamento?: string | null
           Estado?: string
           Nombre?: string | null
           Password?: string

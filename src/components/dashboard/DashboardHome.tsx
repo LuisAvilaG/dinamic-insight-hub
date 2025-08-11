@@ -147,7 +147,7 @@ export const DashboardHome = () => {
               <div className="mt-4">
                 <Badge 
                   variant={stat.positive ? "default" : "destructive"}
-                  className="text-xs bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-0"
+                  className="text-xs bg-muted text-foreground/80 border border-border"
                 >
                   {stat.change} vs mes anterior
                 </Badge>
@@ -171,7 +171,7 @@ export const DashboardHome = () => {
                   <div className={`w-12 h-12 bg-gradient-to-br ${dept.color} rounded-xl flex items-center justify-center shadow-lg`}>
                     <dept.icon className="h-6 w-6 text-white" />
                   </div>
-                  <Badge variant="secondary" className="text-xs bg-gradient-to-r from-primary/10 to-secondary/10 text-primary border-0">
+                  <Badge variant="secondary" className="text-xs bg-muted text-foreground/80 border border-border">
                     {dept.reports} reportes
                   </Badge>
                 </div>
