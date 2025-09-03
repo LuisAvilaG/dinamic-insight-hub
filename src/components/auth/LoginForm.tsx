@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import dinamicLogo from "@/assets/dinamic-logo.png";
+import dinamicLogo from "@/assets/dinamic-logo-corporate.png";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -88,27 +88,27 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 pattern-dinamic bg-gradient-to-br from-background via-primary/5 to-secondary/5">
-      <div className="absolute inset-0 pattern-dinamic opacity-50"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/20 via-secondary/30 to-accent-teal/20 relative overflow-hidden">
+      {/* Formas geométricas de fondo inspiradas en el logo */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent transform rotate-45 rounded-lg"></div>
+        <div className="absolute top-40 right-32 w-48 h-48 bg-gradient-to-br from-secondary/10 to-transparent transform -rotate-12 rounded-lg"></div>
+        <div className="absolute bottom-32 left-32 w-56 h-56 bg-gradient-to-br from-accent-teal/10 to-transparent transform rotate-12 rounded-lg"></div>
+        <div className="absolute bottom-20 right-20 w-72 h-72 bg-gradient-to-br from-accent-purple/10 to-transparent transform -rotate-45 rounded-lg"></div>
+      </div>
       
       <Card className="w-full max-w-md shadow-dinamic border-0 bg-card/95 backdrop-blur-sm relative z-10">
         <CardHeader className="text-center space-y-6 pb-8">
-          {/* Logo de Dinamic Software */}
-          <div className="mx-auto w-32 h-24 flex items-center justify-center">
+          {/* Logo corporativo de Dinamic Software */}
+          <div className="mx-auto w-48 h-32 flex items-center justify-center">
             <img 
               src={dinamicLogo} 
               alt="Dinamic Software" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-lg"
             />
           </div>
           
           <div className="space-y-3">
-            <CardTitle className="text-3xl font-bold dinamic-logo">
-              DINAMIC
-            </CardTitle>
-            <div className="text-lg font-semibold text-primary">
-              SOFTWARE
-            </div>
             <CardDescription className="text-muted-foreground text-base">
               Generamos innovación, buscamos crecimiento
             </CardDescription>

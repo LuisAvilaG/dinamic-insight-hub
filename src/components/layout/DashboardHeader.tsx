@@ -18,10 +18,11 @@ import {
   Settings, 
   User, 
   LogOut,
-  Zap
+  Building2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ReportSearch } from "@/components/search/ReportSearch";
+import dinamicLogo from "@/assets/dinamic-logo.png";
 
 interface DashboardHeaderProps {
   onLogout: () => void;
@@ -38,13 +39,15 @@ export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
         <SidebarTrigger className="md:hidden" />
         
         <div className="hidden md:flex items-center space-x-3">
-          <div className="w-10 h-10 dinamic-icon flex items-center justify-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent-purple"></div>
-            <Zap className="w-5 h-5 text-white relative z-10" />
+          <div className="w-10 h-10 flex items-center justify-center">
+            <img 
+              src={dinamicLogo} 
+              alt="Dinamic Software" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
-            <h1 className="text-lg font-bold dinamic-logo">DINAMIC</h1>
-            <div className="text-xs text-primary font-semibold">SOFTWARE</div>
+            <div className="text-xs text-muted-foreground font-semibold">Business Intelligence</div>
           </div>
         </div>
       </div>

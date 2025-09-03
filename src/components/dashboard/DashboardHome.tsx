@@ -8,10 +8,11 @@ import {
   Users, 
   Zap,
   TrendingUp,
-  Activity,
   Calendar,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Building2,
+  Activity
 } from "lucide-react";
 
 const departmentCards = [
@@ -67,7 +68,7 @@ const quickStats = [
     title: "Total Reportes",
     value: "51",
     change: "+12%",
-    icon: BarChart3,
+    icon: Building2,
     positive: true
   },
   {
@@ -81,7 +82,7 @@ const quickStats = [
     title: "Actualizaciones Hoy",
     value: "18",
     change: "+5%",
-    icon: Activity,
+    icon: Calendar,
     positive: true
   },
   {
@@ -147,7 +148,7 @@ export const DashboardHome = () => {
               <div className="mt-4">
                 <Badge 
                   variant={stat.positive ? "default" : "destructive"}
-                  className="text-xs bg-muted text-foreground/80 border border-border"
+                  className="text-xs bg-primary/10 text-primary border border-primary/20"
                 >
                   {stat.change} vs mes anterior
                 </Badge>
@@ -171,7 +172,7 @@ export const DashboardHome = () => {
                   <div className={`w-12 h-12 bg-gradient-to-br ${dept.color} rounded-xl flex items-center justify-center shadow-lg`}>
                     <dept.icon className="h-6 w-6 text-white" />
                   </div>
-                  <Badge variant="secondary" className="text-xs bg-muted text-foreground/80 border border-border">
+                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border border-primary/20">
                     {dept.reports} reportes
                   </Badge>
                 </div>

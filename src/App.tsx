@@ -84,6 +84,7 @@ const App = () => {
                 path="/admin/usuarios"
                 element={userRole === 'Admin' ? <UsersAdmin /> : <Navigate to="/dashboard" replace />}
               />
+              <Route path="/perfil" element={<ProfileSettings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
