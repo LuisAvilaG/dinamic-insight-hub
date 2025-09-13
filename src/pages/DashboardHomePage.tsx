@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Users, CalendarClock, LineChart, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { FileText, Users, LineChart, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { subDays } from 'date-fns';
@@ -62,27 +62,34 @@ const recentActivities = [
 export default function DashboardHomePage() {
   const [activeUsers, setActiveUsers] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [totalDashboards, setTotalDashboards] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        // Fecha de hace 30 días para calcular usuarios activos
         const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
 
-        // Hacemos una única llamada para obtener todos los datos de Cuentas
-        const { data, error } = await supabase
-          .from('Cuentas')
-          .select('ultimo_acceso');
+        const [
+          { data: usersData, error: usersError },
+          { count: dashboardCount, error: dashboardError }
+        ] = await Promise.all([
+          supabase.from('Cuentas').select('ultimo_acceso'),
+          supabase
+            .from('report_dashboards')
+            .select('*', { count: 'exact', head: true })
+            .schema('be_exponential')
+        ]);
         
-        if (error) throw error;
+        if (usersError) throw usersError;
+        if (dashboardError) throw dashboardError;
 
-        // Calculamos los usuarios activos
-        const activeCount = data.filter(u => u.ultimo_acceso && new Date(u.ultimo_acceso) > new Date(thirtyDaysAgo)).length;
+        const activeCount = usersData.filter(u => u.ultimo_acceso && new Date(u.ultimo_acceso) > new Date(thirtyDaysAgo)).length;
         
         setActiveUsers(activeCount);
-        setTotalUsers(data.length);
+        setTotalUsers(usersData.length);
+        setTotalDashboards(dashboardCount || 0);
 
       } catch (error) {
         console.error("Error al cargar las estadísticas del dashboard:", error);
@@ -97,7 +104,7 @@ export default function DashboardHomePage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Reportes" value="51" loading={loading} icon={FileText} /> 
+        <StatCard title="Total Dashboards" value={totalDashboards.toString()} loading={loading} icon={FileText} /> 
         <StatCard title="Usuarios Activos (30d)" value={activeUsers.toString()} loading={loading} icon={Users} />
         <StatCard title="Total de Cuentas" value={totalUsers.toString()} loading={loading} icon={Users} />
         <StatCard title="Tiempo Promedio" value="2.3m" loading={loading} icon={LineChart} />

@@ -18,7 +18,9 @@ import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
 import { RecursosHumanosPage } from "./pages/RecursosHumanosPage";
 import { GestionRecursosHumanosPage } from "./pages/admin/GestionRecursosHumanosPage";
-import VistaGlobalContratos from "./pages/admin/contratos"; // <-- 1. Importar la página de contratos
+import VistaGlobalContratos from "./pages/admin/contratos";
+import GestionDashboardsPage from "./pages/admin/GestionDashboards";
+import DashboardDetailPage from "./pages/admin/DashboardDetailPage"; // <-- 1. Importar la nueva página de detalle
 import NotFound from "./pages/NotFound";
 import UsersAdmin from "./pages/UsersAdmin";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -102,7 +104,9 @@ const AppRoutes = () => {
           {/* Rutas para Admin y RRHH */}
           <Route element={<AdminOrHrRoute />}>
             <Route path="admin/recursos-humanos" element={<GestionRecursosHumanosPage />} />
-            <Route path="admin/contratos" element={<VistaGlobalContratos />} /> {/* <-- 2. Registrar la nueva ruta */}
+            <Route path="admin/contratos" element={<VistaGlobalContratos />} />
+            <Route path="admin/GestionDashboards" element={<GestionDashboardsPage />} />
+            <Route path="admin/dashboards/:id" element={<DashboardDetailPage />} /> {/* <-- 2. Registrar la nueva ruta de detalle */}
           </Route>
 
         </Route>

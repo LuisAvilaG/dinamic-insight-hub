@@ -2,177 +2,154 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Tables } from '@/types/supabase'; // Import generated types
 
-interface Report {
-  id: string;
-  nombre: string;
-  departamento: string;
-  descripcion?: string;
-  frecuencia_actualizacion?: string;
-  iframe_code: string;
-  created_at: string;
-  updated_at: string;
-}
+// Define the types for our new data structure
+type Dashboard = Tables<'report_dashboards', { schema: 'be_exponential' }>;
+type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
+
+// A placeholder component to render different widget types
+const WidgetRenderer: React.FC<{ widget: Widget }> = ({ widget }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Widget: {widget.id}</CardTitle>
+        <CardDescription>Type: {widget.widget_type}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p>Config:</p>
+        <pre className="bg-gray-100 p-2 rounded-md">
+          {JSON.stringify(widget.config, null, 2)}
+        </pre>
+        <p className="mt-2">Layout:</p>
+        <pre className="bg-gray-100 p-2 rounded-md">
+          {JSON.stringify(widget.layout, null, 2)}
+        </pre>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 export const ReportViewer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState<Report | null>(null);
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const logReportView = async () => {
-      if (report) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await supabase.from('report_views').insert({
-              report_id: report.id,
-              user_id: session.user.id
-            });
-          }
-        } catch (error) {
-          console.error('Error logging report view:', error);
-        }
-      }
-    };
-
-    logReportView();
-  }, [report]);
-
-  useEffect(() => {
-    const loadReport = async () => {
+    const loadDashboardAndWidgets = async () => {
       if (!id) {
-        navigate('/reportes');
+        navigate('/dashboards'); // Navigate to a more appropriate route
         return;
       }
 
+      setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('reportes')
+        // Fetch dashboard details
+        const { data: dashboardData, error: dashboardError } = await supabase
+          .from('report_dashboards')
           .select('*')
           .eq('id', id)
+          .schema('be_exponential')
           .maybeSingle();
 
-        if (error) throw error;
+        if (dashboardError) throw dashboardError;
 
-        if (!data) {
+        if (!dashboardData) {
           toast({
             title: "Error",
-            description: "Reporte no encontrado",
+            description: "Dashboard no encontrado",
             variant: "destructive",
           });
-          navigate('/reportes');
+          navigate('/dashboards');
           return;
         }
+        
+        setDashboard(dashboardData);
 
-        setReport(data);
+        // Fetch associated widgets
+        const { data: widgetsData, error: widgetsError } = await supabase
+          .from('report_widgets')
+          .select('*')
+          .eq('dashboard_id', id)
+          .schema('be_exponential');
+
+        if (widgetsError) throw widgetsError;
+
+        setWidgets(widgetsData || []);
+
       } catch (error) {
-        console.error('Error loading report:', error);
+        console.error('Error loading dashboard:', error);
         toast({
           title: "Error",
-          description: "No se pudo cargar el reporte",
+          description: "No se pudo cargar el dashboard",
           variant: "destructive",
         });
-        navigate('/reportes');
+        navigate('/dashboards');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadReport();
+    loadDashboardAndWidgets();
   }, [id, navigate, toast]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Cargando reporte...</div>
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="ml-4 text-muted-foreground">Cargando dashboard...</span>
       </div>
     );
   }
 
-  if (!report) {
-    return null;
+  if (!dashboard) {
+    return null; // Should be handled by the redirect logic
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/reportes')}
+          onClick={() => navigate(-1)} // Go back to the previous page
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver a Reportes
+          Volver
         </Button>
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold tracking-tight">{report.nombre}</h1>
-            <Badge variant="secondary">{report.departamento}</Badge>
-          </div>
-          {report.descripcion && (
-            <p className="text-muted-foreground max-w-3xl">{report.descripcion}</p>
-          )}
-          {report.frecuencia_actualizacion && (
-            <div className="text-sm text-muted-foreground mt-2 flex items-center">
-              <RefreshCw className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span>{report.frecuencia_actualizacion}</span>
-            </div>
+          <h1 className="text-3xl font-bold tracking-tight">{dashboard.name}</h1>
+          {dashboard.description && (
+            <p className="text-muted-foreground max-w-3xl mt-1">{dashboard.description}</p>
           )}
         </div>
       </div>
 
-      {/* Report Viewer */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Visualización del Reporte</CardTitle>
-              <CardDescription>
-                Reporte de Looker Studio - {report.departamento}
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const srcMatch = report.iframe_code.match(/src="([^"]+)"/);
-                if (srcMatch) {
-                  window.open(srcMatch[1], '_blank');
-                }
-              }}
-              className="gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Abrir en Nueva Pestaña
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full bg-muted/20 rounded-lg p-4">
-            <div 
-              className="w-full min-h-[600px] flex items-center justify-center"
-              dangerouslySetInnerHTML={{ 
-                __html: report.iframe_code.replace(
-                  /width="[^"]*"/,
-                  'width="100%"'
-                ).replace(
-                  /height="[^"]*"/,
-                  'height="600"'
-                )
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Widget Grid */}
+      {widgets.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {widgets.map(widget => (
+            <WidgetRenderer key={widget.id} widget={widget} />
+          ))}
+        </div>
+      ) : (
+        <Card className="flex flex-col items-center justify-center p-12">
+           <AlertTriangle className="h-12 w-12 text-yellow-500" />
+           <CardTitle className="mt-4">Sin widgets</CardTitle>
+          <CardDescription className="mt-2 text-center">
+            Este dashboard aún no tiene widgets configurados.
+          </CardDescription>
+        </Card>
+      )}
     </div>
   );
 };

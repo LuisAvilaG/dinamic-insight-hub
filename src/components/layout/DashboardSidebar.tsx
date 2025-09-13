@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
-  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown
+  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -21,7 +21,6 @@ const baseNavItems = [
   { title: "Recursos Humanos", url: "/recursos-humanos", icon: Users },
 ];
 
-// CORREGIDO: Estructura de datos con la URL y el Icono correctos para cada departamento.
 const departmentNavConfig = [
   { title: "Operativo", url: "/operativo", icon: BarChart3 },
   { title: "Financiero", url: "/financiero", icon: DollarSign },
@@ -32,10 +31,10 @@ const departmentNavConfig = [
 
 const adminNavConfig = [
    {
-    id: 'gestion-reportes',
-    title: 'Gestión de Reportes',
-    icon: Settings,
-    url: '/reportes',
+    id: 'gestion-dashboards', // ID actualizado
+    title: 'Gestión de Dashboards', // Título actualizado
+    icon: LayoutDashboard, // Icono más apropiado
+    url: '/admin/GestionDashboards', // URL actualizada
     roles: ['admin', 'rh'],
   },
   {
@@ -127,7 +126,7 @@ export const DashboardSidebar = () => {
   const { profile, loading } = useAuth();
   const collapsed = state === "collapsed";
 
-  const reportesNavMenu = useMemo(() => {
+  const dashboardsNavMenu = useMemo(() => { // Renombrada la variable
     const departmentSubItems = departmentNavConfig.map(depto => ({
       id: depto.title,
       title: depto.title,
@@ -136,8 +135,8 @@ export const DashboardSidebar = () => {
     }));
 
     return {
-        id: 'reportes',
-        title: 'Reportes',
+        id: 'dashboards', // ID actualizado
+        title: 'Dashboards', // Título actualizado
         icon: FileText,
         subItems: departmentSubItems
     };
@@ -166,7 +165,7 @@ export const DashboardSidebar = () => {
             <SingleNavItem key={item.title} item={item} collapsed={collapsed} />
           ))}
 
-          <CollapsibleNavItem item={reportesNavMenu} collapsed={collapsed} />
+          <CollapsibleNavItem item={dashboardsNavMenu} collapsed={collapsed} />
 
           {adminItems.length > 0 && <SidebarSeparator className="my-2 border-dashed" />}
 
