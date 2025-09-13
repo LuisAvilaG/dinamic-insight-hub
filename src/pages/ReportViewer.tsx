@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,6 +12,7 @@ interface Report {
   nombre: string;
   departamento: string;
   descripcion?: string;
+  frecuencia_actualizacion?: string;
   iframe_code: string;
   created_at: string;
   updated_at: string;
@@ -23,6 +24,26 @@ export const ReportViewer = () => {
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const logReportView = async () => {
+      if (report) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase.from('report_views').insert({
+              report_id: report.id,
+              user_id: session.user.id
+            });
+          }
+        } catch (error) {
+          console.error('Error logging report view:', error);
+        }
+      }
+    };
+
+    logReportView();
+  }, [report]);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -98,7 +119,13 @@ export const ReportViewer = () => {
             <Badge variant="secondary">{report.departamento}</Badge>
           </div>
           {report.descripcion && (
-            <p className="text-muted-foreground">{report.descripcion}</p>
+            <p className="text-muted-foreground max-w-3xl">{report.descripcion}</p>
+          )}
+          {report.frecuencia_actualizacion && (
+            <div className="text-sm text-muted-foreground mt-2 flex items-center">
+              <RefreshCw className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span>{report.frecuencia_actualizacion}</span>
+            </div>
           )}
         </div>
       </div>
@@ -117,7 +144,6 @@ export const ReportViewer = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                // Extract src URL from iframe code
                 const srcMatch = report.iframe_code.match(/src="([^"]+)"/);
                 if (srcMatch) {
                   window.open(srcMatch[1], '_blank');
@@ -144,9 +170,6 @@ export const ReportViewer = () => {
                 )
               }}
             />
-          </div>
-          <div className="mt-4 text-sm text-muted-foreground">
-            <p>Última actualización: {new Date(report.updated_at).toLocaleDateString('es-ES')}</p>
           </div>
         </CardContent>
       </Card>

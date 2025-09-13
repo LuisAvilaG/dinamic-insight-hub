@@ -1,10 +1,12 @@
-import { useState } from "react";
+
+import { useEffect } from "react";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { LoginForm } from "./components/auth/LoginForm";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import LoginPage from "./pages/LoginPage";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { DashboardHome } from "./components/dashboard/DashboardHome";
 import { OperativoPage } from "./pages/OperativoPage";
@@ -14,82 +16,112 @@ import { DirectivoPage } from "./pages/DirectivoPage";
 import { DinamicPage } from "./pages/DinamicPage";
 import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
+import { RecursosHumanosPage } from "./pages/RecursosHumanosPage";
+import { GestionRecursosHumanosPage } from "./pages/admin/GestionRecursosHumanosPage";
+import VistaGlobalContratos from "./pages/admin/contratos"; // <-- 1. Importar la página de contratos
 import NotFound from "./pages/NotFound";
 import UsersAdmin from "./pages/UsersAdmin";
 import ProfileSettings from "./pages/ProfileSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<string>('');
+const AppLoader = () => (
+  <div className="h-screen w-screen flex items-center justify-center bg-background">
+    <p className="text-muted-foreground">Cargando aplicación...</p>
+  </div>
+);
 
-  const handleLogin = (email: string, role: string, remember: boolean) => {
-    setIsAuthenticated(true);
-    setUserRole(role);
-    localStorage.setItem('dinamic_user_email', email);
-    if (remember) {
-      localStorage.setItem('dinamic_auth', 'true');
-      localStorage.setItem('dinamic_user_role', role);
-    }
-  };
+const ProtectedRoute = () => {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+};
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole('');
-    localStorage.removeItem('dinamic_auth');
-    localStorage.removeItem('dinamic_user_role');
-  };
+const AdminRoute = () => {
+  const { profile } = useAuth();
+  if (profile?.role?.toLowerCase() !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Outlet />;
+};
 
-  // Check for saved authentication
-  useState(() => {
-    const savedAuth = localStorage.getItem('dinamic_auth');
-    const savedRole = localStorage.getItem('dinamic_user_role');
-    if (savedAuth === 'true') {
-      setIsAuthenticated(true);
-      setUserRole(savedRole || '');
-    }
-  });
+const AdminOrHrRoute = () => {
+  const { profile } = useAuth();
+  const userRole = profile?.role?.toLowerCase();
+  if (userRole !== 'admin' && userRole !== 'rh') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Outlet />;
+};
 
-  if (!isAuthenticated) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <LoginForm onLogin={handleLogin} />
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
+const AppRoutes = () => {
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    const logUserLogin = async () => {
+      if (user) {
+        try {
+          await supabase.from('user_logins').insert({ user_id: user.id });
+        } catch (error) {
+          console.error("Error logging user login:", error);
+        }
+      }
+    };
+    logUserLogin();
+  }, [user]);
+
+  if (loading) {
+    return <AppLoader />;
   }
 
   return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardHome />} />
+          <Route path="operativo" element={<OperativoPage />} />
+          <Route path="financiero" element={<FinancieroPage />} />
+          <Route path="consultoria" element={<ConsultoriaPage />} />
+          <Route path="directivo" element={<DirectivoPage />} />
+          <Route path="dinamic" element={<DinamicPage />} />
+          <Route path="reportes" element={<ReportManager />} />
+          <Route path="reportes/:id" element={<ReportViewer />} />
+          <Route path="recursos-humanos" element={<RecursosHumanosPage />} />
+          <Route path="perfil" element={<ProfileSettings />} />
+
+          {/* Rutas solo para Admin */}
+          <Route element={<AdminRoute />}>
+            <Route path="admin/usuarios" element={<UsersAdmin />} />
+          </Route>
+
+          {/* Rutas para Admin y RRHH */}
+          <Route element={<AdminOrHrRoute />}>
+            <Route path="admin/recursos-humanos" element={<GestionRecursosHumanosPage />} />
+            <Route path="admin/contratos" element={<VistaGlobalContratos />} /> {/* <-- 2. Registrar la nueva ruta */}
+          </Route>
+
+        </Route>
+      </Route>
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <DashboardLayout onLogout={handleLogout} userRole={userRole}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardHome />} />
-              <Route path="/operativo" element={<OperativoPage />} />
-              <Route path="/financiero" element={<FinancieroPage />} />
-              <Route path="/consultoria" element={<ConsultoriaPage />} />
-              <Route path="/directivo" element={<DirectivoPage />} />
-              <Route path="/dinamic" element={<DinamicPage />} />
-              <Route path="/reportes" element={<ReportManager />} />
-              <Route path="/reportes/:id" element={<ReportViewer />} />
-              <Route
-                path="/admin/usuarios"
-                element={userRole === 'Admin' ? <UsersAdmin /> : <Navigate to="/dashboard" replace />}
-              />
-              <Route path="/perfil" element={<ProfileSettings />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </DashboardLayout>
-        </BrowserRouter>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

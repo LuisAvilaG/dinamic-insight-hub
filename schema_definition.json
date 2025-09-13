@@ -1,0 +1,131 @@
+
+{
+  "database_schema_blueprint": {
+    "tasks_project_information": {
+      "source_list_pattern": "Project Information",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "Nombre de tarea", "requires_clickup_id": false },
+        { "column_name": "custom_Project_Manager", "data_type": "TEXT", "source_field": "Project Manager", "requires_clickup_id": true, "clickup_id": "ae2c28e4-f1e1-4725-8975-cc2e7d285ada" },
+        { "column_name": "custom_fase_del_proyecto", "data_type": "TEXT", "source_field": "Fase del proyecto", "requires_clickup_id": true, "clickup_id": "23a57a9f-46a9-41d2-9051-e16ea69d38c7" },
+        { "column_name": "custom_fecha_de_kick_off", "data_type": "TIMESTAMPTZ", "source_field": "Fecha de Kick Off", "requires_clickup_id": true, "clickup_id": "91aeacc8-8050-4ada-8dba-f1ed2433f711" },
+        { "column_name": "custom_fecha_planeada_go_live", "data_type": "TIMESTAMPTZ", "source_field": "Fecha Planeada de Go live", "requires_clickup_id": true, "clickup_id": "0022fdf8-df3c-4b6d-bebe-6fe6aaa27c89" },
+        { "column_name": "custom_horas_contratadas", "data_type": "NUMERIC", "source_field": "Horas Contratadas", "requires_clickup_id": true, "clickup_id": "21b54a34-6adf-4961-869a-2d04a7bbad68" },
+        { "column_name": "custom_horas_proyecto", "data_type": "NUMERIC", "source_field": "Horas Proyecto", "requires_clickup_id": true, "clickup_id": "07487b45-b485-41e0-a8de-eb1f7344d108" },
+        { "column_name": "custom_horas_integraciones_o_desarrollos", "data_type": "NUMERIC", "source_field": "Horas integraciones o desarrollos", "requires_clickup_id": true, "clickup_id": "7e42f887-b7ee-4c5c-8586-8e2ea15cf8df" },
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    },
+    "tasks_action_items": {
+      "source_list_pattern": "Action Items",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "Task name", "requires_clickup_id": false },
+        { "column_name": "status", "data_type": "TEXT", "source_field": "Status", "requires_clickup_id": false },
+        { "column_name": "custom_Responsable", "data_type": "TEXT", "source_field": "Responsable", "requires_clickup_id": true, "clickup_id": "2713ac2e-844e-476b-bc84-81ade8059f99" },
+        { "column_name": "priority", "data_type": "TEXT", "source_field": "Priority", "requires_clickup_id": false },
+        { "column_name": "start_date", "data_type": "TIMESTAMPTZ", "source_field": "Start date", "requires_clickup_id": false },
+        { "column_name": "due_date", "data_type": "TIMESTAMPTZ", "source_field": "Due date", "requires_clickup_id": false },
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    },
+    "tasks_gaps": {
+      "source_list_pattern": "Gaps",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "Gap name", "requires_clickup_id": false },
+        { "column_name": "status", "data_type": "TEXT", "source_field": "Status", "requires_clickup_id": false },
+        { "column_name": "custom_Gap_Estatus", "data_type": "TEXT", "source_field": "Gap Estatus", "requires_clickup_id": true, "clickup_id": "6240f422-641f-4613-8f39-2c34bde6fc2f" },
+        { "column_name": "priority", "data_type": "TEXT", "source_field": "Priority", "requires_clickup_id": false },
+        { "column_name": "custom_detalles", "data_type": "TEXT", "source_field": "Detalles", "requires_clickup_id": true, "clickup_id": "867c831b-eb0e-46bf-8db8-7e8602d74013" },
+        { "column_name": "custom_fecha_de_identificacion", "data_type": "TIMESTAMPTZ", "source_field": "Fecha de identificación", "requires_clickup_id": true, "clickup_id": "14da4d10-9a16-4192-aaea-f58d4784e59c" },
+        { "column_name": "custom_hrs_estimadas", "data_type": "NUMERIC", "source_field": "Hrs Estimadas", "requires_clickup_id": true, "clickup_id": "fbc3e4e3-8341-4de7-aec0-70b6c71fb81b" },
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    },
+    "tasks_risks_issues": {
+      "source_list_pattern": "Riesgos - Issues",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "Risk or issue name", "requires_clickup_id": false },
+        { "column_name": "custom_Responsable", "data_type": "TEXT", "source_field": "Responsable", "requires_clickup_id": true, "clickup_id": "f97912ce-48ab-4f49-a698-07ca979ef61a" },
+        { "column_name": "priority", "data_type": "TEXT", "source_field": "Priority", "requires_clickup_id": false },
+        { "column_name": "status", "data_type": "TEXT", "source_field": "Estatus", "requires_clickup_id": false },
+        { "column_name": "custom_Estatus", "data_type": "TEXT", "source_field": "Estatus", "requires_clickup_id": true, "clickup_id": "ec09a5a8-bac0-4f8e-aa48-fe2f1ee7d98b" },
+        { "column_name": "custom_action_plan", "data_type": "TEXT", "source_field": "Action Plan", "requires_clickup_id": true, "clickup_id": "11104917-b1e7-47d9-b47d-a6fcf56fb7f7" },
+        { "column_name": "custom_fecha_de_reporte", "data_type": "TIMESTAMPTZ", "source_field": "Fecha de reporte", "requires_clickup_id": true, "clickup_id": "d8d5e640-4c71-46a9-92dc-00d092ff0b8c" },
+        { "column_name": "custom_tipo", "data_type": "TEXT", "source_field": "Tipo", "requires_clickup_id": true, "clickup_id": "feb4d279-c7c1-479f-8df3-a2d95bce79e1" },
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    },
+    "tasks_documents": {
+      "source_list_pattern": "Documentos",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "Document name", "requires_clickup_id": false },
+        { "column_name": "status", "data_type": "TEXT", "source_field": "Status", "requires_clickup_id": false },
+        { "column_name": "custom_Documento", "data_type": "TEXT", "source_field": "Documento", "requires_clickup_id": true, "clickup_id": "b723726c-fbe1-4c31-b8cb-796055c1bb4e" },
+        { "column_name": "custom_Estatus", "data_type": "TEXT", "source_field": "Estatus", "requires_clickup_id": true, "clickup_id": "0393f812-1ee0-417b-bbe6-91dc57d0888b" },
+        { "column_name": "custom_fase_del_proyecto", "data_type": "TEXT", "source_field": "Fase del proyecto", "requires_clickup_id": true, "clickup_id": "41ab98a2-cf3f-45da-98ae-326e022debf8" },
+        { "column_name": "custom_fecha_de_firma_cierre", "data_type": "TIMESTAMPTZ", "source_field": "Fecha de firma - Cierre", "requires_clickup_id": true, "clickup_id": "b971a43d-4352-40b3-a32b-ba0b92f1b116" },
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    },
+    "tasks_orders_of_change": {
+      "source_list_pattern": "Ordenes de Cambio",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "ODC name", "requires_clickup_id": false },
+        { "column_name": "priority", "data_type": "TEXT", "source_field": "Priority", "requires_clickup_id": false },
+        { "column_name": "status", "data_type": "TEXT", "source_field": "Status", "requires_clickup_id": false },
+        { "column_name": "custom_Impacto", "data_type": "TEXT", "source_field": "Impacto", "requires_clickup_id": true, "clickup_id": "9caaff7c-e0b0-4e82-aaf7-3efb68d08ba3" },
+        { "column_name": "custom_Estatus", "data_type": "TEXT", "source_field": "Estatus", "requires_clickup_id": true, "clickup_id": "ff1d2ed1-04ff-4dd6-8318-9be600cdf126" },
+        { "column_name": "custom_costo", "data_type": "NUMERIC", "source_field": "Costo", "requires_clickup_id": true, "clickup_id": "e8faae3f-2abd-487f-9d08-2907b4abc798" },
+        { "column_name": "custom_fecha_de_firma", "data_type": "TIMESTAMPTZ", "source_field": "Fecha de firma", "requires_clickup_id": true, "clickup_id": "eaa1f26c-69cd-4d16-9348-e714cc846583" },
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    },
+    "tasks_project_plan": {
+      "source_list_pattern": "Project Plan",
+      "columns": [
+        { "column_name": "clickup_task_id", "data_type": "TEXT", "is_primary_key": true, "source_field": "id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_id", "data_type": "TEXT", "source_field": "list.id", "requires_clickup_id": false },
+        { "column_name": "clickup_list_name", "data_type": "TEXT", "source_field": "list.name", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_id", "data_type": "TEXT", "source_field": "folder.id", "requires_clickup_id": false },
+        { "column_name": "clickup_folder_name", "data_type": "TEXT", "source_field": "folder.name", "requires_clickup_id": false },
+        { "column_name": "name", "data_type": "TEXT", "source_field": "Task name", "requires_clickup_id": false },
+        { "column_name": "status", "data_type": "TEXT", "source_field": "Status", "requires_clickup_id": false },
+        { "column_name": "assignees", "data_type": "TEXT[]", "source_field": "Persona asignada", "requires_clickup_id": false },
+        { "column_name": "start_date", "data_type": "TIMESTAMPTZ", "source_field": "Start date", "requires_clickup_id": false },
+        { "column_name": "due_date", "data_type": "TIMESTAMPTZ", "source_field": "Due date", "requires_clickup_id": false },
+        { "column_name": "time_spent", "data_type": "NUMERIC", "source_field": "time_spent", "requires_clickup_id": false },
+        { "column_name": "time_estimate", "data_type": "NUMERIC", "source_field": "time_estimate", "requires_clickup_id": false},
+        { "column_name": "last_synced_at", "data_type": "TIMESTAMPTZ", "source_field": "system", "requires_clickup_id": false }
+      ]
+    }
+  }
+}

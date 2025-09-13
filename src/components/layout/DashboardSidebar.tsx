@@ -1,148 +1,181 @@
+
+import React, { useState, useMemo, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { 
-  BarChart3, 
-  DollarSign, 
-  Search, 
-  Users, 
-  Zap,
-  Home,
-  FileText
+import {
+  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown
 } from "lucide-react";
-import dinamicLogo from "@/assets/dinamic-logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 
-const navigationItems = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: Home,
-    description: "Vista general"
+// --- ESTRUCTURA DE NAVEGACIÓN ---
+const baseNavItems = [
+  { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Recursos Humanos", url: "/recursos-humanos", icon: Users },
+];
+
+// CORREGIDO: Estructura de datos con la URL y el Icono correctos para cada departamento.
+const departmentNavConfig = [
+  { title: "Operativo", url: "/operativo", icon: BarChart3 },
+  { title: "Financiero", url: "/financiero", icon: DollarSign },
+  { title: "Consultoría", url: "/consultoria", icon: Search },
+  { title: "Directivo", url: "/directivo", icon: Users },
+  { title: "Dinamic", url: "/dinamic", icon: Zap },
+];
+
+const adminNavConfig = [
+   {
+    id: 'gestion-reportes',
+    title: 'Gestión de Reportes',
+    icon: Settings,
+    url: '/reportes',
+    roles: ['admin', 'rh'],
   },
   {
-    title: "Operativo",
-    url: "/operativo", 
-    icon: BarChart3,
-    description: "Reportes operacionales"
+    id: 'rrhh',
+    title: 'Gestión RRHH',
+    icon: Settings,
+    roles: ['admin', 'rh'],
+    subItems: [
+      { id: 'equipo', title: 'Gestión de Equipo', url: '/admin/recursos-humanos', icon: Users },
+      { id: 'contratos', title: 'Gestión de Contratos', url: '/admin/contratos', icon: FileText },
+    ]
   },
   {
-    title: "Financiero",
-    url: "/financiero",
-    icon: DollarSign,
-    description: "Análisis financiero"
-  },
-  {
-    title: "Consultoría", 
-    url: "/consultoria",
-    icon: Search,
-    description: "Reportes de consultoría"
-  },
-  {
-    title: "Directivo",
-    url: "/directivo",
-    icon: Users,
-    description: "Dashboard ejecutivo"
-  },
-  {
-    title: "Dinamic",
-    url: "/dinamic",
-    icon: Zap,
-    description: "Herramientas Dinamic"
-  },
-  {
-    title: "Reportes",
-    url: "/reportes",
-    icon: FileText,
-    description: "Gestión de reportes"
+    id: 'usuarios',
+    title: 'Admin Usuarios',
+    icon: ShieldCheck,
+    url: '/admin/usuarios',
+    roles: ['admin'],
   }
 ];
 
-export const DashboardSidebar = ({ userRole }: { userRole?: string }) => {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+// --- COMPONENTES DE NAVEGACIÓN ---
+
+const SingleNavItem = ({ item, collapsed }) => (
+  <SidebarMenuItem>
+    <NavLink
+      to={item.url}
+      className={({ isActive }) => `
+        flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 group
+        ${isActive 
+          ? "bg-primary/10 text-primary font-semibold" 
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        }
+        ${collapsed ? 'justify-center' : ''}
+      `}
+    >
+      <item.icon className={'h-5 w-5 flex-shrink-0'} />
+      {!collapsed && <span className="flex-1">{item.title}</span>}
+    </NavLink>
+  </SidebarMenuItem>
+);
+
+const CollapsibleNavItem = ({ item, collapsed }) => {
   const location = useLocation();
-  const currentPath = location.pathname;
+  const isChildActive = useMemo(() => 
+    item.subItems.some(sub => sub.url && location.pathname.startsWith(sub.url)),
+    [item.subItems, location.pathname]
+  );
+  const [isOpen, setIsOpen] = useState(isChildActive);
 
-  const isActive = (path: string) => {
-    if (path === "/dashboard") {
-      return currentPath === "/" || currentPath === "/dashboard";
+  useEffect(() => {
+    if (isChildActive) {
+      setIsOpen(true);
     }
-    return currentPath.startsWith(path);
-  };
+  }, [isChildActive]);
 
-  const items = [...navigationItems];
-  if (userRole === "Admin") {
-    items.push({ title: "Usuarios", url: "/admin/usuarios", icon: Users, description: "Gestión de usuarios" });
+
+  if (collapsed) {
+    return item.subItems.map(subItem => 
+      !subItem.isSeparator && <SingleNavItem key={subItem.id || subItem.title} item={subItem} collapsed={true} />
+    );
   }
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-white text-foreground shadow-sm`}>
-      <SidebarHeader className="p-4 border-b border-border/50">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-8 flex items-center justify-center flex-shrink-0">
-            <img 
-              src={dinamicLogo} 
-              alt="Dinamic Software" 
-              className="w-full h-full object-contain"
-            />
-          </div>
-          {!collapsed && (
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Dinamic Software</h2>
-              <p className="text-xs text-muted-foreground">Business Intelligence</p>
-            </div>
+    <div className="space-y-1">
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 group cursor-pointer 
+          ${isChildActive ? 'text-foreground font-semibold' : 'text-muted-foreground'} hover:text-foreground hover:bg-muted/50`}
+      >
+        <item.icon className={'h-5 w-5 flex-shrink-0'} />
+        <span className="flex-1">{item.title}</span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+      {isOpen && (
+        <div className="pl-6 space-y-1">
+          {item.subItems.map(subItem => 
+             <SingleNavItem key={subItem.id || subItem.title} item={subItem} collapsed={false} />
           )}
         </div>
-      </SidebarHeader>
+      )}
+    </div>
+  )
+}
+
+// --- COMPONENTE PRINCIPAL DE LA BARRA LATERAL ---
+export const DashboardSidebar = () => {
+  const { state } = useSidebar();
+  const { profile, loading } = useAuth();
+  const collapsed = state === "collapsed";
+
+  const reportesNavMenu = useMemo(() => {
+    const departmentSubItems = departmentNavConfig.map(depto => ({
+      id: depto.title,
+      title: depto.title,
+      url: depto.url,
+      icon: depto.icon
+    }));
+
+    return {
+        id: 'reportes',
+        title: 'Reportes',
+        icon: FileText,
+        subItems: departmentSubItems
+    };
+  }, []);
+
+  const adminItems = useMemo(() => {
+    if (loading || !profile) return [];
+    const userRole = profile.role?.toLowerCase();
+    return adminNavConfig.filter(item => item.roles.includes(userRole));
+  }, [profile, loading]);
+
+  return (
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-background/80 backdrop-blur-sm`}>
+      <div className="h-16 flex items-center justify-start px-3 border-b">
+        <img 
+          src="/logorecortado.png"
+          alt="logorecortado"
+          className={`transition-all duration-300 ${collapsed ? 'h-7' : 'h-8'}`}
+        />
+        {!collapsed && <span className="ml-2 text-lg font-semibold">Dinamic Software</span>}
+      </div>
 
       <SidebarContent className="p-2">
-        <SidebarGroup>
-          <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""} text-muted-foreground text-xs uppercase tracking-wider px-3 py-2 font-semibold`}>
-            Navegación
-          </SidebarGroupLabel>
-          
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-11">
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive: navIsActive }) => {
-                        const active = navIsActive || isActive(item.url);
-                        return `
-                          flex items-center space-x-3 px-3 py-2 rounded-md transition-all duration-200 group
-                          ${active 
-                            ? "bg-muted text-foreground border border-border" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                          }
-                        `;
-                      }}
-                    >
-                      <item.icon className={`${collapsed ? "h-6 w-6" : "h-5 w-5"} flex-shrink-0`} />
-                      {!collapsed && (
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{item.title}</div>
-                          <div className="text-xs opacity-70 truncate">{item.description}</div>
-                        </div>
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SidebarMenu className="space-y-1">
+          {baseNavItems.map((item) => (
+            <SingleNavItem key={item.title} item={item} collapsed={collapsed} />
+          ))}
+
+          <CollapsibleNavItem item={reportesNavMenu} collapsed={collapsed} />
+
+          {adminItems.length > 0 && <SidebarSeparator className="my-2 border-dashed" />}
+
+          {adminItems.map((item) => (
+            item.subItems 
+              ? <CollapsibleNavItem key={item.id} item={item} collapsed={collapsed} />
+              : <SingleNavItem key={item.id} item={item} collapsed={collapsed} />
+          ))}
+        </SidebarMenu>
       </SidebarContent>
     </Sidebar>
   );

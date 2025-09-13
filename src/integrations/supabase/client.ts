@@ -5,13 +5,8 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://rytfakmpznrithljllyl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5dGZha21wem5yaXRobGpsbHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNTI2MzYsImV4cCI6MjA2OTcyODYzNn0.fpbvpK8eIeOJayhuFDmm-KBWWDA6kekkOcM0DpwsVko";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+// By removing the explicit auth configuration, we allow the Supabase client
+// to use its own robust, default storage mechanism. It will safely use
+// localStorage if available, with fallbacks, preventing crashes if storage is blocked.
+// This is the simplest and most robust way to initialize the client.
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

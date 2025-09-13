@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import Fuse from "fuse.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,17 +90,35 @@ export const DepartmentOverviewConnected = ({
     }
   };
 
+  const fuse = useMemo(() => {
+    const options = {
+      keys: ['nombre', 'descripcion'],
+      includeScore: true,
+      threshold: 0.5, 
+    };
+    return new Fuse(reports, options);
+  }, [reports]);
+
   const filteredAndSortedReports = useMemo(() => {
+    const trimmedQuery = searchQuery.trim();
     let filtered = reports;
 
-    if (searchQuery) {
-      filtered = reports.filter(report =>
-        report.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (report.descripcion && report.descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+    if (trimmedQuery) {
+      if (trimmedQuery.length < 3) {
+        // Use simple includes for short queries
+        const lowerCaseQuery = trimmedQuery.toLowerCase();
+        filtered = reports.filter(report =>
+          report.nombre.toLowerCase().includes(lowerCaseQuery) ||
+          (report.descripcion && report.descripcion.toLowerCase().includes(lowerCaseQuery))
+        );
+      } else {
+        // Use Fuse.js for longer, more complex queries
+        const searchResult = fuse.search(trimmedQuery);
+        filtered = searchResult.map(result => result.item);
+      }
     }
 
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'nombre':
           return a.nombre.localeCompare(b.nombre);
@@ -110,7 +129,7 @@ export const DepartmentOverviewConnected = ({
           return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       }
     });
-  }, [reports, searchQuery, sortBy]);
+  }, [reports, searchQuery, sortBy, fuse]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -164,7 +183,7 @@ export const DepartmentOverviewConnected = ({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar reportes..."
+              placeholder="Buscar reportes por nombre o descripción..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -326,7 +345,7 @@ export const DepartmentOverviewConnected = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Busquedas</p>
+                  <p className="text-sm font-medium text-muted-foreground">Resultados</p>
                   <p className="text-2xl font-bold text-foreground">
                     {filteredAndSortedReports.length}
                   </p>

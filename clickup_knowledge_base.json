@@ -1,0 +1,562 @@
+{
+  "team": {
+    "id": "9014362388",
+    "name": "BeExponential",
+    "color": "#40BC86",
+    "main_spaces": [
+      {
+        "name": "Corporative Projects",
+        "id": "90141611829",
+        "color": "#595d66",
+        "type": {
+          "private": false,
+          "archived": false
+        },
+        "available_statuses": [
+          {
+            "status": "to do",
+            "id": "p90141611829_hIUs16fQ",
+            "color": "#87909e",
+            "type": "open",
+            "order": 0
+          },
+          {
+            "status": "en progreso",
+            "id": "p90141611829_YDDwCgO7",
+            "color": "#5f55ee",
+            "type": "custom",
+            "order": 1
+          },
+          {
+            "status": "stuck",
+            "id": "p90141611829_gcr61641",
+            "color": "#f8ae00",
+            "type": "custom",
+            "order": 2
+          },
+          {
+            "status": "retrasado",
+            "id": "p90141611829_hgVtZq20",
+            "color": "#d33d44",
+            "type": "custom",
+            "order": 3
+          },
+          {
+            "status": "asignación",
+            "id": "p90141611829_3Vjvztr5",
+            "color": "#ee5e99",
+            "type": "custom",
+            "order": 4
+          },
+          {
+            "status": "complete",
+            "id": "p90141611829_qRHqUru4",
+            "color": "#008844",
+            "type": "closed",
+            "order": 5
+          }
+        ],
+        "structure_by_client": {
+          "general_pattern": "Each client = 1 folder with 8 mandatory lists",
+          "example_client": {
+            "name": "COLOMA",
+            "folder_id": "90143568519",
+            "task_count": 42
+          },
+          "mandatory_lists": [
+            {
+              "name_pattern": "Project Information [Client Name]",
+              "purpose": "Main project metadata",
+              "key_custom_fields": [
+                {
+                  "field": "Fecha Planeada de Go live",
+                  "id": "TU-ID-REAL-DE-CLICKUP-AQUI",
+                  "type": "date",
+                  "purpose": "Target go-live date"
+                },
+                {
+                  "field": "Fecha de Kick Off",
+                  "type": "date",
+                  "purpose": "Project kickoff"
+                },
+                {
+                  "field": "Nombre de tarea",
+                  "type": "text",
+                  "purpose": "Nombre"
+                },
+                {
+                  "field": "Horas Proyecto",
+                  "type": "number",
+                  "purpose": "Total contracted hours"
+                },
+                {
+                  "field": "Horas Contratadas",
+                  "type": "number",
+                  "purpose": "Effort estimate"
+                },
+                {
+                  "field": "Horas integraciones o desarrollos",
+                  "type": "number",
+                  "purpose": "hours"
+                },
+                {
+                  "field": "Fase del proyecto",
+                  "type": "drop_down",
+                  "purpose": "fase"
+                },
+                {
+                  "field": "Project Manager",
+                  "type": "assignees",
+                  "purpose": "Assigned priority"
+                }
+      
+              ],
+              "stored_information": [
+                "Assigned Project Manager",
+                "Current project phase",
+                "Kickoff date",
+                "Planned go-live date",
+                "Total contracted hours",
+                "Contracted hours for development",
+                "Contracted hours for the project"
+              ]
+            },
+            {
+              "name_pattern": "Action Items [Client Name]",
+              "purpose": "Project action items tracking",
+              "important_fields": [
+                "Task name",
+                "Status",
+                "Responsable",
+                "Priority",
+                "Start date",
+                "Due date"
+              ]
+            },
+            {
+              "name_pattern": "Gaps [Client Name]",
+              "purpose": "Identified gaps registration",
+              "important_fields": [
+                "Gap name",
+                "Status",
+                "Detalles",
+                "Fecha de identificación",
+                "Priority",
+                "Hrs Estimadas"
+              ]
+            },
+            {
+              "name_pattern": "Riesgos - Issues [Client Name]",
+              "purpose": "Project risks and issues management",
+              "important_fields": [
+                "Risk or issue name",
+                "Action Plan",
+                "Responsable",
+                "Priority",
+                "Fecha de reporte",
+                "Estatus",
+                "Tipo"
+              ]
+            },
+            {
+              "name_pattern": "Documentos [Client Name]",
+              "purpose": "Chronological document management",
+              "important_fields": [
+                "Document name",
+                "Status",
+                "Fase del proyecto",
+                "Fecha de firma - Cierre",
+                "Archivo",
+                "Documento"
+              ]
+            },
+            {
+              "name_pattern": "Ordenes de Cambio [Client Name]",
+              "purpose": "Change orders (ODCs) control",
+              "important_fields": [
+                "ODC name",
+                "Priority",
+                "Status",
+                "Costo",
+                "Fecha de firma",
+                "Documento"
+              ]
+            },
+            {
+              "name_pattern": "Asignaciones [Client Name]",
+              "purpose": "Specific project assignments"
+            },
+            {
+              "name_pattern": "Project Plan [Client Name]",
+              "purpose": "Complete project plan from start to finish",
+              "hierarchy": "Project Plan > Project Name (main task) > ENGAGE (Phase 1) > Activities...",
+              "business_rule": "Only the lowest hierarchy level (subtasks) represents real project tasks.",
+              "important_fields": [
+                "Task name",
+                "Status",
+                "Duración estimada",
+                "Tiempo registrado",
+                "Persona asignada",
+                "Start date",
+                "Due date"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "Mid-Market Projects",
+        "description": "Similar structure to Corporative Projects"
+      },
+      {
+        "name": "Proyectos Cerrados",
+        "description": "Similar structure to Corporative Projects"
+      },
+      {
+        "name": "Dinamic",
+        "id": "90141588434",
+        "color": "#ab4aba",
+        "type": {
+          "private": false,
+          "archived": false
+        },
+        "available_statuses": [
+          {
+            "status": "to do",
+            "id": "p90141588434_UdHb7Hij",
+            "color": "#87909e",
+            "type": "open",
+            "order": 0
+          },
+          {
+            "status": "in progress",
+            "id": "p90141588434_khexlMrA",
+            "color": "#5f55ee",
+            "type": "custom",
+            "order": 1
+          },
+          {
+            "status": "complete",
+            "id": "p90141588434_4gZf2lhQ",
+            "color": "#008844",
+            "type": "closed",
+            "order": 2
+          }
+        ],
+        "main_structure": [
+          {
+            "name": "Carpeta Sprints",
+            "id": "90144717400",
+            "purpose": "Weekly sprint development management",
+            "structure": "Sprint 1 (01/01/25 - 07/01/25), Sprint 2...",
+            "example_sprint": {
+              "name": "Sprint 5 (30/6/25 - 6/7/25)",
+              "id": "901409680236",
+              "task_count": 37,
+              "due_date": "1751867999999",
+              "start_date": "1751263200000"
+            },
+            "custom_fields": [
+              {
+                "field": "Porcentaje de completado",
+                "id": "05f5577b-4015-4f1b-834b-c52a66772f3c",
+                "type": "drop_down",
+                "purpose": "% sprint progress"
+              },
+              {
+                "field": "Horas Proyecto",
+                "id": "07487b45-b485-41e0-a8de-eb1f7344d108",
+                "type": "number",
+                "purpose": "Assigned hours"
+              },
+              {
+                "field": "Plan de acción",
+                "id": "11104917-b1e7-47d9-b47d-a6fcf56fb7f7",
+                "type": "text",
+                "purpose": "Action details"
+              },
+              {
+                "field": "Tipo asignación",
+                "id": "32c4232d-ec35-4192-a229-3d2ace0186c8",
+                "type": "drop_down",
+                "purpose": "Task type"
+              },
+              {
+                "field": "Nombre de Cliente Be Exponential",
+                "id": "34fe6489-5e58-4d0c-8544-bfd554cea672",
+                "type": "drop_down",
+                "purpose": "Origin client"
+              },
+              {
+                "field": "Facturable Dinamic 2",
+                "id": "409814de-05b9-498c-a70f-56df62cd9a30",
+                "type": "checkbox",
+                "purpose": "Is it billable?"
+              },
+              {
+                "field": "Sprint",
+                "id": "campo_sprint",
+                "type": "text",
+                "purpose": "Sprint number"
+              }
+            ],
+            "key_task_info": [
+              "Task name",
+              "Tag with country",
+              "Assigned person",
+              "Start and due date",
+              "Be Exponential client name",
+              "Estimated duration",
+              "Time tracked",
+              "Facturable Dinamic 2 (unmarked if hours are exceeded)",
+              "Assigned Sprint"
+            ]
+          },
+          {
+            "name": "Incidencias Dinamic (Forms-linked)",
+            "purpose": "Reception and management of incidents via form",
+            "important_fields": [
+              "Ticket name",
+              "Assigned person",
+              "Assigned Sprint",
+              "Estimated duration",
+              "Be Exponential client name",
+              "Time tracked",
+              "Facturable Dinamic 2"
+            ]
+          },
+          {
+            "name": "Estimaciones Dinamic (Forms-linked)",
+            "purpose": "Reception of estimation requests via form",
+            "important_fields": [
+              "Estimation name (task name)",
+              "Status",
+              "Request date",
+              "Be Exponential client name",
+              "Scope",
+              "Estimation file",
+              "Total Estimated Hours",
+              "Confirmación Dinamic (key checkbox for flow)"
+            ]
+          }
+        ],
+        "process_flow": {
+          "steps": [
+            "A[Solicitud Estimación] --> B[Forms: Estimaciones Dinamic]",
+            "B --> C(Aprobada?)",
+            "C --> Confirmación Dinamic D[Auto: Nuevo Backlog)",
+            "C --> No E[Rechazada]",
+            "D --> F[Viernes: Refinamiento]",
+            "F --> G[Detallar Actividades + Asignar]",
+            "G --> H[Sprint Planning]",
+            "H --> I[Agregar a Sprint Semanal]",
+            "I --> J[Ajustar Capacidad]",
+            "J --> K[Ejecución]",
+            "K --> L{Horas Excedidas?)",
+            "L --> |No M[Facturable]",
+            "L --> |Sí| N[Facturable X]"
+          ],
+          "weekly_process": {
+            "refinement": "Input: New tasks in 'Nuevo Backlog'. Process: Detail planned activities. Output: Tasks with estimates and assignments.",
+            "sprint_planning": "Input: Refined tasks + weekly capacity. Process: Select tasks for the next sprint. Adjustment: Estimated duration adjusted to developer capacity. Output: Configured sprint.",
+            "daily_execution": "Tracking: Real-time time logging. Control: Monitoring vs. estimated. Flag: 'Facturable Dinamic 2' is unchecked if hours are exceeded."
+          },
+          "interconnection_be_exponential": [
+            "Cliente Be Exponential (common field)",
+            "Horas Contratadas (Project Information Estimaciones - Backlog)",
+            "Desarrollos Contratados (Project Plan Backlog Forecast)",
+            "Facturación (Control between sold vs. executed hours)"
+          ]
+        }
+      },
+      {
+        "name": "Dinamic Backlog",
+        "id": "90142693003",
+        "color": "Variable",
+        "available_statuses": [
+          {
+            "status": "to do",
+            "id": "p90142693003_8zUuvgvR",
+            "color": "#87909e",
+            "type": "open",
+            "order": 0
+          },
+          {
+            "status": "in progress",
+            "id": "p90142693003_cBxzfJhM",
+            "color": "#5f55ee",
+            "type": "custom",
+            "order": 1
+          },
+          {
+            "status": "at risk",
+            "id": "p90142693003_Z8XZ5KCq",
+            "color": "#e16b16",
+            "type": "custom",
+            "order": 3
+          },
+          {
+            "status": "update required",
+            "id": "p90142693003_eMA41vqW",
+            "color": "#f8ae00",
+            "type": "custom",
+            "order": 4
+          },
+          {
+            "status": "on hold",
+            "id": "p90142693003_MRxCwPpT",
+            "color": "#aa8d80",
+            "type": "custom",
+            "order": 5
+          },
+          {
+            "status": "complete",
+            "id": "p90142693003_puQsrvLv",
+            "color": "#0f9d9f",
+            "type": "done",
+            "order": 6
+          },
+          {
+            "status": "cancelled",
+            "id": "p90142693003_2xOaRK05",
+            "color": "#008844",
+            "type": "closed",
+            "order": 7
+          }
+        ],
+        "backlog_folders": [
+          {
+            "name": "Backlog (Histórico)",
+            "purpose": "Previous backlog (lost info)",
+            "status": "Maintained for historical reference"
+          },
+          {
+            "name": "Nuevo Backlog",
+            "purpose": "Main backlog since restructuring",
+            "source": "Automatic tasks from 'Confirmación Dinamic'",
+            "fields": [
+              {
+                "field": "Nombre del desarrollo",
+                "type": "text",
+                "purpose": "Same name as estimation"
+              },
+              {
+                "field": "Nombre de Cliente Be Exponential",
+                "type": "drop_down",
+                "purpose": "Origin client"
+              },
+              {
+                "field": "Tag país",
+                "type": "tag",
+                "purpose": "Location/region"
+              },
+              {
+                "field": "Fecha de inicio",
+                "type": "date",
+                "purpose": "Planned start"
+              },
+              {
+                "field": "Fecha límite",
+                "type": "date",
+                "purpose": "Planned delivery"
+              },
+              {
+                "field": "Estado",
+                "type": "status",
+                "purpose": "Current status"
+              },
+              {
+                "field": "Duración estimada",
+                "type": "number",
+                "purpose": "Planned hours"
+              },
+              {
+                "field": "Tiempo registrado",
+                "type": "number",
+                "purpose": "Actual hours executed"
+              },
+              {
+                "field": "Sprints",
+                "type": "text",
+                "purpose": "Assigned sprints"
+              },
+              {
+                "field": "Estimación",
+                "type": "number",
+                "purpose": "Value of 'Total Horas Estimadas'"
+              },
+              {
+                "field": "Facturable Dinamic 2",
+                "type": "checkbox",
+                "purpose": "Billing control"
+              },
+              {
+                "field": "Persona asignada",
+                "type": "assignee",
+                "purpose": "Assigned developer"
+              }
+            ]
+          },
+          {
+            "name": "Backlog Forecast",
+            "purpose": "Pipeline of non-estimated developments + contracted Be Exponential projects",
+            "structure": "Same as 'Nuevo Backlog' + additional field",
+            "additional_field": {
+              "field": "Probabilidad de Cierre Dinamic",
+              "purpose": "Probability percentage of execution"
+            }
+          },
+          {
+            "name": "Pivote",
+            "purpose": "Quick loading of activities to transfer to backlog",
+            "use": "Temporary, to later move to the main backlog"
+          }
+        ]
+      }
+    ]
+  },
+  "common_fields_dinamic": [
+    {
+      "field": "Consumidas Sem#39",
+      "id": "83864144-caef-481c-a1cc-b236ba5c5698",
+      "type": "number",
+      "lists": "Backlogs, Sprints"
+    },
+    {
+      "field": "Hrs Estimadas",
+      "id": "fbc3e4e3-8341-4de7-aec0-70b6c71fb81b",
+      "type": "number",
+      "lists": "Backlogs, Estimaciones"
+    },
+    {
+      "field": "Prioridad",
+      "id": "c7119f44-61de-42d6-b18d-94a9fe5993bf",
+      "type": "number",
+      "lists": "Multiple"
+    },
+    {
+      "field": "Escalar Al",
+      "id": "84493062-6c46-44df-907b-0310fe34c930",
+      "type": "checkbox",
+      "lists": "Backlogs"
+    }
+  ],
+  "reports": {
+    "executive_dashboards": [
+      {
+        "name": "Dashboard Proyectos Be Exponential",
+        "kpis": [
+          "Total active projects by phase",
+          "% average completion per client",
+          "Projects at risk (status 'stuck', 'retrasado')",
+          "Contracted vs. consumed hours",
+          "Pending critical action items"
+        ],
+        "data_sources": [
+          "Project Information: Metadata + dates",
+          "Project Plan: % progress per phase"
+        ]
+      }
+    ]
+  }
+}

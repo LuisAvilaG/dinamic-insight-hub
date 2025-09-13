@@ -1,0 +1,1 @@
+TRUNCATE TABLE be_exponential.import_logs RESTART IDENTITY;
