@@ -5,7 +5,6 @@ import { Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { EditWidget } from "./EditWidget";
 
-// El tipo debe coincidir con el que se usa en WidgetRenderer
 type WidgetFromDB = {
   id: string;
   type: any;
@@ -17,7 +16,7 @@ type WidgetFromDB = {
 
 interface WidgetToolbarProps {
   widget: WidgetFromDB;
-  onWidgetDeleted: () => void;
+  onWidgetDeleted: (widgetId: string) => void;
   onWidgetUpdated: () => void;
 }
 
@@ -34,7 +33,7 @@ export const WidgetToolbar = ({ widget, onWidgetDeleted, onWidgetUpdated }: Widg
         description: `El widget "${widget.title}" ha sido eliminado exitosamente.`,
       });
 
-      onWidgetDeleted();
+      onWidgetDeleted(widget.id);
 
     } catch (error: any) {
       toast({

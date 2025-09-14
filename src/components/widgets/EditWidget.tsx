@@ -1,201 +1,148 @@
 import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/hooks/use-toast";
-import { TableSelector } from './TableSelector'; 
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from '@/components/ui/textarea';
+import { TableSelector } from './TableSelector';
 import { ColumnSelector } from './ColumnSelector';
 import { WidgetPreview } from './WidgetPreview';
 import { Pencil } from 'lucide-react';
 
-// Tipos que deben coincidir con los que ya se están utilizando en el proyecto.
-type WidgetType = 'kpi' | 'table' | 'bar_chart' | 'line_chart';
-
-type WidgetConfig = {
-  title: string;
-  dataSource: string | null;
-  dimension: string | null;
-  metric: string | null;
-};
-
+// Basic type for a widget from the database
 type WidgetFromDB = {
   id: string;
-  type: WidgetType;
+  type: any;
   title: string;
   query: string;
-  config: any; // Se espera que config contenga la configuración del widget
+  config: object | null;
+  layout: object;
 };
-
-interface PreviewData {
-  [key: string]: any;
-}
 
 interface EditWidgetProps {
   widget: WidgetFromDB;
   onWidgetUpdated: () => void;
 }
 
-export function EditWidget({ widget, onWidgetUpdated }: EditWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export const EditWidget = ({ widget, onWidgetUpdated }: EditWidgetProps) => {
   const { toast } = useToast();
-  
-  const [widgetConfig, setWidgetConfig] = useState<WidgetConfig | null>(null);
-  const [previewData, setPreviewData] = useState<PreviewData[] | null>(null);
-  const [generatedQuery, setGeneratedQuery] = useState(widget.query || '');
+  const [isOpen, setIsOpen] = useState(false);
+  const [title, setTitle] = useState(widget.title);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null); // This state is tricky to derive from a query
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]); // Same here
+  const [customQuery, setCustomQuery] = useState(widget.query);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Se carga la configuración inicial del widget cuando se abre el diálogo.
   useEffect(() => {
     if (isOpen) {
-        const configOptions = widget.config?.options || {};
-        setWidgetConfig({
-            title: widget.title || '',
-            dataSource: configOptions.dataSource || null,
-            dimension: configOptions.dimension || null,
-            metric: configOptions.metric || 'COUNT(*)',
-        });
-        setGeneratedQuery(widget.query || '');
-    } else {
-        setWidgetConfig(null);
-        setPreviewData(null);
-        setGeneratedQuery('');
+        // When the dialog opens, sync state with widget props
+        setTitle(widget.title);
+        setCustomQuery(widget.query);
+        // Resetting table/column selectors is complex because a query is just a string.
+        // A robust solution might parse the SQL, but that's a big task.
+        // For now, we just show the query and let the user edit it.
+        setSelectedTable(null);
+        setSelectedColumns([]);
     }
   }, [isOpen, widget]);
 
-  // --- LÓGICA DE PREVISUALIZACIÓN ---
-  useEffect(() => {
-    if (!isOpen || !widgetConfig) return;
+  const generateQuery = () => {
+    // When editing, the customQuery is the source of truth, as reverse-engineering the selectors is not feasible.
+    if (customQuery) return customQuery;
+    if (!selectedTable) return '';
+    const cols = selectedColumns.length > 0 ? selectedColumns.join(', ') : '*';
+    return `SELECT ${cols} FROM ${selectedTable}`;
+  };
 
-    const buildAndFetch = () => {
-      if (!widgetConfig.dataSource || !widgetConfig.metric) {
-        setGeneratedQuery('');
-        setPreviewData(null);
-        return;
-      }
-
-      const hasDimension = widget.type !== 'kpi' && widgetConfig.dimension;
-      const dimensionSelect = hasDimension ? `\"${widgetConfig.dimension}\",` : '';
-      const groupBy = hasDimension ? `GROUP BY \"${widgetConfig.dimension}\"` : '';
-      const query = `SELECT ${dimensionSelect} ${widgetConfig.metric} as metric FROM be_exponential.${widgetConfig.dataSource} ${groupBy} ORDER BY metric DESC LIMIT 10`;
-      
-      setGeneratedQuery(query);
-
-      const handler = setTimeout(async () => {
-        try {
-            const { data, error } = await supabase.rpc('execute_query', { p_query: query });
-            if (error) throw error;
-            setPreviewData(data);
-        } catch(e: any) {
-            setPreviewData([{ error: 'Error al cargar previsualización: ' + e.message }]);
-        }
-      }, 500);
-
-      return () => clearTimeout(handler);
-    };
-
-    buildAndFetch();
-  }, [widgetConfig, isOpen, widget.type]);
-
-  // --- MANEJADOR DEL ENVÍO ---
-  const handleSubmit = async () => {
-    if (!widgetConfig) return;
-
+  const handleUpdateWidget = async () => {
     setIsSubmitting(true);
+    const finalQuery = generateQuery();
+
+    if (!finalQuery) {
+      toast({ title: 'Error', description: 'La consulta SQL no puede estar vacía.', variant: 'destructive' });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-        const updatedConfig = {
-            title: widgetConfig.title,
-            query: generatedQuery,
-            options: {
-                dataSource: widgetConfig.dataSource,
-                dimension: widget.type !== 'kpi' ? widgetConfig.dimension : null,
-                metric: widgetConfig.metric
-            }
-        };
+      const { error } = await supabase.rpc('update_widget_details', {
+        p_widget_id: widget.id,
+        p_title: title,
+        p_query: finalQuery,
+        p_config: { title, query: finalQuery }
+      });
 
-        const { error } = await supabase.rpc('update_widget_config_and_type', {
-            p_widget_id: widget.id,
-            p_widget_type: widget.type,
-            p_config: updatedConfig
-        });
+      if (error) throw error;
 
-        if (error) throw error;
-
-        toast({ title: '¡Widget actualizado!', className: 'bg-green-100 text-green-800' });
-        onWidgetUpdated(); // Usar el callback para actualizar el estado
-        setIsOpen(false);
+      toast({ title: 'Widget Actualizado', description: 'El widget se ha actualizado correctamente.' });
+      onWidgetUpdated();
+      setIsOpen(false);
 
     } catch (error: any) {
-      console.error("Error al actualizar el widget:", error); 
       toast({ title: 'Error al actualizar el widget', description: error.message, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const updateConfig = (update: Partial<WidgetConfig>) => {
-    setWidgetConfig(prev => prev ? { ...prev, ...update } : null);
-  }
-
-  // --- RENDERIZADO DEL COMPONENTE ---
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Pencil className="h-4 w-4 text-slate-600" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-100">
+            <Pencil className="h-4 w-4 text-blue-500" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl h-[70vh]">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
-            <DialogTitle>Editar Widget: {widgetConfig?.title || widget.title}</DialogTitle>
-            <DialogDescription>Ajusta los detalles de tu widget.</DialogDescription>
+          <DialogTitle>Editar Widget: {widget.type}</DialogTitle>
+          <DialogDescription>Modifica los detalles de tu widget.</DialogDescription>
         </DialogHeader>
-
-        {widgetConfig && (
-             <div className="grid grid-cols-5 gap-6 flex-grow h-full overflow-hidden py-4">
-                <div className="col-span-2 flex flex-col space-y-4 overflow-y-auto pr-4 border-r">
-                    <h3 className="text-lg font-semibold">Configuración</h3>
-                    <div><Label>Título del Widget</Label><Input value={widgetConfig.title} onChange={(e) => updateConfig({ title: e.target.value })} /></div>
-                    <TableSelector selectedTable={widgetConfig.dataSource} onTableSelect={(t) => updateConfig({ dataSource: t, dimension: null })} />
-                    {widget.type !== 'kpi' && (
-                    <ColumnSelector 
-                        label="Agrupar por (Dimensión)"
-                        dataSource={widgetConfig.dataSource}
-                        selectedColumn={widgetConfig.dimension}
-                        onColumnSelect={(c) => updateConfig({ dimension: c })}
-                    />
-                    )}
-                    <div><Label>Medir (Métrica)</Label><Input value={widgetConfig.metric || ''} onChange={(e) => updateConfig({ metric: e.target.value })} placeholder="Ej: COUNT(*), AVG(columna)"/></div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+            {/* Columna de Configuración */}
+            <div className="space-y-4">
+                <div>
+                    <label htmlFor="widget-title-edit" className="text-sm font-medium">Título del Widget</label>
+                    <Input id="widget-title-edit" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
 
-                <div className="col-span-3 flex flex-col space-y-4 items-center justify-center bg-slate-50 rounded-lg p-4 h-full">
-                    <h3 className="text-lg font-semibold self-start">Previsualización</h3>
-                    <div className="w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center p-4">
-                        <WidgetPreview widgetType={widget.type} previewData={previewData} title={widgetConfig.title}/>
-                    </div>
-                    <div className="w-full self-start pt-4">
-                        <Label>Consulta SQL Generada</Label>
-                        <pre className="text-xs bg-gray-100 p-2 rounded-md overflow-x-auto"><code>{generatedQuery || '-- La consulta aparecerá aquí --'}</code></pre>
-                    </div>
+                <div className="space-y-2">
+                    <h4 className="font-medium">Constructor de Consultas (Referencia)</h4>
+                    <p className="text-xs text-gray-500">El constructor no puede editar una consulta existente. Modifica el SQL directamente.</p>
+                    <TableSelector onTableSelect={() => {}} /> 
+                    <ColumnSelector tableName={null} onSelectionChange={() => {}} />
+                </div>
+
+                <div className="space-y-2">
+                    <h4 className="font-medium">Editor de SQL</h4>
+                    <Textarea 
+                        value={customQuery} 
+                        onChange={(e) => setCustomQuery(e.target.value)} 
+                        placeholder="Escribe tu consulta SQL directamente aquí..." 
+                        rows={5}
+                    />
                 </div>
             </div>
-        )}
+
+            {/* Columna de Previsualización */}
+            <div className="space-y-4">
+                <h4 className="font-medium">Previsualización</h4>
+                <WidgetPreview 
+                    widgetType={widget.type}
+                    title={title} 
+                    query={generateQuery()} 
+                />
+            </div>
+        </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !generatedQuery}>{isSubmitting ? 'Guardando...' : 'Guardar Cambios'}</Button>
+          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>Cancelar</Button>
+          <Button onClick={handleUpdateWidget} disabled={isSubmitting}>
+            {isSubmitting ? 'Actualizando...' : 'Guardar Cambios'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};

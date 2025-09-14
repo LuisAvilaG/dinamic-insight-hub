@@ -20,7 +20,8 @@ import { RecursosHumanosPage } from "./pages/RecursosHumanosPage";
 import { GestionRecursosHumanosPage } from "./pages/admin/GestionRecursosHumanosPage";
 import VistaGlobalContratos from "./pages/admin/contratos";
 import GestionDashboardsPage from "./pages/admin/GestionDashboards";
-import DashboardDetailPage from "./pages/admin/DashboardDetailPage"; // <-- 1. Importar la nueva página de detalle
+import DashboardDetailPage from "./pages/admin/DashboardDetailPage";
+import WidgetEditor from "./views/WidgetEditor"; // <-- Import the new editor
 import NotFound from "./pages/NotFound";
 import UsersAdmin from "./pages/UsersAdmin";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -106,7 +107,10 @@ const AppRoutes = () => {
             <Route path="admin/recursos-humanos" element={<GestionRecursosHumanosPage />} />
             <Route path="admin/contratos" element={<VistaGlobalContratos />} />
             <Route path="admin/GestionDashboards" element={<GestionDashboardsPage />} />
-            <Route path="admin/dashboards/:id" element={<DashboardDetailPage />} /> {/* <-- 2. Registrar la nueva ruta de detalle */}
+            <Route path="admin/dashboards/:id" element={<DashboardDetailPage />} />
+            {/* --- Rutas para el editor de widgets --- */}
+            <Route path="admin/dashboards/:id/widgets/new" element={<WidgetEditor />} />
+            <Route path="admin/dashboards/:id/widgets/:widgetId/edit" element={<WidgetEditor />} />
           </Route>
 
         </Route>

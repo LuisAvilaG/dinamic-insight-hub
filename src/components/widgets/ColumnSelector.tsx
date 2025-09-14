@@ -1,102 +1,125 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Check, ChevronsUpDown } from "lucide-react"
+ 
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+export type ColumnType = 'text' | 'varchar' | 'int' | 'int2' | 'int4' | 'int8' | 'float4' | 'float8' | 'numeric' | 'date' | 'timestamp' | 'timestamptz';
 
 interface ColumnSelectorProps {
-  label: string;
-  dataSource: string | null;
-  selectedColumn: string | null;
-  onColumnSelect: (columnName: string | null) => void;
-  // Opcional: filtrar columnas por tipo (ej: 'numeric', 'text', 'timestamp with time zone')
-  allowedColumnType?: string;
+  tableName: string;
+  selectedColumns: string[];
+  onSelectionChange: (columns: string[]) => void;
+  maxSelection?: number;
+  allowedColumnTypes?: ColumnType[];
 }
 
-interface TableColumn {
-  column_name: string;
-  data_type: string;
-}
-
-export function ColumnSelector({ 
-  label, 
-  dataSource, 
-  selectedColumn, 
-  onColumnSelect, 
-  allowedColumnType 
-}: ColumnSelectorProps) {
-  const [columns, setColumns] = useState<TableColumn[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Envolvemos el componente con forwardRef
+export const ColumnSelector = forwardRef<HTMLButtonElement, ColumnSelectorProps>((
+  { tableName, selectedColumns, onSelectionChange, maxSelection = Infinity, allowedColumnTypes }, ref) => {
+  const [columns, setColumns] = useState<{ name: string; type: string; }[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Si no hay una tabla seleccionada, limpiar las columnas y salir.
-    if (!dataSource) {
-      setColumns([]);
-      onColumnSelect(null);
-      return;
-    }
-
     const fetchColumns = async () => {
-      setIsLoading(true);
-      setError(null);
+      if (!tableName) return;
+      setLoading(true);
       try {
-        const { data, error } = await supabase.rpc('get_table_columns', { 
-          p_table_name: dataSource 
-        });
-
-        if (error) {
-          throw new Error(`No se pudieron cargar las columnas para ${dataSource}.`);
+        const { data, error } = await supabase.rpc('get_table_columns', { p_table_name: tableName });
+        if (error) throw error;
+        
+        let filteredColumns = data;
+        if (allowedColumnTypes) {
+          filteredColumns = data.filter((col: any) => allowedColumnTypes.includes(col.data_type));
         }
 
-        if (data) {
-          // Filtrar columnas si se especifica un tipo permitido
-          const filteredData = allowedColumnType 
-            ? data.filter((c: TableColumn) => c.data_type.includes(allowedColumnType)) 
-            : data;
-          setColumns(filteredData);
-        }
-      } catch (err: any) {
-        setError(err.message);
+        setColumns(filteredColumns || []);
+      } catch (error) {
+        console.error('Error fetching columns:', error);
+        setColumns([]);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
     fetchColumns();
-    // La dependencia de onColumnSelect es para satisfacer al linter de React, 
-    // pero la lógica principal depende de dataSource.
-  }, [dataSource, allowedColumnType, onColumnSelect]);
+  }, [tableName, allowedColumnTypes]);
 
-  const isDisabled = !dataSource || isLoading;
+  const handleSelect = (columnName: string) => {
+    let newSelection;
+    if (selectedColumns.includes(columnName)) {
+      newSelection = selectedColumns.filter(c => c !== columnName);
+    } else {
+      if (selectedColumns.length < maxSelection) {
+        newSelection = [...selectedColumns, columnName];
+      } else if (maxSelection === 1) {
+        newSelection = [columnName];
+      } else {
+        return; // No changes if max selection is reached
+      }
+    }
+    onSelectionChange(newSelection);
+    if (maxSelection === 1) {
+      setOpen(false);
+    }
+  };
+
+  const buttonText = selectedColumns.length > 0 ? selectedColumns.join(', ') : "Seleccionar columnas...";
 
   return (
-    <div>
-      <Label>{label}</Label>
-      <Select
-        value={selectedColumn || undefined}
-        onValueChange={onColumnSelect}
-        disabled={isDisabled}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder={
-            isLoading ? 'Cargando...' : (dataSource ? 'Selecciona una columna' : 'Primero elige una tabla')
-          } />
-        </SelectTrigger>
-        <SelectContent>
-          {columns.map(col => (
-            <SelectItem key={col.column_name} value={col.column_name}>
-              {col.column_name} ({col.data_type})
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-    </div>
-  );
-}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        {/* Pasamos el ref al botón */}
+        <Button
+          ref={ref} 
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+          disabled={loading}
+        >
+          <span className="truncate">{loading ? "Cargando..." : buttonText}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        <Command>
+          <CommandInput placeholder="Buscar columna..." />
+          <CommandEmpty>No se encontraron columnas.</CommandEmpty>
+          <CommandGroup>
+            {columns.map((column) => (
+              <CommandItem
+                key={column.name}
+                value={column.name}
+                onSelect={() => handleSelect(column.name)}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selectedColumns.includes(column.name) ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {column.name} <span className='text-xs text-slate-400 ml-2'>({column.type})</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+});
+
+ColumnSelector.displayName = 'ColumnSelector';

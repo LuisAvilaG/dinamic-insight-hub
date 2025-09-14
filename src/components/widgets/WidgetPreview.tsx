@@ -1,101 +1,99 @@
-import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WidgetType } from './AddWidget';
+import { WidgetType } from "./AddWidget";
+import { buildWidgetQuery } from "@/lib/widget_query_builder";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Kpi } from "./previews/Kpi";
+import { LineChart } from "./previews/LineChart";
+import { BarChart } from "./previews/BarChart";
+import { DonutChart } from "./previews/DonutChart";
+import { DataTable } from "./previews/DataTable";
+import { Loader2 } from "lucide-react";
 
-interface PreviewProps {
-  title: string;
+interface WidgetPreviewProps {
   widgetType: WidgetType;
-  previewData: any[] | null;
+  config: any;
+  title: string;
+  table: string | null;
 }
 
-const KpiPreview = ({ data, title }: { data: any[] | null, title: string }) => {
-  let value = "0";
-  if (data && data.length > 0 && data[0]) {
-    const firstRow = data[0];
-    const key = Object.keys(firstRow)[0];
-    value = firstRow[key];
-  }
-  return (
-    <Card className="h-full w-full flex flex-col">
-      <CardHeader><CardTitle className="text-base font-medium">{title}</CardTitle></CardHeader>
-      <CardContent className="flex-grow flex items-center justify-center">
-        <div className="text-4xl font-bold">{String(value)}</div>
-      </CardContent>
-    </Card>
-  );
-};
+export const WidgetPreview = ({ widgetType, config, title, table }: WidgetPreviewProps) => {
+  const isConfigured = () => {
+    if (!table) return false;
 
-const TablePreview = ({ data, title }: { data: any[] | null, title: string }) => {
-  const headers = data && data.length > 0 ? Object.keys(data[0]) : [];
-  return (
-    <Card className="h-full w-full flex flex-col">
-      <CardHeader><CardTitle className="text-base font-medium">{title}</CardTitle></CardHeader>
-      <CardContent className="flex-grow overflow-auto">
-        <Table>
-          <TableHeader><TableRow>{headers.map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader>
-          <TableBody>
-            {(data || []).map((row, i) => (
-              <TableRow key={i}>{headers.map(h => <TableCell key={h}>{String(row[h])}</TableCell>)}</TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-};
+    switch (widgetType) {
+      case 'kpi':
+        return !!config.column && !!config.aggregation;
+      
+      case 'line_chart':
+      case 'bar_chart':
+        if (!config.xAxis || !config.yAxisAggregation) {
+          return false;
+        }
+        if (config.yAxisAggregation !== 'COUNT' && !config.yAxisColumn) {
+          return false;
+        }
+        return true;
 
-const ChartPreview = ({ data, title, type }: { data: any[] | null, title: string, type: 'bar' | 'line' }) => {
-  if (!data || data.length === 0) {
-    return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent>No hay datos para previsualizar.</CardContent></Card>;
-  }
-  const keys = Object.keys(data[0]);
-  const dimension = keys[0];
-  const metric = keys[1];
-
-  const ChartComponent = type === 'bar' ? BarChart : LineChart;
-  const GraphicComponent = type === 'bar' ? Bar : Line;
-
-  return (
-    <Card className="h-full w-full">
-      <CardHeader><CardTitle className="text-base font-medium">{title}</CardTitle></CardHeader>
-      <CardContent className="h-[calc(100%-4rem)] w-full">
-         <ResponsiveContainer width="100%" height="100%">
-          <ChartComponent data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={dimension} tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip wrapperStyle={{ zIndex: 1000 }} />
-            <Legend wrapperStyle={{ fontSize: '14px' }} />
-            <GraphicComponent dataKey={metric} fill={type === 'bar' ? '#3b82f6' : '#8884d8'} name={metric} isAnimationActive={false} />
-          </ChartComponent>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-};
-
-
-export const WidgetPreview = ({ widgetType, previewData, title }: PreviewProps) => {
-
-  if (!previewData) {
-    return <div className="text-slate-400">La previsualización aparecerá aquí.</div>;
-  }
-  
-  if (previewData.length > 0 && previewData[0]?.error) {
-      return <div className="text-red-500 text-sm p-4 bg-red-100 rounded-md">{previewData[0].error}</div>;
+      case 'donut_chart':
+        return !!config.category && !!config.value;
+        
+      case 'data_table':
+        return !!config.columns && config.columns.length > 0;
+        
+      default:
+        return false;
+    }
   }
 
-  switch (widgetType) {
-    case 'kpi':
-      return <KpiPreview data={previewData} title={title} />;
-    case 'table':
-      return <TablePreview data={previewData} title={title} />;
-    case 'bar_chart':
-      return <ChartPreview data={previewData} title={title} type="bar" />;
-    case 'line_chart':
-      return <ChartPreview data={previewData} title={title} type="line" />;
-    default:
-      return <div className="text-slate-500">Tipo de widget no reconocido.</div>;
-  }
+  const query = isConfigured() ? buildWidgetQuery(widgetType, table!, config) : null;
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['widget_preview', query],
+    queryFn: async () => {
+      if (!query) return null;
+      const { data, error } = await supabase.rpc('execute_sql', { query });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!query 
+  });
+
+  const renderPreview = () => {
+    if (!isConfigured()) {
+      return <p className="text-sm text-muted-foreground">La previsualización aparecerá aquí.</p>;
+    }
+
+    if (isLoading) {
+      return <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Cargando datos...</div>;
+    }
+
+    if (error) {
+      return <p className="text-sm text-red-500">Error al cargar datos: {(error as Error).message}</p>;
+    }
+
+    if (!data || data.length === 0) {
+        return <p className="text-sm text-muted-foreground">No se encontraron datos para esta configuración.</p>;
+    }
+
+    // SOLUCIÓN: Copiar los datos para hacerlos extensibles antes de pasarlos a la librería de gráficos.
+    const extensibleData = data.map(item => ({ ...item }));
+    const previewProps = { title, data: extensibleData, config };
+
+    switch (widgetType) {
+      case 'kpi':
+        return <Kpi {...previewProps} />;
+      case 'line_chart':
+        return <LineChart {...previewProps} />;
+      case 'bar_chart':
+        return <BarChart {...previewProps} />;
+      case 'donut_chart':
+        return <DonutChart {...previewProps} />;
+      case 'data_table':
+        return <DataTable {...previewProps} />;
+      default:
+        return <p>Vista previa no disponible.</p>;
+    }
+  };
+
+  return <div className="w-full h-full p-4">{renderPreview()}</div>;
 };

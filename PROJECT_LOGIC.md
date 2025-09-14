@@ -1,46 +1,67 @@
-# Lógica y Arquitectura del Proyecto de Dashboard
+# Lógica del Proyecto: Dashboards y Widgets
 
-*Última actualización: 2025-10-05*
-
-## Propósito
-
-Este documento describe la arquitectura técnica, el flujo de datos y las decisiones clave detrás de la implementación del dashboard dinámico. Sirve como una guía de referencia para el desarrollo y mantenimiento continuo.
+Este documento describe la arquitectura y el flujo de datos para la creación, renderizado y gestión de widgets dentro de los dashboards. Es la fuente de verdad canónica y debe ser consultada antes de realizar cualquier modificación en esta área.
 
 ## Arquitectura General
 
-El sistema se compone de tres partes principales:
+El sistema de widgets se compone de varios componentes clave que trabajan en conjunto para proporcionar una experiencia de usuario fluida desde la creación hasta la visualización.
 
-1.  **Frontend (React/Vite)**: Una aplicación de una sola página (SPA) que proporciona la interfaz de usuario. Se encarga de la visualización, la interacción y la comunicación con el backend.
-2.  **Backend (Supabase)**: Utiliza Supabase para la base de datos PostgreSQL, la autenticación y, fundamentalmente, las **Funciones de Base de Datos (RPC)**.
-3.  **Base de Datos del Cliente**: Esquemas de datos de producción (como `be_exponential`) a los que las funciones RPC acceden de forma segura.
+El flujo de creación de un widget es un proceso guiado (asistente) que asegura que todos los datos necesarios sean recopilados antes de guardar el widget en la base de datos.
 
-## Flujo de Datos: Creación y Visualización de Widgets
+### Componentes Principales
 
-Este flujo es crítico y debe seguirse para asegurar la consistencia de los datos y el comportamiento esperado de la interfaz.
+1.  **`DashboardDetailPage.tsx` (Página de Visualización)**
+    *   **Responsabilidad:** Es la página principal que renderiza un dashboard específico y su cuadrícula de widgets.
+    *   **Carga de Datos:** Al montarse, llama a la función RPC `get_dashboard_details` para obtener toda la información del dashboard, incluyendo la lista de widgets existentes.
+    *   **Punto de Entrada a la Creación:** Contiene el botón "Añadir Widget" que dispara la apertura del componente `AddWidgetDialog`.
+    *   **Actualización:** Proporciona una función `onSave` al diálogo. Cuando esta función se invoca, la página se recarga por completo para mostrar el estado más reciente del dashboard, incluyendo el nuevo widget.
 
-1.  **Carga del Dashboard**: Al entrar a una página de dashboard, el frontend debe hacer una **única llamada** a la función RPC `get_dashboard_details(dashboard_id)`.
-    *   Esta función es la **única fuente de verdad**. Devuelve un objeto JSON que contiene los detalles del dashboard y un array anidado `widgets` con la configuración completa de cada widget, incluyendo su `id`, `type`, `config` y, crucialmente, su `layout`.
+2.  **`AddWidgetDialog.tsx` (Asistente de Creación)**
+    *   **Responsabilidad:** Orquesta el proceso de creación de un widget en un asistente de varios pasos.
+    *   **Pasos:**
+        1.  **Seleccionar Tipo:** El usuario elige el tipo de widget (KPI, Gráfico de Líneas, etc.).
+        2.  **Asignar Nombre:** El usuario da un título al widget.
+        3.  **Configurar:** Pasa el control al componente `AddWidget` para la configuración detallada.
+    *   **Paso de Control:** Su única función es guiar al usuario. La lógica de configuración y guardado real reside en el siguiente componente.
 
-2.  **Renderizado del Grid**: El frontend utiliza los datos de `dashboard.widgets` para renderizar la parrilla de widgets, posicionando cada uno según su objeto `layout` (`{x, y, w, h}`).
+3.  **`AddWidget.tsx` (Cerebro de la Configuración)**
+    *   **Responsabilidad:** Es el componente central donde se define la lógica, la previsualización y el guardado de un nuevo widget.
+    *   **Lógica:**
+        1.  Carga metadatos necesarios (lista de tablas y columnas) usando las funciones RPC `get_user_tables` y `get_table_columns`.
+        2.  Renderiza el formulario de configuración específico para el tipo de widget (e.g., `LineChartConfig`).
+        3.  Muestra una previsualización en tiempo real usando el componente `WidgetPreview`.
+        4.  Habilita el botón de guardado solo cuando la configuración es válida.
+        5.  **Guardado:** Al hacer clic en "Guardar", construye la consulta SQL final con `buildWidgetQuery` y llama a la función RPC `insert_widget` para persistir el nuevo widget en la base de datos.
 
-3.  **Añadir un Nuevo Widget**: Cuando el usuario hace clic en "Añadir Widget":
-    *   Se abre un diálogo que guía al usuario para configurar el nuevo widget (título, tipo, consulta, etc.).
-    *   **Cálculo de Posición**: Antes de guardar, el frontend **debe** calcular la siguiente posición disponible en la parrilla. Utiliza el array `widgets` (obtenido en el paso 1) para determinar los espacios ya ocupados y encontrar un lugar para el nuevo widget.
-    *   **Llamada de Inserción**: El frontend llama a la función RPC `insert_widget`.
-    *   Se le pasan los parámetros `p_dashboard_id`, `p_widget_type`, el objeto `p_config` (con el título, la query, etc.) y, más importante, el objeto `p_layout` calculado en el paso anterior.
+4.  **`WidgetPreview.tsx` (Previsualizador)**
+    *   **Responsabilidad:** Muestra una vista previa del widget tal como se vería en el dashboard.
+    *   **Funcionamiento:** Recibe el tipo de widget, la tabla, el título y la configuración en tiempo real desde `AddWidget`. Construye y ejecuta una consulta de previsualización para obtener los datos.
+    *   **Aislamiento:** Este componente es de *solo lectura* y no participa en la lógica de guardado. Su propósito es puramente visual.
+    *   **Punto de Fallo Histórico:** Los errores de `object is not extensible` se originan aquí cuando las librerías de gráficos (e.g., Recharts) intentan modificar los datos "congelados" que provienen de la base de datos.
 
-4.  **Actualización de la UI**: Después de que la llamada `insert_widget` se completa con éxito, el componente frontend simplemente vuelve a ejecutar la función `fetchData` (que a su vez vuelve a llamar a `get_dashboard_details`), obteniendo la lista fresca y actualizada de widgets, que ahora incluye el nuevo. El ciclo vuelve a empezar desde el paso 1.
+5.  **`WidgetRenderer.tsx` (Renderizador en Dashboard)**
+    *   **Responsabilidad:** Renderiza un widget individual ya guardado en la cuadrícula del `DashboardDetailPage`.
+    *   **Funcionamiento:** Recibe la configuración completa de un widget desde la base de datos (incluida la consulta SQL pre-construida) y la utiliza para obtener y mostrar los datos.
 
-## Estructura de la Base de Datos (Esquema `be_exponential`)
+## Flujo de Datos (Creación de Widget)
 
-La persistencia del dashboard se maneja con dos tablas principales:
+```mermaid
+graph TD
+    A[Usuario en DashboardDetailPage] -->|Click "Añadir Widget"| B(AddWidgetDialog: Paso 1)
+    B -->|Selecciona Tipo| C(AddWidgetDialog: Paso 2)
+    C -->|Define Título| D(AddWidgetDialog: Paso 3 -> AddWidget)
 
-- **`report_dashboards`**: Almacena la información de cada dashboard.
-- **`report_widgets`**: Tabla central que almacena la configuración de cada widget. Las columnas clave son:
-    - `dashboard_id`: Vincula el widget a un dashboard.
-    - `widget_type`: Un tipo `enum` (`kpi`, `table`, etc.) que define el tipo de visualización.
-    - `config`: Un objeto JSONB que contiene toda la configuración de la consulta del widget (`title`, `query`, `options`).
-    - `layout`: Un objeto JSONB que almacena la posición y el tamaño en la parrilla (`{x, y, w, h}`).
+    subgraph AddWidget
+        D1[Selecciona Tabla] --> D2(Carga Columnas)
+        D2 --> D3(Renderiza ...Config.tsx)
+        D3 -- Configuración --> D4(Estado 'config')
+        D4 -- config, table, type --> D5(WidgetPreview)
+        D5 -- Previsualización --> D6(Usuario ve el widget)
+    end
 
----
-*Este documento se actualizará a medida que el proyecto evolucione.*
+    D -->|Click "Guardar Widget"| E{handleSave}
+    E --> F[Llama a RPC 'insert_widget']
+    F -- Éxito --> G[Llama a onSave()]
+    G --> H[DashboardDetailPage recarga datos]
+    H --> I[Nuevo widget aparece]
+```

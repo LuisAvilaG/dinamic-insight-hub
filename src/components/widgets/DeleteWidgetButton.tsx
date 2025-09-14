@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface DeleteWidgetButtonProps {
   widgetId: string;
@@ -42,7 +42,7 @@ export function DeleteWidgetButton({ widgetId, onWidgetDeleted }: DeleteWidgetBu
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="cursor-pointer text-red-500 hover:text-red-700">
+        <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-red-500 hover:text-red-700">
           <Trash2 className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
@@ -51,7 +51,7 @@ export function DeleteWidgetButton({ widgetId, onWidgetDeleted }: DeleteWidgetBu
           <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
           <AlertDialogDescription>
             Esta acción no se puede deshacer. El widget será eliminado permanentemente de tu dashboard.
-          </AlertDialogDescription>
+          </Aler tDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>

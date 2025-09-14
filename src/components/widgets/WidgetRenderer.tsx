@@ -2,12 +2,13 @@ import { KpiWidget } from "./KpiWidget";
 import { TableWidget } from "./TableWidget";
 import { BarChartWidget } from "./BarChartWidget";
 import { LineChartWidget } from "./LineChartWidget";
-import { DonutChartWidget } from "./DonutChartWidget"; // Importado
+import { DonutChartWidget } from "./DonutChartWidget";
+import GaugeWidget from "./GaugeWidget";
+import { TimeSeriesWidget } from "./TimeSeriesWidget"; // 1. Importar TimeSeriesWidget
 import { Card, CardContent } from "@/components/ui/card";
 import { HelpCircle } from "lucide-react";
 import { WidgetToolbar } from "./WidgetToolbar";
 
-// Tipo que refleja la estructura REAL devuelta por la función get_dashboard_details
 type WidgetFromDB = {
   id: string;
   type: string;
@@ -20,11 +21,10 @@ type WidgetFromDB = {
 interface WidgetRendererProps {
   widget: WidgetFromDB;
   isEditMode?: boolean;
-  onWidgetDeleted: () => void;
+  onWidgetDeleted: (widgetId: string) => void;
   onWidgetUpdated: () => void;
 }
 
-// Componente de fallback mejorado
 const UnknownWidget = ({ type, id }: { type: string | null, id: string }) => (
   <Card className="border-dashed border-slate-300 h-full w-full">
     <CardContent className="flex flex-col items-center justify-center h-full text-center p-4">
@@ -40,22 +40,28 @@ const UnknownWidget = ({ type, id }: { type: string | null, id: string }) => (
 );
 
 export const WidgetRenderer = ({ widget, isEditMode, onWidgetDeleted, onWidgetUpdated }: WidgetRendererProps) => {
-  const { type, query, title, id } = widget;
+  const { type, query, config, title, id } = widget;
 
   const widgetTitle = typeof title === 'string' ? title : 'Widget sin título';
   const widgetQuery = typeof query === 'string' ? query : '';
+  const widgetConfig = config || {};
 
   const renderWidget = () => {
+    // 2. Añadir el caso para 'time_series'
     switch (type) {
         case 'kpi':
             return <KpiWidget query={widgetQuery} title={widgetTitle} />;
+        case 'gauge':
+            return <GaugeWidget config={widgetConfig as any} title={widgetTitle} />;
+        case 'time_series': // 3. Renderizar TimeSeriesWidget
+            return <TimeSeriesWidget query={widgetQuery} config={widgetConfig as any} title={widgetTitle} />;
         case 'table':
             return <TableWidget query={widgetQuery} title={widgetTitle} />;
         case 'bar_chart': 
             return <BarChartWidget query={widgetQuery} title={widgetTitle} />;
         case 'line_chart':
             return <LineChartWidget query={widgetQuery} title={widgetTitle} />;
-        case 'donut_chart': // Nuevo caso
+        case 'donut_chart':
             return <DonutChartWidget query={widgetQuery} title={widgetTitle} />;
         default:
             return <UnknownWidget type={type} id={id} />;

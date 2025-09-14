@@ -5,10 +5,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import { WidgetRenderer as Widget } from '@/components/widgets/WidgetRenderer';
-import { AddWidget } from '@/components/widgets/AddWidget';
+import { AddWidgetDialog } from '@/components/widgets/AddWidgetDialog';
 import { Loader2 } from 'lucide-react';
 import { Tables } from '@/types/supabase';
 import { Button } from '@/components/ui/button';
+import './DashboardDetailPage.css';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -63,12 +64,26 @@ export default function DashboardDetailPage() {
       fetchDashboardDetails(dashboardId);
     }
   }, [dashboardId, fetchDashboardDetails]);
-  
-  const handleDataChange = useCallback(() => {
+
+  const handleWidgetSaved = useCallback(() => {
     if (dashboardId) {
+      toast({
+        title: "¡Widget guardado!",
+        description: "Tu nuevo widget ha sido añadido al dashboard.",
+      });
       fetchDashboardDetails(dashboardId);
     }
-  }, [dashboardId, fetchDashboardDetails]);
+  }, [dashboardId, fetchDashboardDetails, toast]);
+
+  const handleWidgetDeleted = useCallback((widgetId: string) => {
+    setDashboard(prev => {
+        if (!prev) return null;
+        return {
+            ...prev,
+            widgets: prev.widgets.filter(w => w.id !== widgetId)
+        };
+    });
+  }, []);
 
   if (isLoading) {
     return (
@@ -106,13 +121,18 @@ export default function DashboardDetailPage() {
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-2xl">{dashboard.name}</CardTitle>
-              <CardDescription>{dashboard.description || 'Sin descripción'} - <span className="font-semibold">{dashboard.department}</span></CardDescription>
+              <CardDescription>{dashboard.description || 'Sin descripción'}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Button onClick={() => setIsEditMode(!isEditMode)}>
                 {isEditMode ? 'Guardar Cambios' : 'Modo Edición'}
               </Button>
-              <AddWidget dashboardId={dashboard.id} onWidgetAdded={handleDataChange} widgets={dashboard.widgets} />
+              {dashboardId && 
+                <AddWidgetDialog 
+                  dashboardId={dashboardId} 
+                  onSave={handleWidgetSaved} 
+                  widgets={dashboard.widgets}
+                />}
             </div>
           </div>
         </CardHeader>
@@ -129,12 +149,12 @@ export default function DashboardDetailPage() {
         draggableCancel=".widget-toolbar"
       >
         {dashboard.widgets.map(widget => (
-          <div key={widget.id}>
+          <div key={widget.id} className={`${isEditMode ? 'editing-widget' : ''}`}>
             <Widget 
               widget={widget} 
               isEditMode={isEditMode} 
-              onWidgetDeleted={handleDataChange}
-              onWidgetUpdated={handleDataChange}
+              onWidgetDeleted={handleWidgetDeleted}
+              onWidgetUpdated={handleWidgetSaved}
             />
           </div>
         ))}

@@ -1,0 +1,13 @@
+
+.layout .react-grid-item.react-grid-placeholder {
+    background: #7c3aed;
+    border-radius: 8px;
+    border: 2px dashed #a78bfa;
+    opacity: 0.5;
+    transition: none;
+}
+
+.editing-widget {
+    border: 2px dashed rgba(124, 58, 237, 0.2);
+    border-radius: 8px;
+}
