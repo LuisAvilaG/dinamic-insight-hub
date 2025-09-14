@@ -1,44 +1,82 @@
-import { Tables } from "@/types/supabase";
 import { KpiWidget } from "./KpiWidget";
 import { TableWidget } from "./TableWidget";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { BarChartWidget } from "./BarChartWidget";
+import { LineChartWidget } from "./LineChartWidget";
+import { DonutChartWidget } from "./DonutChartWidget"; // Importado
+import { Card, CardContent } from "@/components/ui/card";
+import { HelpCircle } from "lucide-react";
+import { WidgetToolbar } from "./WidgetToolbar";
 
-// Extiende el tipo Widget para poder añadirle un nombre en el futuro
-type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
+// Tipo que refleja la estructura REAL devuelta por la función get_dashboard_details
+type WidgetFromDB = {
+  id: string;
+  type: string;
+  title: string;
+  query: string;
+  config: object | null;
+  layout: object;
+};
 
 interface WidgetRendererProps {
-  widget: Widget;
+  widget: WidgetFromDB;
+  isEditMode?: boolean;
+  onWidgetDeleted: () => void;
+  onWidgetUpdated: () => void;
 }
 
-// Un componente de fallback para tipos de widget desconocidos o no implementados
-const UnknownWidget = ({ type }: { type: string }) => (
-  <Card className="bg-amber-50 border border-amber-200">
-    <CardHeader>
-      <CardTitle className="text-amber-800 text-base">Widget no implementado</CardTitle>
-    </CardHeader>
-    <CardContent className="flex flex-col items-center justify-center h-32 text-amber-700">
-        <AlertTriangle className="h-6 w-6 mb-2" />
-        <p className="text-sm">El tipo de widget <span className="font-mono bg-amber-100 px-1 rounded">{type}</span> aún no es soportado.</p>
+// Componente de fallback mejorado
+const UnknownWidget = ({ type, id }: { type: string | null, id: string }) => (
+  <Card className="border-dashed border-slate-300 h-full w-full">
+    <CardContent className="flex flex-col items-center justify-center h-full text-center p-4">
+        <HelpCircle className="h-8 w-8 text-slate-400 mb-2" />
+        <p className="font-semibold text-slate-600">Widget Desconocido</p>
+        <p className="text-xs text-slate-500 mt-1">
+          No se pudo renderizar el widget. 
+          <br /> 
+          Tipo recibido: <span className="font-mono bg-slate-100 px-1 rounded">{type || 'N/A'}</span>
+        </p>
     </CardContent>
   </Card>
 );
 
-export const WidgetRenderer = ({ widget }: WidgetRendererProps) => {
-  // Extraemos las propiedades del widget para pasarlas al componente correspondiente
-  const { widget_type, query } = widget;
-  
-  // Por ahora, el título será el tipo de widget. Más adelante se podrá configurar.
-  const title = widget.widget_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+export const WidgetRenderer = ({ widget, isEditMode, onWidgetDeleted, onWidgetUpdated }: WidgetRendererProps) => {
+  const { type, query, title, id } = widget;
 
-  // Decidimos qué componente renderizar basándonos en el widget_type
-  switch (widget_type) {
-    case 'kpi':
-      return <KpiWidget query={query} title={title} />;
-    case 'table':
-      return <TableWidget query={query} title={title} />;
-    // Aquí se añadirían más casos para 'bar_chart', 'line_chart', etc.
-    default:
-      return <UnknownWidget type={widget_type} />;
-  }
+  const widgetTitle = typeof title === 'string' ? title : 'Widget sin título';
+  const widgetQuery = typeof query === 'string' ? query : '';
+
+  const renderWidget = () => {
+    switch (type) {
+        case 'kpi':
+            return <KpiWidget query={widgetQuery} title={widgetTitle} />;
+        case 'table':
+            return <TableWidget query={widgetQuery} title={widgetTitle} />;
+        case 'bar_chart': 
+            return <BarChartWidget query={widgetQuery} title={widgetTitle} />;
+        case 'line_chart':
+            return <LineChartWidget query={widgetQuery} title={widgetTitle} />;
+        case 'donut_chart': // Nuevo caso
+            return <DonutChartWidget query={widgetQuery} title={widgetTitle} />;
+        default:
+            return <UnknownWidget type={type} id={id} />;
+    }
+  };
+
+  return (
+    <div className={`h-full w-full relative group ${isEditMode ? 'pointer-events-none' : ''}`}>
+        {isEditMode && (
+            <div className="absolute top-1 right-1 z-20 pointer-events-auto">
+                <WidgetToolbar 
+                  widget={widget} 
+                  onWidgetDeleted={onWidgetDeleted}
+                  onWidgetUpdated={onWidgetUpdated}
+                />
+            </div>
+        )}
+        <div className={`h-full w-full ${isEditMode ? 'opacity-60' : ''}`}>
+            {renderWidget()}
+        </div>
+    </div>
+  );
+
 };

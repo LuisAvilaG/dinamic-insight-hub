@@ -2,16 +2,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface TableWidgetProps {
     query: string;
+    title: string;
 }
 
 interface QueryResult {
     [key: string]: any;
 }
 
-export const TableWidget = ({ query }: TableWidgetProps) => {
+export const TableWidget = ({ query, title }: TableWidgetProps) => {
     const [data, setData] = useState<QueryResult[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [headers, setHeaders] = useState<string[]>([]);
@@ -25,7 +27,6 @@ export const TableWidget = ({ query }: TableWidgetProps) => {
             setHeaders([]);
 
             try {
-                // *** CORRECCIÓN ***: Usando p_query y el esquema public por defecto
                 const { data: resultData, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
 
                 if (rpcError) {
@@ -48,36 +49,34 @@ export const TableWidget = ({ query }: TableWidgetProps) => {
         fetchData();
     }, [query]);
 
-    if (error) {
-        return <div className="text-red-500 text-sm p-4 bg-red-100 rounded-md">{error}</div>;
-    }
-
-    if (data === null) {
-        return <div>Cargando...</div>;
-    }
-
-    if (data.length === 0) {
-        return <div>No se encontraron resultados.</div>;
-    }
-
     return (
-        <div className="overflow-auto max-h-96">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        {headers.map(header => <TableHead key={header}>{header}</TableHead>)}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {data.map((row, rowIndex) => (
-                        <TableRow key={rowIndex}>
-                            {headers.map(header => (
-                                <TableCell key={`${rowIndex}-${header}`}>{String(row[header])}</TableCell>
+        <Card className="h-full w-full flex flex-col">
+            <CardHeader>
+                <CardTitle className="text-base font-medium widget-drag-handle cursor-move">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-auto">
+                 {error && <div className="text-red-500 text-sm p-4 bg-red-100 rounded-md h-full">{error}</div>}
+                {!error && data === null && <div className="flex items-center justify-center h-full">Cargando...</div>}
+                {!error && data && data.length === 0 && <div className="flex items-center justify-center h-full">No se encontraron resultados.</div>}
+                {!error && data && data.length > 0 && (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {headers.map(header => <TableHead key={header}>{header}</TableHead>)}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((row, rowIndex) => (
+                                <TableRow key={rowIndex}>
+                                    {headers.map(header => (
+                                        <TableCell key={`${rowIndex}-${header}`}>{String(row[header])}</TableCell>
+                                    ))}
+                                </TableRow>
                             ))}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
     );
 };

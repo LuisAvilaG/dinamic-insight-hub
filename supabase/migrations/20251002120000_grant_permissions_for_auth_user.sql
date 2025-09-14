@@ -21,3 +21,9 @@ GRANT ALL ON ALL TABLES IN SCHEMA be_exponential TO authenticated;
 -- 3. Otorgar permiso de ejecución sobre la función execute_query.
 -- Esto es fundamental para que los widgets puedan obtener sus datos.
 GRANT EXECUTE ON FUNCTION be_exponential.execute_query(p_query_text text) TO authenticated;
+
+-- 4. Otorgar permiso de ejecución sobre la función delete_widget.
+GRANT EXECUTE ON FUNCTION be_exponential.delete_widget(p_widget_id UUID) TO authenticated;
+
+-- 5. Otorgar permiso de ejecución para actualizar widgets.
+GRANT EXECUTE ON FUNCTION be_exponential.update_widget_config_and_type(uuid, text, jsonb) TO authenticated;

@@ -1,259 +1,59 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Dinamic Software Design System - Basado en la imagen oficial */
-
+ 
 @layer base {
   :root {
-    /* Core brand colors - Corporate style */
-    --background: 0 0% 100%; /* #FFFFFF */
-    --foreground: 0 0% 12%; /* #1F1F1F */
-    
-    /* Corporate palette */
-    --primary: 211 100% 50%; /* #007BFF */
-    --primary-foreground: 0 0% 98%;
-    --primary-light: 211 100% 60%;
-    
-    --secondary: 220 10% 65%; /* neutral gray for secondary elements */
-    --secondary-foreground: 0 0% 100%;
-    --secondary-light: 220 10% 75%;
-    
-    --accent-purple: 255 45% 47%; /* #673AB7 */
-    --accent-teal: 340 82% 54%; /* #E91E63 as fuchsia accent (used in gradient) */
-    
-    --dark: 0 0% 8%;
-    --dark-foreground: 0 0% 98%;
-    
-    /* UI colors */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 15%;
-    
+    --background: 240 5% 96%; /* Gris claro para el fondo */
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%; /* Tarjetas blancas */
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 15%;
-    
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
-    
-    --accent: 210 20% 96%;
-    --accent-foreground: 0 0% 15%;
-    
-    --destructive: 0 84% 60%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262 84% 59%; /* Morado principal de la imagen */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 194 100% 50%;
-    
-    /* Design system tokens */
-    --radius: 0.75rem;
-    
-    /* Gradients - Inspirados en la imagen */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-secondary: linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--secondary-light)));
-    --gradient-dark: linear-gradient(135deg, hsl(var(--dark)), hsl(var(--accent-purple)));
-    --gradient-dinamic: linear-gradient(135deg, #00BFFF 0%, #FF00BF 50%, #8000FF 100%);
-    --gradient-dinamic-soft: linear-gradient(135deg, rgba(0,191,255,0.1) 0%, rgba(255,0,191,0.1) 50%, rgba(128,0,255,0.1) 100%);
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 10px 25px -5px hsl(var(--primary) / 0.25);
-    --shadow-secondary: 0 10px 25px -5px hsl(var(--secondary) / 0.25);
-    --shadow-dinamic: 0 20px 40px -10px rgba(0,191,255,0.3);
-    
-    /* Transitions */
-    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 15%;
-    --sidebar-primary: 194 100% 50%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 210 20% 96%;
-    --sidebar-accent-foreground: 0 0% 15%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 194 100% 50%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 84% 59%; /* Anillo de foco en morado */
+    --radius: 0.8rem; /* Bordes más redondeados */
   }
-
+ 
   .dark {
-    --background: 0 0% 8%;
+    --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-
-    --card: 0 0% 8%;
+    --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 8%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-
-    --primary: 194 100% 50%;
-    --primary-foreground: 0 0% 8%;
-
-    --secondary: 320 100% 50%;
-    --secondary-foreground: 0 0% 8%;
-
-    --muted: 0 0% 15%;
-    --muted-foreground: 240 5% 64%;
-
-    --accent: 0 0% 15%;
+    --primary: 262 84% 59%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62% 30%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 194 100% 50%;
-    
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 194 100% 50%;
-    --sidebar-primary-foreground: 0 0% 8%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 194 100% 50%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 262 84% 59%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    @apply bg-background text-foreground;
   }
-}
-
-@layer components {
-  /* Dinamic Software gradients */
-  .gradient-dinamic {
-    background: var(--gradient-dinamic);
-  }
-  
-  .gradient-dinamic-soft {
-    background: var(--gradient-dinamic-soft);
-  }
-  
-  .gradient-primary {
-    background: var(--gradient-primary);
-  }
-  
-  .gradient-secondary {
-    background: var(--gradient-secondary);
-  }
-  
-  .gradient-dark {
-    background: var(--gradient-dark);
-  }
-  
-  /* Professional shadows */
-  .shadow-primary {
-    box-shadow: var(--shadow-primary);
-  }
-  
-  .shadow-secondary {
-    box-shadow: var(--shadow-secondary);
-  }
-  
-  .shadow-dinamic {
-    box-shadow: var(--shadow-dinamic);
-  }
-  
-  /* Smooth transitions */
-  .transition-smooth {
-    transition: var(--transition-normal);
-  }
-  
-  /* Professional card styles */
-  .card-professional {
-    @apply bg-card border border-border rounded-xl shadow-md hover:shadow-lg transition-smooth;
-  }
-  
-  .card-interactive {
-    @apply card-professional hover:scale-[1.02] hover:shadow-dinamic cursor-pointer;
-  }
-  
-  /* Dinamic geometric patterns */
-  .pattern-dinamic {
-    background-image: 
-      linear-gradient(45deg, transparent 40%, hsl(var(--primary) / 0.05) 50%, transparent 60%),
-      linear-gradient(-45deg, transparent 40%, hsl(var(--secondary) / 0.05) 50%, transparent 60%),
-      linear-gradient(90deg, transparent 40%, hsl(var(--accent-purple) / 0.03) 50%, transparent 60%);
-    background-size: 40px 40px, 40px 40px, 60px 60px;
-  }
-  
-  .pattern-geometric {
-    background-image: 
-      linear-gradient(45deg, transparent 40%, hsl(var(--primary) / 0.05) 50%, transparent 60%),
-      linear-gradient(-45deg, transparent 40%, hsl(var(--secondary) / 0.05) 50%, transparent 60%);
-    background-size: 30px 30px;
-  }
-  
-  /* Professional button variants */
-  .btn-gradient {
-    @apply bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-dinamic hover:shadow-lg transition-smooth hover:scale-105;
-  }
-  
-  .btn-dinamic {
-    background: var(--gradient-dinamic);
-    @apply text-white shadow-dinamic hover:shadow-lg transition-smooth hover:scale-105;
-  }
-  
-  .btn-outline-gradient {
-    @apply border-2 border-transparent bg-gradient-to-r from-primary to-secondary bg-clip-border text-primary hover:text-primary-foreground hover:bg-clip-padding transition-smooth;
-  }
-
-  /* Dinamic logo styles */
-  .dinamic-logo {
-    background: var(--gradient-dinamic);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
-
-  .dinamic-icon {
-    background: var(--gradient-dinamic);
-    @apply rounded-xl shadow-dinamic;
-  }
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--secondary)));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, hsl(var(--primary-light)), hsl(var(--secondary-light)));
-}
-
-/* Loading animations */
-@keyframes pulse-dinamic {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
-}
-
-.animate-pulse-dinamic {
-  animation: pulse-dinamic 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

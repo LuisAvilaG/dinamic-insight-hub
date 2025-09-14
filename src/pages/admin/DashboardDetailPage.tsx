@@ -1,25 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Responsive, WidthProvider } from 'react-grid-layout';
-import { Widget } from '@/components/widgets/Widget';
+import { WidgetRenderer as Widget } from '@/components/widgets/WidgetRenderer';
 import { AddWidget } from '@/components/widgets/AddWidget';
 import { Loader2 } from 'lucide-react';
+import { Tables } from '@/types/supabase';
+import { Button } from '@/components/ui/button';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-type WidgetData = {
-  id: string;
-  dashboard_id: string;
-  title: string;
-  type: string;
-  position: { x: number, y: number, w: number, h: number };
-  query: string;
-  options: object;
-  created_at: string;
-};
+type WidgetData = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
 type DashboardDetails = {
   id: string;
@@ -30,25 +23,13 @@ type DashboardDetails = {
 };
 
 export default function DashboardDetailPage() {
-  // =====================================================================================
-  // CORRECCIÓN DEFINITIVA: Sincronizar el nombre del parámetro de la ruta.
-  // La ruta en App.tsx se define como '/admin/dashboards/:id'. Por lo tanto, useParams()
-  // nos dará un objeto con una propiedad `id`. Aquí, renombramos `id` a `dashboardId`
-  // para mantener la coherencia con el resto del componente sin cambiar cada variable.
-  // Este desajuste era la causa raíz de la pantalla de carga infinita.
-  // =====================================================================================
   const { id: dashboardId } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [dashboard, setDashboard] = useState<DashboardDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  useEffect(() => {
-    if (dashboardId) {
-      fetchDashboardDetails(dashboardId);
-    }
-  }, [dashboardId]);
-
-  const fetchDashboardDetails = async (id: string) => {
+  const fetchDashboardDetails = useCallback(async (id: string) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -60,7 +41,7 @@ export default function DashboardDetailPage() {
       
       const sanitizedData = {
         ...data,
-        widgets: (data.widgets || []).filter((w: WidgetData) => w.position)
+        widgets: (data.widgets || []).filter((w: any) => w.layout)
       };
 
       setDashboard(sanitizedData);
@@ -75,13 +56,19 @@ export default function DashboardDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const onWidgetAdded = () => {
+  }, [toast]);
+
+  useEffect(() => {
     if (dashboardId) {
       fetchDashboardDetails(dashboardId);
     }
-  };
+  }, [dashboardId, fetchDashboardDetails]);
+  
+  const handleDataChange = useCallback(() => {
+    if (dashboardId) {
+      fetchDashboardDetails(dashboardId);
+    }
+  }, [dashboardId, fetchDashboardDetails]);
 
   if (isLoading) {
     return (
@@ -107,7 +94,7 @@ export default function DashboardDetailPage() {
   
   const layouts = {
       lg: dashboard.widgets.map(widget => ({
-          ...widget.position,
+          ...(widget.layout as any),
           i: widget.id.toString(),
       }))
   };
@@ -121,7 +108,12 @@ export default function DashboardDetailPage() {
               <CardTitle className="text-2xl">{dashboard.name}</CardTitle>
               <CardDescription>{dashboard.description || 'Sin descripción'} - <span className="font-semibold">{dashboard.department}</span></CardDescription>
             </div>
-            <AddWidget dashboardId={dashboard.id} onWidgetAdded={onWidgetAdded} />
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setIsEditMode(!isEditMode)}>
+                {isEditMode ? 'Guardar Cambios' : 'Modo Edición'}
+              </Button>
+              <AddWidget dashboardId={dashboard.id} onWidgetAdded={handleDataChange} widgets={dashboard.widgets} />
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -132,12 +124,18 @@ export default function DashboardDetailPage() {
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={100}
-        isDraggable
-        isResizable
+        isDraggable={isEditMode}
+        isResizable={isEditMode}
+        draggableCancel=".widget-toolbar"
       >
         {dashboard.widgets.map(widget => (
           <div key={widget.id}>
-            <Widget data={widget} />
+            <Widget 
+              widget={widget} 
+              isEditMode={isEditMode} 
+              onWidgetDeleted={handleDataChange}
+              onWidgetUpdated={handleDataChange}
+            />
           </div>
         ))}
       </ResponsiveGridLayout>
