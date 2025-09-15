@@ -1,13 +1,14 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Users, LineChart, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { FileText, Users, LineChart, ArrowUp, ArrowDown, Loader2, Sparkles, BarChart2, Activity } from 'lucide-react';
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { subDays } from 'date-fns';
+import { subDays, format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useAuth } from "@/contexts/AuthContext";
 
-// Componente reutilizable para las tarjetas de estadísticas
+// --- Refined StatCard Component ---
 interface StatCardProps {
   title: string;
   value: string;
@@ -23,19 +24,19 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, changeType, i
   const ChangeIcon = isIncrease ? ArrowUp : ArrowDown;
 
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-300 bg-white rounded-lg">
+    <Card className="border bg-card shadow-sm hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-5 w-5 text-gray-400" />
+        <Icon className="h-5 w-5 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="h-12 flex items-center">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-300" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/50" />
           </div>
         ) : (
           <>
-            <div className="text-3xl font-bold text-gray-800">{value}</div>
+            <div className="text-3xl font-bold text-foreground">{value}</div>
             {change && (
               <p className={`text-xs ${changeColor} flex items-center mt-1`}>
                 <ChangeIcon className="h-3 w-3 mr-1" />
@@ -49,16 +50,39 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, changeType, i
   );
 };
 
-// Datos estáticos para la tabla de actividad reciente (se mantiene sin cambios)
+// --- Dashboard Header ---
+const DashboardHeader = () => {
+  const { profile } = useAuth();
+  const today = format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: es });
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between">
+          <div>
+              <h1 className="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500 flex items-center">
+                  <Sparkles className="h-8 w-8 mr-3 text-primary" />
+                  Bienvenido, {profile?.Nombre?.split(' ')[0] || 'a Dinamic Software'}
+              </h1>
+              <p className="mt-2 text-lg text-muted-foreground">Tu plataforma de Business Intelligence para la toma de decisiones inteligentes.</p>
+          </div>
+          <div className="text-sm text-muted-foreground hidden md:block">
+              {today}
+          </div>
+      </div>
+    </div>
+  );
+}
+
+// Static data for recent activities
 const recentActivities = [
-  { user: "Ana García", action: "Generó el reporte de ventas Q3", time: "Hace 5 min", type: "Reporte" },
-  { user: "Carlos Ruiz", action: "Actualizó el dashboard financiero", time: "Hace 2 horas", type: "Dashboard" },
-  { user: "Beatriz León", action: "Añadió 3 nuevos usuarios al sistema", time: "Hace 6 horas", type: "Usuario" },
-  { user: "David Costa", action: "Consultó el reporte de KPI de marketing", time: "Ayer", type: "Consulta" },
-  { user: "Elena Muñoz", action: "Generó el reporte de inventario mensual", time: "Ayer", type: "Reporte" },
+    { user: "Ana García", action: "Generó el reporte de ventas Q3", time: "Hace 5 min", type: "Reporte" },
+    { user: "Carlos Ruiz", action: "Actualizó el dashboard financiero", time: "Hace 2 horas", type: "Dashboard" },
+    { user: "Beatriz León", action: "Añadió 3 nuevos usuarios al sistema", time: "Hace 6 horas", type: "Usuario" },
+    { user: "David Costa", action: "Consultó el reporte de KPI de marketing", time: "Ayer", type: "Consulta" },
+    { user: "Elena Muñoz", action: "Generó el reporte de inventario mensual", time: "Ayer", type: "Reporte" },
 ];
 
-// El componente principal del dashboard, ahora dinámico
+// --- Main Dashboard Component ---
 export default function DashboardHomePage() {
   const [activeUsers, setActiveUsers] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -76,10 +100,7 @@ export default function DashboardHomePage() {
           { count: dashboardCount, error: dashboardError }
         ] = await Promise.all([
           supabase.from('Cuentas').select('ultimo_acceso'),
-          supabase
-            .from('report_dashboards')
-            .select('*', { count: 'exact', head: true })
-            .schema('be_exponential')
+          supabase.from('report_dashboards').select('*', { count: 'exact', head: true }).schema('be_exponential')
         ]);
         
         if (usersError) throw usersError;
@@ -102,43 +123,54 @@ export default function DashboardHomePage() {
   }, []);
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Dashboards" value={totalDashboards.toString()} loading={loading} icon={FileText} /> 
-        <StatCard title="Usuarios Activos (30d)" value={activeUsers.toString()} loading={loading} icon={Users} />
-        <StatCard title="Total de Cuentas" value={totalUsers.toString()} loading={loading} icon={Users} />
-        <StatCard title="Tiempo Promedio" value="2.3m" loading={loading} icon={LineChart} />
-      </div>
+    <div className="p-4 md:p-6 bg-background relative overflow-hidden">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] opacity-30"></div>
+      
+      <div className="relative z-10 space-y-8">
+        <DashboardHeader />
 
-      {/* La tabla de actividad reciente se mantiene igual */}
-      <Card className="border-0 shadow-sm bg-white rounded-lg">
-        <CardHeader>
-          <CardTitle>Actividad Reciente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Acción</TableHead>
-                <TableHead className="text-right">Tiempo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentActivities.map((activity, index) => (
-                <TableRow key={index} className="hover:bg-gray-50">
-                  <TableCell className="font-medium text-gray-700">{activity.user}</TableCell>
-                  <TableCell className="text-gray-600">
-                    {activity.action}
-                    <Badge variant="outline" className="ml-2 font-normal border-gray-300 text-gray-500">{activity.type}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">{activity.time}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        {/* Section: General Stats */}
+        <div>
+            <h2 className="text-xl font-semibold tracking-tight mb-4 flex items-center"><BarChart2 className="mr-2 h-5 w-5 text-primary"/>Resumen General</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Total Dashboards" value={totalDashboards.toString()} loading={loading} icon={FileText} /> 
+                <StatCard title="Usuarios Activos (30d)" value={activeUsers.toString()} loading={loading} icon={Users} />
+                <StatCard title="Total de Cuentas" value={totalUsers.toString()} loading={loading} icon={Users} />
+                <StatCard title="Tiempo Promedio" value="2.3m" loading={loading} icon={LineChart} />
+            </div>
+        </div>
+
+        {/* Section: Recent Activity */}
+        <div>
+            <h2 className="text-xl font-semibold tracking-tight mb-4 flex items-center"><Activity className="mr-2 h-5 w-5 text-primary"/>Actividad Reciente</h2>
+            <Card className="border bg-card shadow-sm">
+                <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Usuario</TableHead>
+                        <TableHead>Acción</TableHead>
+                        <TableHead className="text-right">Tiempo</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {recentActivities.map((activity, index) => (
+                        <TableRow key={index} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{activity.user}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                            {activity.action}
+                            <Badge variant="outline" className="ml-2 font-normal">{activity.type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">{activity.time}</TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                </CardContent>
+            </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, AlertCircle, Loader2, CheckCircle, MinusCircle } from 'lucide-react';
 
 const StatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
-  <Card className="shadow-sm border-0">
+  <Card className="shadow-sm border border-border">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
       {icon}
@@ -82,8 +82,8 @@ export const SaldoPermisos = ({ key: refreshKey }: { key?: string | number }) =>
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Disponibles" value="--" icon={<Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />} />
         <StatCard title="Asignados" value="--" icon={<CheckCircle className="h-5 w-5 text-muted-foreground" />} />
+        <StatCard title="Disponibles" value="--" icon={<Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />} />
         <StatCard title="Solicitados" value="--" icon={<MinusCircle className="h-5 w-5 text-muted-foreground" />} />
       </div>
     );
@@ -109,14 +109,14 @@ export const SaldoPermisos = ({ key: refreshKey }: { key?: string | number }) =>
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard 
-        title="Disponibles"
-        value={diasDisponibles}
-        icon={<Star className="h-5 w-5 text-yellow-500" />}
-      />
-      <StatCard 
         title="Asignados"
         value={saldos.asignados}
         icon={<CheckCircle className="h-5 w-5 text-green-500" />}
+      />
+      <StatCard 
+        title="Disponibles"
+        value={diasDisponibles}
+        icon={<Star className="h-5 w-5 text-yellow-500" />}
       />
       <StatCard 
         title="Solicitados"

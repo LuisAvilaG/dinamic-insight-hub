@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +7,7 @@ import { Calendar, CheckCircle, MinusCircle, AlertCircle } from 'lucide-react';
 
 // Helper component for individual stat cards
 const StatCard = ({ title, value, icon }) => (
-  <Card className="shadow-sm border-0">
+  <Card className="shadow-sm border border-border">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
       {icon}
@@ -58,8 +59,8 @@ export const SaldoVacaciones = ({ key: refreshKey }) => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Disponibles" value="--" icon={<Calendar className="h-5 w-5 text-muted-foreground" />} />
         <StatCard title="Asignados" value="--" icon={<CheckCircle className="h-5 w-5 text-muted-foreground" />} />
+        <StatCard title="Disponibles" value="--" icon={<Calendar className="h-5 w-5 text-muted-foreground" />} />
         <StatCard title="Tomados" value="--" icon={<MinusCircle className="h-5 w-5 text-muted-foreground" />} />
       </div>
     );
@@ -92,14 +93,14 @@ export const SaldoVacaciones = ({ key: refreshKey }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard 
-        title="Disponibles"
-        value={diasDisponibles}
-        icon={<Calendar className="h-5 w-5 text-primary" />}
-      />
-      <StatCard 
         title="Asignados"
         value={diasAsignados} // Muestra el valor correcto
         icon={<CheckCircle className="h-5 w-5 text-green-500" />}
+      />
+      <StatCard 
+        title="Disponibles"
+        value={diasDisponibles}
+        icon={<Calendar className="h-5 w-5 text-primary" />}
       />
       <StatCard 
         title="Tomados"

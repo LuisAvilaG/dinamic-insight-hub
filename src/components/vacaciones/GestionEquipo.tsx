@@ -198,39 +198,39 @@ export const GestionEquipo = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className='flex-1'>
-                <CardTitle>Hub de Equipo</CardTitle>
-                <CardDescription>Gestiona las ausencias y saldos.</CardDescription>
-            </div>
-            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
-                {isAdmin && (
-                    <div className="flex items-center space-x-2">
-                        <Users className="h-5 w-5"/>
-                        <Label htmlFor="admin-view">Mi Equipo</Label>
-                        <Switch id="admin-view" checked={adminView === 'company'} onCheckedChange={(checked) => setAdminView(checked ? 'company' : 'team')} />
-                        <Label htmlFor="admin-view">Empresa</Label>
-                        <Building className="h-5 w-5"/>
-                    </div>
-                )}
-                <Select onValueChange={setSelectedMemberId} defaultValue="all">
-                    <SelectTrigger className="min-w-[200px]"><SelectValue placeholder="Filtrar por miembro..." /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {currentMemberList.map(m => <SelectItem key={m.user_id} value={m.user_id}>{m.Nombre}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
+          <div className='flex-1'>
+            <CardTitle>Hub de Equipo</CardTitle>
+            <CardDescription>Gestiona las ausencias y saldos.</CardDescription>
+          </div>
+          <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
+            {isAdmin && (
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5"/>
+                <Label htmlFor="admin-view">Mi Equipo</Label>
+                <Switch id="admin-view" checked={adminView === 'company'} onCheckedChange={(checked) => setAdminView(checked ? 'company' : 'team')} />
+                <Label htmlFor="admin-view">Empresa</Label>
+                <Building className="h-5 w-5"/>
+              </div>
+            )}
+            <Select onValueChange={setSelectedMemberId} defaultValue="all">
+              <SelectTrigger className="min-w-[200px]"><SelectValue placeholder="Filtrar por miembro..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {currentMemberList.map(m => <SelectItem key={m.user_id} value={m.user_id}>{m.Nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
       </Card>
 
-      {error && <div className="p-4 bg-destructive/10 text-destructive font-medium rounded-lg">{error}</div>}
-      
       <Tabs defaultValue="resumen" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="resumen"><BarChart className="mr-2 h-4 w-4"/>Resumen de Saldos</TabsTrigger>
-          <TabsTrigger value="calendario"><Calendar className="mr-2 h-4 w-4"/>Calendario</TabsTrigger>
-          <TabsTrigger value="solicitudes"><ClipboardList className="mr-2 h-4 w-4"/>Solicitudes Pendientes</TabsTrigger>
+        <TabsList className="h-auto p-1.5 bg-muted rounded-lg border">
+          <TabsTrigger value="resumen" className="flex-1 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"><BarChart className="mr-2 h-4 w-4"/>Resumen de Saldos</TabsTrigger>
+          <TabsTrigger value="calendario" className="flex-1 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"><Calendar className="mr-2 h-4 w-4"/>Calendario</TabsTrigger>
+          <TabsTrigger value="solicitudes" className="flex-1 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground"><ClipboardList className="mr-2 h-4 w-4"/>Solicitudes Pendientes</TabsTrigger>
         </TabsList>
+        
+        {error && <div className="p-4 bg-destructive/10 text-destructive font-medium rounded-lg">{error}</div>}
         
         <TabsContent value="resumen" className="mt-4">
             <ResumenGraficoEquipo resumen={filteredData.resumen} loading={loading} />
