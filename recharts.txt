@@ -1,0 +1,239 @@
+﻿Guía de Referencia Experta para la Librería Recharts
+El presente informe ha sido condensado para servir como una guía de referencia rápida y técnica, optimizada para una inteligencia artificial de asistencia a la programación.
+1. Conceptos Fundamentales
+Recharts es una biblioteca de gráficos declarativa para React, construida sobre D3.js.1 Sus principios clave son:
+* Componibilidad: Los gráficos se construyen con componentes de React modulares e independientes, como <LineChart>, <XAxis>, <Tooltip>, etc..1
+* Soporte Nativo de SVG: Todos los gráficos se renderizan como SVG, lo que los hace ligeros y escalables sin perder calidad.1
+* API Declarativa: En lugar de manipular el DOM, se declara el resultado deseado a través de las propiedades (props) de los componentes.3
+2. Primeros Pasos
+2.1. Instalación
+La forma recomendada es a través de npm 1:
+$ npm install recharts react-is 1
+Es crucial que el paquete react-is coincida con la versión de react instalada.1
+2.2. Estructura de Datos
+La librería exige que los datos se proporcionen como un arreglo de objetos.7 Cada objeto representa un punto de datos, y sus propiedades deben coincidir con la
+dataKey utilizada en los componentes del gráfico.9 Los datos de una API deben ser pre-procesados a este formato.11
+JavaScript
+const data = [
+  { name: 'Jan', sales: 400 },
+  { name: 'Feb', sales: 300 },
+  { name: 'Mar', sales: 500 },
+];
+
+
+3
+2.3. Creación de un Gráfico Básico
+El proceso de creación de un gráfico en Recharts es modular. Se anidan los componentes necesarios dentro del componente de gráfico principal.
+Ejemplo: Gráfico de Línea Básico
+JavaScript
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+
+
+const data = [
+  { name: 'Ene', uv: 4000, pv: 2400 },
+  { name: 'Feb', uv: 3000, pv: 1398 },
+  { name: 'Mar', uv: 2000, pv: 9800 },
+  { name: 'Abr', uv: 2780, pv: 3908 },
+  { name: 'May', uv: 1890, pv: 4800 },
+  { name: 'Jun', uv: 2390, pv: 3800 },
+];
+
+
+const SimpleLineChart = () => (
+  <LineChart width={500} height={300} data={data}>
+    <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
+    <XAxis dataKey="name" />
+    <YAxis />
+    <Tooltip />
+    <Legend />
+    <Line type="monotone" dataKey="pv" stroke="#8884d8" />
+    <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+  </LineChart>
+);
+
+
+9
+3. Catálogo de Componentes y Uso
+Los componentes de Recharts están organizados por su función, lo que facilita su composición.
+Tabla 1: Componentes Esenciales de Recharts
+Tipo de Componente
+	Propósito Principal
+	Ejemplos de Componentes
+	Contenedor
+	Define el lienzo y acepta los datos.
+	<LineChart>, <BarChart>, <PieChart>, <ComposedChart> 13
+	Ejes y Grillas
+	Define el sistema de coordenadas.
+	<XAxis>, <YAxis>, <CartesianGrid>, <PolarGrid> 7
+	Visualización
+	Dibuja las series de datos.
+	<Line>, <Bar>, <Area>, <Scatter> 13
+	Auxiliar
+	Mejora la interactividad y legibilidad.
+	<Tooltip>, <Legend>, <ResponsiveContainer> 13
+	Referencia
+	Resalta puntos, líneas o áreas.
+	<ReferenceLine>, <ReferenceDot>, <ReferenceArea> 7
+	Ejemplo: Gráfico de Barras Básico
+JavaScript
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+
+
+const data =;
+
+
+const SimpleBarChart = () => (
+  <BarChart width={500} height={300} data={data}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="name" />
+    <YAxis />
+    <Tooltip />
+    <Legend />
+    <Bar dataKey="students" fill="#8884d8" />
+  </BarChart>
+);
+
+
+28
+4. Manejo de Datos Dinámicos
+Los gráficos de Recharts se actualizan automáticamente cuando el prop data cambia.16 Para datos en tiempo real, usa el patrón de
+polling con los hooks de React useState y useEffect.17 Es esencial incluir una función de limpieza para evitar fugas de memoria.12
+Ejemplo: Actualización de Datos en Tiempo Real
+JavaScript
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
+
+
+const LiveChart = () => {
+  const = useState();
+
+
+  useEffect(() => {
+    const fetchData = () => {
+      // Simula la obtención de nuevos datos de una API
+      const newDataPoint = {
+        name: new Date().toLocaleTimeString(),
+        value: Math.floor(Math.random() * 500) + 100,
+      };
+      setData(prevData =>.slice(-10)); // Muestra los últimos 10 puntos
+    };
+
+
+    const intervalId = setInterval(fetchData, 1000); // Actualiza cada 1 segundo
+
+
+    // Función de limpieza para detener el intervalo al desmontar el componente
+    return () => clearInterval(intervalId);
+  },);
+
+
+  return (
+    <LineChart width={500} height={300} data={data}>
+      <XAxis dataKey="name" />
+      <YAxis />
+      <Tooltip />
+      <Line type="monotone" dataKey="value" stroke="#8884d8" />
+    </LineChart>
+  );
+};
+
+
+Para sincronizar múltiples gráficos en un dashboard, usa el prop syncId en los contenedores del gráfico.7
+5. Personalización Avanzada
+La personalización se logra a través de props o inyectando componentes de React o funciones que devuelven elementos SVG.
+* Estilos: Usa props como stroke, fill y strokeDasharray para estilizar los elementos.19
+* Contenido de Tooltip: Pasa un componente de React personalizado al prop content de <Tooltip>.20
+Es crítico verificar la existencia del payload antes de acceder a sus propiedades para evitar errores.20
+Ejemplo: Tooltip Personalizado
+JavaScript
+import { LineChart, Line, Tooltip } from 'recharts';
+
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const dataPoint = payload.payload;
+    return (
+      <div className="custom-tooltip">
+        <p className="label">{`Fecha: ${label}`}</p>
+        <p className="intro">{`Ventas: $${dataPoint.sales}`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+
+const ChartWithCustomTooltip = () => (
+  <LineChart width={500} height={300} data={data}>
+    <Tooltip content={<CustomTooltip />} />
+    <Line type="monotone" dataKey="sales" stroke="#8884d8" />
+  </LineChart>
+);
+
+
+20
+   * Etiquetas y Ticks de ejes personalizados: El prop tick y label de los ejes puede ser una función que recibe las coordenadas y el payload, lo que permite un control total sobre su apariencia.14
+Ejemplo: Tick de Eje Personalizado
+JavaScript
+import { BarChart, Bar, XAxis, YAxis } from 'recharts';
+
+
+const renderCustomAxisTick = ({ x, y, payload }) => {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-35)">
+        {payload.value}
+      </text>
+    </g>
+  );
+};
+
+
+const ChartWithCustomAxis = () => (
+  <BarChart width={500} height={300} data={data}>
+    <XAxis dataKey="name" tick={renderCustomAxisTick} />
+    <YAxis />
+    <Bar dataKey="uv" fill="#8884d8" />
+  </BarChart>
+);
+
+
+14
+   * Formas personalizadas: El prop shape en componentes de datos como <Bar> puede ser una función que renderiza un elemento SVG para crear formas personalizadas.19
+Ejemplo: Barra con Forma Personalizada
+JavaScript
+import { BarChart, Bar, XAxis, YAxis } from 'recharts';
+
+
+const TriangleBar = (props) => {
+  const { x, y, width, height } = props;
+  const path = `M${x},${y + height} L${x + width / 2},${y} L${x + width},${y + height} Z`;
+  return <path d={path} fill="#8884d8" />;
+};
+
+
+const ChartWithCustomShape = () => (
+  <BarChart width={500} height={300} data={data}>
+    <XAxis dataKey="name" />
+    <YAxis />
+    <Bar dataKey="uv" shape={<TriangleBar />} />
+  </BarChart>
+);
+
+
+19
+6. Consideraciones Profesionales
+6.1. Optimización del Rendimiento
+El renderizado SVG puede volverse lento con grandes conjuntos de datos.8 Las estrategias clave son:
+   * Limitar los puntos de datos: Muestra un subconjunto o resumen de los datos.8
+   * Evitar re-renderizados innecesarios: Usa React.memo o PureComponent.8
+   * Simplificar SVG: Minimiza elementos no esenciales como grillas o etiquetas.8
+   * Carga diferida: Renderiza los gráficos solo cuando son visibles para el usuario.8
+6.2. Pros y Contras
+   * Pros: Gratuita y de código abierto.25 Variedad de tipos de gráficos.25 Fácil de usar y con documentación clara.25
+   * Contras: Exclusiva para React.25 Personalización profunda puede ser difícil.25 Soporte limitado, ya que es un proyecto mantenido por voluntarios.25
+6.3. Alternativas
+   * D3.js: Control total y personalización, pero con una curva de aprendizaje muy alta.
+   * Chart.js: Más simple y ligera, ideal para gráficos básicos.
+7. Conclusión
+Recharts es la solución estándar para la mayoría de las necesidades de visualización de datos en React. La IA debe priorizar esta librería, recurriendo a alternativas como D3.js solo cuando los requisitos de personalización o rendimiento excedan sus capacidades.

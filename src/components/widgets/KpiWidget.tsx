@@ -1,95 +1,74 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, DollarSign, TrendingDown, TrendingUp } from 'lucide-react';
-import { getKpiIconStyle } from '@/lib/colors';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from 'lucide-react';
+import { Tables } from '@/types/supabase';
+
+type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
 interface KpiWidgetProps {
-    query: string;
-    title: string;
+  widget: Widget;
 }
 
-// Función para formatear el valor del KPI de forma atractiva
-const formatKpiValue = (value: number | string): string => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return 'N/A';
+export const KpiWidget = ({ widget }: KpiWidgetProps) => {
+  const { config } = widget;
+  const { name, schema, table, column, aggregation } = config as any;
+  
+  const [result, setResult] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    if (num >= 1000000) {
-        return `$${(num / 1000000).toFixed(2)}M`;
-    }
-    if (num >= 1000) {
-        return `$${(num / 1000).toFixed(1)}k`;
-    }
-    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-};
+  useEffect(() => {
+    const fetchKpiData = async () => {
+      if (!schema || !table || !column || !aggregation) {
+        setError('Configuración incompleta del widget.');
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
 
-export const KpiWidget = ({ query, title }: KpiWidgetProps) => {
-    const [data, setData] = useState<any>(null);
-    const [error, setError] = useState<string | null>(null);
+      const columnExpression = column === '*' ? '*' : `\"${column}\"`;
+      const query = `SELECT ${aggregation}(${columnExpression}) as value FROM \"${schema}\".\"${table}\"`;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!query) return;
-            setData(null);
-            setError(null);
-            try {
-                const { data: resultData, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
-                if (rpcError) throw rpcError;
-
-                if (resultData && resultData.length > 0) {
-                    const firstRow = resultData[0];
-                    const value = firstRow[Object.keys(firstRow)[0]];
-                    setData(value);
-                } else {
-                    setData(0);
-                }
-            } catch (err: any) {
-                setError(err.message);
-                console.error(err);
-            }
-        };
-        fetchData();
-    }, [query]);
-
-    const iconStyle = getKpiIconStyle(title);
-    
-    // Placeholder para el indicador de cambio. En un futuro, podría venir de la consulta.
-    const percentageChange = Math.floor(Math.random() * 20) + 1;
-    const isPositive = Math.random() > 0.5;
-
-    const renderContent = () => {
-        if (error) {
-            return <div className="text-red-500 text-sm p-2 flex items-center"><AlertCircle className="h-4 w-4 mr-2"/>Error</div>;
-        }
-        if (data === null) {
-            return <div className="text-2xl font-bold animate-pulse text-slate-300">...</div>;
-        }
-        return <div className="text-3xl font-bold">{formatKpiValue(data)}</div>;
+      try {
+        const { data, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
+        if (rpcError) throw rpcError;
+        setResult(data && data.length > 0 ? data[0].value : 0);
+      } catch (err: any) {
+        setError(`Error en consulta: ${err.message}`);
+        console.error("Error al ejecutar la consulta del KPI:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
+    fetchKpiData();
+  }, [name, schema, table, column, aggregation]);
+
+  const renderContent = () => {
+    if (isLoading) {
+      return <Loader2 className="h-8 w-8 mx-auto animate-spin text-slate-400" />;
+    }
+    if (error) {
+      return <p className="text-xs text-red-500 text-center px-2">{error}</p>;
+    }
     return (
-        <Card className="h-full w-full flex flex-col justify-center widget-drag-handle cursor-move">
-            <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center space-x-4">
-                    <div className={`flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-lg ${iconStyle.background}`}>
-                        <DollarSign className={`h-7 w-7 ${iconStyle.foreground}`} />
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground font-medium">{title}</p>
-                        {renderContent()}
-                    </div>
-                </div>
-                <div className="flex items-center text-sm font-semibold self-end mb-1">
-                   {isPositive ? (
-                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                   ) : (
-                      <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
-                   )}
-                   <span className={isPositive ? "text-green-500" : "text-red-500"}>
-                      {percentageChange}%
-                   </span>
-                </div>
-            </CardContent>
-        </Card>
+      <p className="text-4xl font-bold">
+        {result !== null ? new Intl.NumberFormat().format(result) : 'N/A'}
+      </p>
     );
+  }
+
+  return (
+    <Card className="h-full flex flex-col justify-center border-none shadow-none bg-transparent">
+      <CardHeader className="pb-2 text-center">
+        <CardTitle className="text-base font-medium truncate" title={name}>{name || 'KPI sin nombre'}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-grow flex items-center justify-center">
+        {renderContent()}
+      </CardContent>
+    </Card>
+  );
 };

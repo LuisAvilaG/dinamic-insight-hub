@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@balkangraph/orgchart.js": "^8.21.4",
     "@hookform/resolvers": "^3.9.0",
     "@nivo/bar": "^0.99.0",
     "@nivo/line": "^0.99.0",
@@ -51,6 +52,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "d3-flextree": "^2.1.2",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
     "fuse.js": "^7.1.0",

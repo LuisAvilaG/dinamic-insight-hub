@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, PlusCircle, ChevronRight } from 'lucide-react';
 import { Tables } from '@/types/supabase';
 
+// El tipo de dato apunta a la definición de la tabla en el esquema be_exponential.
 type Dashboard = Tables<'report_dashboards', { schema: 'be_exponential' }>;
 
 const departmentOptions = [
@@ -34,12 +35,15 @@ export const DashboardManager = () => {
   const fetchDashboards = async () => {
     setIsLoading(true);
     try {
+      // ---- CÓDIGO RESTAURADO ----
+      // Volvemos a usar la llamada RPC, que es la forma correcta según la arquitectura.
       const { data, error } = await supabase.rpc('get_dashboards');
       if (error) throw error;
       setDashboards(data || []);
     } catch (error: any) {
       toast({
         title: 'Error al cargar',
+        // El error "public.dashboards" viene de la ejecución de la RPC en el backend.
         description: 'No se pudieron cargar los dashboards: ' + error.message,
         variant: 'destructive',
       });
@@ -79,7 +83,6 @@ export const DashboardManager = () => {
 
       if (error) throw error;
 
-      // La RPC ya devuelve el objeto completo, lo añadimos al estado
       setDashboards(prev => [data, ...prev]);
       setNewDashboard({ name: '', description: '', department: '' });
 

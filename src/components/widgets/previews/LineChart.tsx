@@ -1,5 +1,6 @@
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ResponsiveLine } from '@nivo/line';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 
 interface PreviewProps {
   title: string;
@@ -7,101 +8,65 @@ interface PreviewProps {
   config: any;
 }
 
-// Transforms data into the format Nivo expects for line charts.
-const transformDataForNivo = (data: any[], xAxis: string, aggregation: string, yAxisColumn: string | null) => {
-  const lineId = aggregation === 'COUNT' ? 'Count' : `${aggregation}(${yAxisColumn})`;
-
-  return [
-    {
-      id: lineId,
-      data: data.map(item => ({
-        x: item[xAxis],
-        // The query builder now consistently aliases the aggregated result to "value".
-        y: item.value
-      }))
-    }
-  ];
-};
-
+// Componente robusto para la vista previa del gráfico de líneas
 export const LineChart = ({ title, data, config }: PreviewProps) => {
-  // Check for the new configuration properties.
-  if (!data || data.length === 0 || !config.xAxis || !config.yAxisAggregation) {
+  const xAxisKey = config?.axes?.xAxis?.key;
+  // La dataKey para la línea siempre es "value" según la convención establecida en el query builder.
+  const yAxisDataKey = "value";
+
+  const renderContent = () => {
+    if (!xAxisKey) {
+      return (
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Configuración de ejes incompleta.</p>
+        </div>
+      );
+    }
+
+    if (!data || data.length === 0) {
+      return (
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">No hay datos para esta configuración.</p>
+        </div>
+      );
+    }
+
     return (
-        <Card className="w-full h-full flex flex-col">
-            <CardHeader>
-                <CardTitle className="text-base font-medium">{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-grow flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">Datos insuficientes para mostrar el gráfico.</p>
-            </CardContent>
-        </Card>
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsLineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis 
+            dataKey={xAxisKey} 
+            stroke="#888888" 
+            fontSize={12} 
+            tickLine={false} 
+            axisLine={false}
+          />
+          <YAxis 
+            stroke="#888888" 
+            fontSize={12} 
+            tickLine={false} 
+            axisLine={false} 
+            tickFormatter={(value) => `${value}`}
+          />
+          <Tooltip 
+            wrapperStyle={{ zIndex: 1000, fontSize: '12px' }} 
+            formatter={(value: number) => [value, config?.axes?.yAxis?.key || 'Value']}
+            labelFormatter={(label: string) => [label, xAxisKey]}
+          />
+          <Line type="monotone" dataKey={yAxisDataKey} stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+        </RechartsLineChart>
+      </ResponsiveContainer>
     );
   }
-
-  const nivoData = transformDataForNivo(data, config.xAxis, config.yAxisAggregation, config.yAxisColumn);
-  const yAxisLegend = config.yAxisAggregation === 'COUNT' ? 'Conteo' : `${config.yAxisAggregation}(${config.yAxisColumn})`;
 
   return (
     <Card className="w-full h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-base font-medium">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <ResponsiveLine
-            data={nivoData}
-            margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
-            xScale={{ type: 'point' }}
-            yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: config.xAxis,
-                legendOffset: 36,
-                legendPosition: 'middle'
-            }}
-            axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: 0,
-                legend: yAxisLegend,
-                legendOffset: -50, // Adjusted for potentially longer labels
-                legendPosition: 'middle'
-            }}
-            pointSize={10}
-            pointColor={{ theme: 'background' }}
-            pointBorderWidth={2}
-            pointBorderColor={{ from: 'serieColor' }}
-            useMesh={true}
-            legends={[
-                {
-                    anchor: 'bottom-right',
-                    direction: 'column',
-                    justify: false,
-                    translateX: 100,
-                    translateY: 0,
-                    itemsSpacing: 0,
-                    itemDirection: 'left-to-right',
-                    itemWidth: 80,
-                    itemHeight: 20,
-                    itemOpacity: 0.75,
-                    symbolSize: 12,
-                    symbolShape: 'circle',
-                    symbolBorderColor: 'rgba(0, 0, 0, .5)',
-                    effects: [
-                        {
-                            on: 'hover',
-                            style: {
-                                itemBackground: 'rgba(0, 0, 0, .03)',
-                                itemOpacity: 1
-                            }
-                        }
-                    ]
-                }
-            ]}
-        />
+      <CardContent className="flex-grow p-4">
+        {renderContent()}
       </CardContent>
     </Card>
   );

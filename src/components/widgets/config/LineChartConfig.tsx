@@ -1,3 +1,4 @@
+
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -23,24 +24,53 @@ export const LineChartConfig = ({ config, setConfig, columns }: ConfigProps) => 
 
   const aggregationOptions = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX'];
 
-  const handleAggregationChange = (value: string) => {
-    const newConfig = { ...config, yAxisAggregation: value, yAxisColumn: null };
-    setConfig(newConfig);
+  const handleXAxisChange = (value: string) => {
+    setConfig({
+      ...config,
+      axes: {
+        ...config.axes,
+        xAxis: { key: value }
+      }
+    });
   };
 
-  const handleYAxisColumnChange = (value: string) => {
-    setConfig({ ...config, yAxisColumn: value });
+  const handleYAggregationChange = (value: string) => {
+    const newYAxis = { ...config.axes?.yAxis, aggregation: value };
+    if (value === 'COUNT') {
+      delete newYAxis.key; // No column needed for COUNT
+    }
+    setConfig({
+      ...config,
+      axes: {
+        ...config.axes,
+        yAxis: newYAxis
+      }
+    });
+  };
+
+  const handleYColumnChange = (value: string) => {
+    setConfig({
+      ...config,
+      axes: {
+        ...config.axes,
+        yAxis: {
+          ...config.axes?.yAxis,
+          key: value
+        }
+      }
+    });
   };
 
   return (
     <div className="space-y-4 pt-4 border-t">
-       <p className="text-sm font-medium text-gray-700">Configuración de Datos</p>
+       <p className="text-sm font-medium text-gray-700">Configuración de Ejes</p>
+      
       <div className="space-y-2">
         <Label>Eje X (Categoría)</Label>
-        <p className="text-xs text-muted-foreground">La columna para agrupar los datos. Suele ser una fecha o una categoría de texto.</p>
+        <p className="text-xs text-muted-foreground">Suele ser una fecha o una categoría de texto.</p>
         <Select
-          value={config.xAxis}
-          onValueChange={(value) => setConfig({ ...config, xAxis: value })}
+          value={config.axes?.xAxis?.key || ""}
+          onValueChange={handleXAxisChange}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecciona el eje X" />
@@ -54,11 +84,11 @@ export const LineChartConfig = ({ config, setConfig, columns }: ConfigProps) => 
       </div>
       
       <div className="space-y-2">
-        <Label>Eje Y (Medida)</Label>
-        <p className="text-xs text-muted-foreground">La operación a realizar para calcular el valor.</p>
+        <Label>Eje Y (Agregación)</Label>
+        <p className="text-xs text-muted-foreground">Operación para calcular el valor.</p>
         <Select
-          value={config.yAxisAggregation}
-          onValueChange={handleAggregationChange}
+          value={config.axes?.yAxis?.aggregation || ""}
+          onValueChange={handleYAggregationChange}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecciona una agregación" />
@@ -71,13 +101,13 @@ export const LineChartConfig = ({ config, setConfig, columns }: ConfigProps) => 
         </Select>
       </div>
 
-      {config.yAxisAggregation && config.yAxisAggregation !== 'COUNT' && (
+      {config.axes?.yAxis?.aggregation && config.axes.yAxis.aggregation !== 'COUNT' && (
         <div className="space-y-2">
           <Label>Columna para el Eje Y</Label>
-          <p className="text-xs text-muted-foreground">La columna sobre la que se calculará la agregación.</p>
+          <p className="text-xs text-muted-foreground">Columna sobre la que se calculará la agregación.</p>
           <Select
-            value={config.yAxisColumn}
-            onValueChange={handleYAxisColumnChange}
+            value={config.axes?.yAxis?.key || ""}
+            onValueChange={handleYColumnChange}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecciona una columna" />

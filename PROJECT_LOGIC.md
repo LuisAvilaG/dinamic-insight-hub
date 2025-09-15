@@ -1,67 +1,63 @@
-# Lógica del Proyecto: Dashboards y Widgets
+# Documentación de la Lógica del Proyecto
 
-Este documento describe la arquitectura y el flujo de datos para la creación, renderizado y gestión de widgets dentro de los dashboards. Es la fuente de verdad canónica y debe ser consultada antes de realizar cualquier modificación en esta área.
+Este documento describe la arquitectura y el flujo de datos de alto nivel de la aplicación de dashboards, con un enfoque en la interacción entre el frontend en React y la base de datos en Supabase.
 
-## Arquitectura General
+## 1. Arquitectura General
 
-El sistema de widgets se compone de varios componentes clave que trabajan en conjunto para proporcionar una experiencia de usuario fluida desde la creación hasta la visualización.
+La aplicación sigue un modelo cliente-servidor donde:
 
-El flujo de creación de un widget es un proceso guiado (asistente) que asegura que todos los datos necesarios sean recopilados antes de guardar el widget en la base de datos.
+-   **Cliente (Frontend):** Una Single Page Application (SPA) construida con React (Vite) y TypeScript. Se encarga de la renderización de la interfaz de usuario, la gestión del estado local y la comunicación con la API de Supabase.
+-   **Servidor (Backend):** Supabase actúa como el backend, proveyendo:
+    -   Una base de datos PostgreSQL para la persistencia de datos.
+    -   Una API REST auto-generada para operaciones CRUD básicas.
+    -   Un sistema para crear y exponer funciones personalizadas de PostgreSQL como endpoints RPC (Remote Procedure Call), que es el método principal para las interacciones con la base de datos.
 
-### Componentes Principales
+## 2. Lógica de Datos y Flujo
 
-1.  **`DashboardDetailPage.tsx` (Página de Visualización)**
-    *   **Responsabilidad:** Es la página principal que renderiza un dashboard específico y su cuadrícula de widgets.
-    *   **Carga de Datos:** Al montarse, llama a la función RPC `get_dashboard_details` para obtener toda la información del dashboard, incluyendo la lista de widgets existentes.
-    *   **Punto de Entrada a la Creación:** Contiene el botón "Añadir Widget" que dispara la apertura del componente `AddWidgetDialog`.
-    *   **Actualización:** Proporciona una función `onSave` al diálogo. Cuando esta función se invoca, la página se recarga por completo para mostrar el estado más reciente del dashboard, incluyendo el nuevo widget.
+El núcleo de la aplicación es la capacidad de crear, visualizar y gestionar dashboards y widgets. Toda la lógica de negocio y las operaciones complejas de la base de datos están encapsuladas en funciones de PostgreSQL (RPC), manteniendo el código del cliente limpio y centrado en la UI.
 
-2.  **`AddWidgetDialog.tsx` (Asistente de Creación)**
-    *   **Responsabilidad:** Orquesta el proceso de creación de un widget en un asistente de varios pasos.
-    *   **Pasos:**
-        1.  **Seleccionar Tipo:** El usuario elige el tipo de widget (KPI, Gráfico de Líneas, etc.).
-        2.  **Asignar Nombre:** El usuario da un título al widget.
-        3.  **Configurar:** Pasa el control al componente `AddWidget` para la configuración detallada.
-    *   **Paso de Control:** Su única función es guiar al usuario. La lógica de configuración y guardado real reside en el siguiente componente.
+### 2.1. Entidades Principales
 
-3.  **`AddWidget.tsx` (Cerebro de la Configuración)**
-    *   **Responsabilidad:** Es el componente central donde se define la lógica, la previsualización y el guardado de un nuevo widget.
-    *   **Lógica:**
-        1.  Carga metadatos necesarios (lista de tablas y columnas) usando las funciones RPC `get_user_tables` y `get_table_columns`.
-        2.  Renderiza el formulario de configuración específico para el tipo de widget (e.g., `LineChartConfig`).
-        3.  Muestra una previsualización en tiempo real usando el componente `WidgetPreview`.
-        4.  Habilita el botón de guardado solo cuando la configuración es válida.
-        5.  **Guardado:** Al hacer clic en "Guardar", construye la consulta SQL final con `buildWidgetQuery` y llama a la función RPC `insert_widget` para persistir el nuevo widget en la base de datos.
+-   `report_dashboards`: Almacena la información de cada dashboard (nombre, descripción, etc.).
+-   `report_widgets`: Almacena la configuración de cada widget, incluyendo su tipo (`widget_type`), la configuración específica (`config`), su layout (`layout`), y una clave foránea a `dashboard_id`.
 
-4.  **`WidgetPreview.tsx` (Previsualizador)**
-    *   **Responsabilidad:** Muestra una vista previa del widget tal como se vería en el dashboard.
-    *   **Funcionamiento:** Recibe el tipo de widget, la tabla, el título y la configuración en tiempo real desde `AddWidget`. Construye y ejecuta una consulta de previsualización para obtener los datos.
-    *   **Aislamiento:** Este componente es de *solo lectura* y no participa en la lógica de guardado. Su propósito es puramente visual.
-    *   **Punto de Fallo Histórico:** Los errores de `object is not extensible` se originan aquí cuando las librerías de gráficos (e.g., Recharts) intentan modificar los datos "congelados" que provienen de la base de datos.
+**IMPORTANTE: Esquemas de Base de Datos**
 
-5.  **`WidgetRenderer.tsx` (Renderizador en Dashboard)**
-    *   **Responsabilidad:** Renderiza un widget individual ya guardado en la cuadrícula del `DashboardDetailPage`.
-    *   **Funcionamiento:** Recibe la configuración completa de un widget desde la base de datos (incluida la consulta SQL pre-construida) y la utiliza para obtener y mostrar los datos.
+Todas las tablas de la aplicación residen en el esquema `be_exponential`, no en el esquema `public` por defecto. Esto es crucial, ya que **todas las interacciones con la base de datos deben especificar este esquema**. Las funciones RPC lo hacen en su código SQL interno. El código del cliente debe hacerlo en las raras ocasiones en que interactúa directamente con las tablas (aunque el patrón preferido es usar siempre RPC).
 
-## Flujo de Datos (Creación de Widget)
+### 2.2. Flujo de Creación y Configuración de Widgets
 
-```mermaid
-graph TD
-    A[Usuario en DashboardDetailPage] -->|Click "Añadir Widget"| B(AddWidgetDialog: Paso 1)
-    B -->|Selecciona Tipo| C(AddWidgetDialog: Paso 2)
-    C -->|Define Título| D(AddWidgetDialog: Paso 3 -> AddWidget)
+El proceso de añadir un nuevo widget es el más complejo e ilustra la arquitectura de la aplicación:
 
-    subgraph AddWidget
-        D1[Selecciona Tabla] --> D2(Carga Columnas)
-        D2 --> D3(Renderiza ...Config.tsx)
-        D3 -- Configuración --> D4(Estado 'config')
-        D4 -- config, table, type --> D5(WidgetPreview)
-        D5 -- Previsualización --> D6(Usuario ve el widget)
-    end
+1.  **Obtención de Metadatos:**
+    -   El diálogo de configuración de widgets (`NewAddWidgetDialog`) llama a la función RPC `get_schema_tables()` para obtener una lista de todas las tablas visibles (de los esquemas `public` y `be_exponential`).
+    -   El resultado ahora incluye tanto el `table_schema` como el `table_name`.
+    -   El desplegable de selección de tabla muestra esta información combinada (ej: `be_exponential.tasks_action_items`) para evitar ambigüedades.
 
-    D -->|Click "Guardar Widget"| E{handleSave}
-    E --> F[Llama a RPC 'insert_widget']
-    F -- Éxito --> G[Llama a onSave()]
-    G --> H[DashboardDetailPage recarga datos]
-    H --> I[Nuevo widget aparece]
-```
+2.  **Selección de Columnas:**
+    -   Una vez que el usuario selecciona una tabla (y por lo tanto, un esquema y un nombre de tabla), el estado de configuración del widget almacena `{ schema: 'be_exponential', table: 'tasks_action_items', ... }`.
+    -   Se llama a la función RPC `get_table_columns({ p_schema_name, p_table_name })` para obtener las columnas *solo* de esa tabla específica.
+
+3.  **Lógica de Agregación Unificada (KPIs y Gráficos):**
+    -   Para una experiencia de usuario consistente, los formularios de configuración (KPI, Gráfico de Barras, etc.) piden al usuario que seleccione la **agregación** (`SUM`, `COUNT`, etc.) *antes* de la columna de valor/eje Y.
+    -   Si la agregación es `count`, el desplegable de columnas se puebla con **todas** las columnas de la tabla, además de una opción especial `*` para `COUNT(*)`.
+    -   Si la agregación es otra (ej: `sum`, `avg`), el desplegable solo muestra las columnas numéricas, filtradas en el frontend.
+    -   Esta lógica se aplica tanto en la configuración de KPIs como en la del eje Y de los gráficos de barras.
+
+4.  **Vista Previa Dinámica:**
+    -   A medida que el usuario completa la configuración, el componente de vista previa construye una consulta `SELECT` dinámica.
+    -   Esta consulta utiliza la sintaxis correcta que incluye el esquema: `SELECT ... FROM "${config.schema}"."${config.table}" ...`.
+    -   La consulta se envía a la función RPC `execute_query({ p_query })`, que la ejecuta de forma segura en la base de datos y devuelve el resultado.
+
+5.  **Guardado del Widget:**
+    -   Anteriormente, se intentaba guardar con `supabase.from('report_widgets').insert(...)`, lo cual fallaba por no especificar el esquema `be_exponential` y por sintaxis incorrecta de la librería.
+    -   La solución fue **centralizar la lógica de creación en una función RPC dedicada**.
+    -   Ahora, el cliente llama a la nueva función `supabase.rpc('create_widget', { ... })`, pasando los datos del nuevo widget.
+    -   Esta función `create_widget` contiene la sentencia `INSERT` correcta que apunta a `be_exponential.report_widgets` y maneja el casteo de tipos (`text` a `enum`), abstrayendo completamente la estructura del esquema del código del cliente y estableciendo un patrón de diseño consistente para todas las mutaciones de la base de datos.
+
+### 2.3. Visualización de Widgets
+
+-   Al cargar un dashboard, el componente `ReportViewer` llama a `get_dashboard_details({ p_dashboard_id })`.
+-   Esta función devuelve un objeto JSON con los detalles del dashboard y un array anidado de todos sus widgets.
+-   El frontend itera sobre este array y renderiza el componente de widget apropiado (`KpiWidget`, `BarChartWidget`, etc.) para cada uno, pasándole su objeto de configuración.
+-   Cada componente de widget es responsable de usar su configuración para obtener sus propios datos, siguiendo la misma lógica de construcción de consultas (`FROM "schema"."table"`, manejo de `COUNT(*)`, etc.) y uso de `execute_query` que la vista previa.

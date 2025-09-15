@@ -1,132 +1,89 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { ResponsiveLine, Serie } from '@nivo/line';
+
+import { useQuery } from '@tanstack/react-query';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/types/supabase';
+import { Loader2, AlertCircle } from 'lucide-react';
+
+type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
 interface LineChartWidgetProps {
-  title: string;
-  config: {
-    query: string;
-    curve?: 'basis' | 'cardinal' | 'catmullRom' | 'linear' | 'monotoneX' | 'monotoneY' | 'natural' | 'step' | 'stepAfter' | 'stepBefore';
-    pointSize?: number;
-    enableArea?: boolean;
-  };
+  widget: Widget;
 }
 
-export const LineChartWidget = ({ title, config }: LineChartWidgetProps) => {
-  const { 
-    query,
-    curve = 'linear',
-    pointSize = 10,
-    enableArea = false 
-  } = config;
+// Componente de estado reutilizado
+const WidgetStatus = ({ status, message }: { status: 'loading' | 'error' | 'empty', message: string }) => (
+  <div className="flex flex-col items-center justify-center h-full text-center p-4">
+    {status === 'loading' && <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />}
+    {status === 'error' && <AlertCircle className="h-8 w-8 text-red-400" />}
+    <p className={`mt-2 font-medium ${status === 'error' ? 'text-red-600' : 'text-slate-600'}`}>
+      {status === 'loading' && 'Cargando Datos...'}
+      {status === 'error' && 'Error al Cargar'}
+      {status === 'empty' && 'Sin Datos'}
+    </p>
+    <p className="text-xs text-slate-500 mt-1">{message}</p>
+  </div>
+);
 
-  const [data, setData] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const LineChartWidget = ({ widget }: LineChartWidgetProps) => {
+  const { title, config, query } = widget;
+  const widgetConfig = config as any;
 
-  useEffect(() => {
-    if (!query) return;
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['widget_data', widget.id],
+    queryFn: async () => {
+      if (!query) throw new Error('La consulta SQL no está definida.');
+      const { data, error } = await supabase.rpc('execute_query', { p_query: query });
+      if (error) throw new Error(`Error en la consulta: ${error.message}`);
+      return data || [];
+    },
+    enabled: !!query,
+  });
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
-        if (rpcError) throw rpcError;
-        setData(rpcData || []);
-        setError(null);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (isLoading) return <WidgetStatus status="loading" message="Ejecutando la consulta del widget."/>;
+  if (error) return <WidgetStatus status="error" message={error.message}/>;
+  if (!data || data.length === 0) return <WidgetStatus status="empty" message="La consulta no devolvió resultados."/>;
 
-    fetchData();
-  }, [query]);
+  const xAxisKey = widgetConfig.axes?.xAxis?.key;
+  const yAxisKey = 'value'; // La consulta SQL siempre devuelve el valor principal como 'value'
 
-  if (loading) return <div className="h-full w-full flex items-center justify-center">Cargando...</div>;
-  if (error) return <div className="h-full w-full flex items-center justify-center text-red-500 text-sm p-2">Error: {error}</div>;
-  if (!data || data.length === 0) return <div className="h-full w-full flex items-center justify-center">No hay datos.</div>;
-
-  const keys = Object.keys(data[0]);
-  const xKey = keys[0]; // La primera columna es el eje X
-  const yKeys = keys.slice(1); // El resto son las métricas (líneas)
-
-  const transformedData: Serie[] = yKeys.map(key => ({
-    id: key,
-    data: data.map(d => ({ x: d[xKey], y: d[key] }))
-  }));
-
-  const isTimeScale = data.length > 0 && !isNaN(new Date(data[0][xKey]).getTime());
+  if (!xAxisKey) {
+    return <WidgetStatus status="error" message="La configuración del eje X no está definida."/>;
+  }
 
   return (
-    <Card className="h-full w-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="text-center text-base font-semibold truncate">{title}</CardTitle>
+    <Card className="h-full w-full flex flex-col shadow-none border-none">
+      <CardHeader className='py-2 px-4'>
+        <CardTitle className='text-base font-medium'>{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <ResponsiveLine
-          data={transformedData}
-          curve={curve}
-          enableArea={enableArea}
-          pointSize={pointSize}
-          margin={{ top: 10, right: 110, bottom: 50, left: 60 }}
-          xScale={isTimeScale ? { type: 'time', format: 'auto', precision: 'day' } : { type: 'point' }}
-          xFormat={isTimeScale ? "time:%Y-%m-%d" : undefined}
-          yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false, reverse: false }}
-          yFormat=",.0f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            legend: xKey,
-            legendOffset: 36,
-            legendPosition: 'middle',
-            format: isTimeScale ? '%b %d' : undefined,
-          }}
-          axisLeft={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            legend: 'Valor',
-            legendOffset: -40,
-            legendPosition: 'middle'
-          }}
-          pointColor={{ theme: 'background' }}
-          pointBorderWidth={2}
-          pointBorderColor={{ from: 'serieColor' }}
-          pointLabelYOffset={-12}
-          useMesh={true}
-          legends={[
-            {
-              anchor: 'bottom-right',
-              direction: 'column',
-              justify: false,
-              translateX: 100,
-              translateY: 0,
-              itemsSpacing: 0,
-              itemDirection: 'left-to-right',
-              itemWidth: 80,
-              itemHeight: 20,
-              itemOpacity: 0.75,
-              symbolSize: 12,
-              symbolShape: 'circle',
-              symbolBorderColor: 'rgba(0, 0, 0, .5)',
-              effects: [
-                {
-                  on: 'hover',
-                  style: {
-                    itemBackground: 'rgba(0, 0, 0, .03)',
-                    itemOpacity: 1
-                  }
-                }
-              ]
-            }
-          ]}
-        />
+      <CardContent className="flex-grow p-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsLineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis 
+              dataKey={xAxisKey}
+              stroke="#888888"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis 
+              stroke="#888888"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `${value}`}
+            />
+            <Tooltip 
+              wrapperStyle={{ zIndex: 1000, fontSize: '12px' }}
+              formatter={(value: number, name: string) => [value, widgetConfig.axes.yAxis.key || name]}
+              labelFormatter={(label: string) => [label, xAxisKey]}
+            />
+            <Line type="monotone" dataKey={yAxisKey} stroke="#8884d8" strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
+          </RechartsLineChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

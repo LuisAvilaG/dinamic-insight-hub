@@ -1,38 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Tables } from '@/types/supabase'; // Import generated types
+import { Tables } from '@/types/supabase';
+import { WidgetGrid } from '@/components/widgets/WidgetGrid'; // Importar el WidgetGrid correcto
 
-// Define the types for our new data structure
+// Tipos
 type Dashboard = Tables<'report_dashboards', { schema: 'be_exponential' }>;
 type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
-
-// A placeholder component to render different widget types
-const WidgetRenderer: React.FC<{ widget: Widget }> = ({ widget }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Widget: {widget.id}</CardTitle>
-        <CardDescription>Type: {widget.widget_type}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p>Config:</p>
-        <pre className="bg-gray-100 p-2 rounded-md">
-          {JSON.stringify(widget.config, null, 2)}
-        </pre>
-        <p className="mt-2">Layout:</p>
-        <pre className="bg-gray-100 p-2 rounded-md">
-          {JSON.stringify(widget.layout, null, 2)}
-        </pre>
-      </CardContent>
-    </Card>
-  );
-};
-
 
 export const ReportViewer = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,7 +24,7 @@ export const ReportViewer = () => {
   useEffect(() => {
     const loadDashboardAndWidgets = async () => {
       if (!id) {
-        navigate('/dashboards'); // Navigate to a more appropriate route
+        navigate('/dashboards');
         return;
       }
 
@@ -62,11 +41,7 @@ export const ReportViewer = () => {
         if (dashboardError) throw dashboardError;
 
         if (!dashboardData) {
-          toast({
-            title: "Error",
-            description: "Dashboard no encontrado",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "Dashboard no encontrado", variant: "destructive" });
           navigate('/dashboards');
           return;
         }
@@ -86,11 +61,7 @@ export const ReportViewer = () => {
 
       } catch (error) {
         console.error('Error loading dashboard:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo cargar el dashboard",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "No se pudo cargar el dashboard", variant: "destructive" });
         navigate('/dashboards');
       } finally {
         setIsLoading(false);
@@ -110,17 +81,17 @@ export const ReportViewer = () => {
   }
 
   if (!dashboard) {
-    return null; // Should be handled by the redirect logic
+    return null;
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6 p-4 md:p-6 bg-slate-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(-1)} // Go back to the previous page
+          onClick={() => navigate(-1)}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -134,15 +105,17 @@ export const ReportViewer = () => {
         </div>
       </div>
 
-      {/* Widget Grid */}
+      {/* Widget Grid - Ahora usando el componente WidgetGrid */}
       {widgets.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {widgets.map(widget => (
-            <WidgetRenderer key={widget.id} widget={widget} />
-          ))}
-        </div>
+        <WidgetGrid 
+          widgets={widgets}
+          isEditMode={false} // Siempre en modo visualización
+          onLayoutChange={() => {}} // No se necesita en modo visualización
+          onEditWidget={() => {}}   // No se necesita en modo visualización
+          onDeleteWidget={() => {}} // No se necesita en modo visualización
+        />
       ) : (
-        <Card className="flex flex-col items-center justify-center p-12">
+        <Card className="flex flex-col items-center justify-center p-12 border-dashed">
            <AlertTriangle className="h-12 w-12 text-yellow-500" />
            <CardTitle className="mt-4">Sin widgets</CardTitle>
           <CardDescription className="mt-2 text-center">

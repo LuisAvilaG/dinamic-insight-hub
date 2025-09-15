@@ -1,115 +1,79 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ResponsiveBar } from '@nivo/bar';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from 'lucide-react';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Tables } from '@/types/supabase';
+
+type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
 interface BarChartWidgetProps {
-  title: string;
-  config: {
-    query: string;
-    layout?: 'vertical' | 'horizontal';
-    colors?: string;
-  };
+  widget: Widget;
 }
 
-export const BarChartWidget = ({ title, config }: BarChartWidgetProps) => {
-  const { query, layout = 'vertical', colors = 'nivo' } = config;
-  const [data, setData] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
+export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
+  const { config } = widget;
+  const { name, schema, table, xAxis, yAxis, aggregation } = config as any;
+  
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!query) return;
+    const fetchChartData = async () => {
+      if (!schema || !table || !xAxis || !yAxis || !aggregation) {
+        setError('Configuración incompleta del widget.');
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
 
-    const fetchData = async () => {
-      setLoading(true);
+      const yAxisExpression = yAxis === '*' ? '*' : `\"${yAxis}\"`;
+      const query = `SELECT \"${xAxis}\", ${aggregation}(${yAxisExpression}) as value FROM \"${schema}\".\"${table}\" GROUP BY \"${xAxis}\"`;
+
       try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
+        const { data, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
         if (rpcError) throw rpcError;
-        setData(rpcData || []);
-        setError(null);
+        setChartData(data || []);
       } catch (err: any) {
-        setError(err.message);
+        setError(`Error en consulta: ${err.message}`);
+        console.error("Error al ejecutar la consulta del gráfico:", err);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, [query]);
+    fetchChartData();
+  }, [name, schema, table, xAxis, yAxis, aggregation]);
 
-  if (loading) return <div className="h-full w-full flex items-center justify-center">Cargando...</div>;
-  if (error) return <div className="h-full w-full flex items-center justify-center text-red-500 text-sm p-2">Error: {error}</div>;
-  if (!data || data.length === 0) return <div className="h-full w-full flex items-center justify-center">No hay datos.</div>;
+  const renderContent = () => {
+    if (isLoading) return <Loader2 className="h-8 w-8 mx-auto animate-spin text-slate-400" />;
+    if (error) return <p className="text-xs text-red-500 text-center px-2">{error}</p>;
+    if (chartData.length === 0) return <p className="text-sm text-slate-400 text-center">No hay datos para mostrar.</p>;
 
-  const keys = Object.keys(data[0]);
-  const indexBy = keys[0];
-  const chartKeys = keys.slice(1);
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey={xAxis} tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={60} />
+            <YAxis tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)} />
+            <Tooltip formatter={(value) => new Intl.NumberFormat().format(value as number)} />
+            <Legend />
+            <Bar dataKey="value" fill="#3b82f6" name={yAxis === '*' ? 'Total' : yAxis || 'Valor'} />
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    );
+  }
 
   return (
-    <Card className="h-full w-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="text-center text-base font-semibold truncate">{title}</CardTitle>
+    <Card className="h-full flex flex-col justify-center border-none shadow-none bg-transparent">
+      <CardHeader className="pb-2 text-center">
+        <CardTitle className="text-base font-medium truncate" title={name}>{name || 'Gráfico sin nombre'}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <ResponsiveBar
-          data={data}
-          keys={chartKeys}
-          indexBy={indexBy}
-          layout={layout}
-          margin={{ top: 10, right: 60, bottom: 50, left: 60 }}
-          padding={0.3}
-          valueScale={{ type: 'linear' }}
-          indexScale={{ type: 'band', round: true }}
-          colors={{ scheme: colors }}
-          borderColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            legend: indexBy,
-            legendPosition: 'middle',
-            legendOffset: 32
-          }}
-          axisLeft={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            legend: chartKeys.length > 1 ? 'count' : chartKeys[0],
-            legendPosition: 'middle',
-            legendOffset: -40
-          }}
-          labelSkipWidth={12}
-          labelSkipHeight={12}
-          labelTextColor={{ from: 'color', modifiers: [['darker', 1.6]] }}
-          legends={[
-            {
-              dataFrom: 'keys',
-              anchor: 'bottom-right',
-              direction: 'column',
-              justify: false,
-              translateX: 120,
-              translateY: 0,
-              itemsSpacing: 2,
-              itemWidth: 100,
-              itemHeight: 20,
-              itemDirection: 'left-to-right',
-              itemOpacity: 0.85,
-              symbolSize: 20,
-              effects: [
-                {
-                  on: 'hover',
-                  style: {
-                    itemOpacity: 1
-                  }
-                }
-              ]
-            }
-          ]}
-          animate={true}
-        />
+      <CardContent className="flex-grow flex items-center justify-center">
+        {renderContent()}
       </CardContent>
     </Card>
   );

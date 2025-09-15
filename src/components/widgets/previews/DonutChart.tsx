@@ -1,5 +1,6 @@
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ResponsivePie } from '@nivo/pie';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface PreviewProps {
   title: string;
@@ -7,67 +8,65 @@ interface PreviewProps {
   config: any;
 }
 
-// Nivo espera `id` y `value` para los datos del gráfico de tarta
-const transformDataForNivo = (data: any[], categoryKey: string, valueKey: string) => {
-  return data.map(item => ({
-    id: item[categoryKey],
-    label: item[categoryKey],
-    value: item[valueKey]
-  }));
-};
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
 
+// Componente robusto para la vista previa del gráfico de Donut
 export const DonutChart = ({ title, data, config }: PreviewProps) => {
-  if (!data || data.length === 0 || !config.category || !config.value) return null;
+  const categoryKey = config?.series?.category?.key;
+  const metricAgg = config?.series?.metric?.aggregation;
 
-  const nivoData = transformDataForNivo(data, config.category, config.value);
+  const renderContent = () => {
+    if (!categoryKey || !metricAgg) {
+      return (
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Configuración de series incompleta.</p>
+        </div>
+      );
+    }
+
+    if (!data || data.length === 0) {
+      return (
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">No hay datos para esta configuración.</p>
+        </div>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Tooltip 
+            wrapperStyle={{ zIndex: 1000, fontSize: '12px' }}
+            formatter={(value: number, name: string) => [value, name]}
+          />
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={"60%"}
+            outerRadius={"80%"}
+            fill="#8884d8"
+            paddingAngle={data.length > 1 ? 5 : 0}
+            dataKey="value" // El query builder asegura que el valor es "value"
+            nameKey="name"   // El query builder asegura que la categoría es "name"
+            labelLine={false}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  }
 
   return (
     <Card className="w-full h-full flex flex-col">
       <CardHeader>
         <CardTitle className="text-base font-medium">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <ResponsivePie
-          data={nivoData}
-          margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-          innerRadius={0.5}
-          padAngle={0.7}
-          cornerRadius={3}
-          activeOuterRadiusOffset={8}
-          borderWidth={1}
-          borderColor={{ from: 'color', modifiers: [ [ 'darker', 0.2 ] ] }}
-          arcLinkLabelsSkipAngle={10}
-          arcLinkLabelsTextColor="#333333"
-          arcLinkLabelsThickness={2}
-          arcLinkLabelsColor={{ from: 'color' }}
-          arcLabelsSkipAngle={10}
-          arcLabelsTextColor={{ from: 'color', modifiers: [ [ 'darker', 2 ] ] }}
-          legends={[
-            {
-              anchor: 'bottom',
-              direction: 'row',
-              justify: false,
-              translateX: 0,
-              translateY: 56,
-              itemsSpacing: 0,
-              itemWidth: 100,
-              itemHeight: 18,
-              itemTextColor: '#999',
-              itemDirection: 'left-to-right',
-              itemOpacity: 1,
-              symbolSize: 18,
-              symbolShape: 'circle',
-              effects: [
-                {
-                  on: 'hover',
-                  style: {
-                    itemTextColor: '#000'
-                  }
-                }
-              ]
-            }
-          ]}
-        />
+      <CardContent className="flex-grow p-4">
+        {renderContent()}
       </CardContent>
     </Card>
   );

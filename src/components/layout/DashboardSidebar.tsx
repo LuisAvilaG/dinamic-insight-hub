@@ -11,15 +11,26 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
-  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard
+  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard, User, Calendar, Briefcase
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 // --- ESTRUCTURA DE NAVEGACIÓN ---
 const baseNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Recursos Humanos", url: "/recursos-humanos", icon: Users },
+  { title: "Organigrama", url: "/organigrama", icon: Users }, // New Organigrama link
 ];
+
+const recursosHumanosNavConfig = {
+    id: 'recursos-humanos',
+    title: 'Recursos Humanos',
+    icon: Users,
+    subItems: [
+        { id: 'mis-permisos', title: 'Mis Permisos', url: '/recursos-humanos', icon: User },
+        { id: 'mis-vacaciones', title: 'Mis Vacaciones', url: '/recursos-humanos?tab=mis-vacaciones', icon: Calendar },
+        { id: 'mi-equipo', title: 'Mi Equipo', url: '/recursos-humanos?tab=mi-equipo', icon: Briefcase, roles: ['líder', 'admin'] },
+    ]
+};
 
 const departmentNavConfig = [
   { title: "Operativo", url: "/operativo", icon: BarChart3 },
@@ -45,6 +56,7 @@ const adminNavConfig = [
     subItems: [
       { id: 'equipo', title: 'Gestión de Equipo', url: '/admin/recursos-humanos', icon: Users },
       { id: 'contratos', title: 'Gestión de Contratos', url: '/admin/contratos', icon: FileText },
+      { id: 'organigrama', title: 'Gestionar Organigrama', url: '/admin/recursos-humanos/organigrama/editar', icon: Users },
     ]
   },
   {
@@ -77,7 +89,7 @@ const SingleNavItem = ({ item, collapsed }) => (
   </SidebarMenuItem>
 );
 
-const CollapsibleNavItem = ({ item, collapsed }) => {
+const CollapsibleNavItem = ({ item, collapsed, userRole }) => {
   const location = useLocation();
   const isChildActive = useMemo(() => 
     item.subItems.some(sub => sub.url && location.pathname.startsWith(sub.url)),
@@ -91,9 +103,15 @@ const CollapsibleNavItem = ({ item, collapsed }) => {
     }
   }, [isChildActive]);
 
+  const filteredSubItems = useMemo(() => {
+      return item.subItems.filter(subItem => {
+          if (!subItem.roles) return true;
+          return subItem.roles.includes(userRole);
+      });
+  }, [item.subItems, userRole]);
 
   if (collapsed) {
-    return item.subItems.map(subItem => 
+    return filteredSubItems.map(subItem => 
       !subItem.isSeparator && <SingleNavItem key={subItem.id || subItem.title} item={subItem} collapsed={true} />
     );
   }
@@ -111,7 +129,7 @@ const CollapsibleNavItem = ({ item, collapsed }) => {
       </div>
       {isOpen && (
         <div className="pl-6 space-y-1">
-          {item.subItems.map(subItem => 
+          {filteredSubItems.map(subItem => 
              <SingleNavItem key={subItem.id || subItem.title} item={subItem} collapsed={false} />
           )}
         </div>
@@ -125,6 +143,7 @@ export const DashboardSidebar = () => {
   const { state } = useSidebar();
   const { profile, loading } = useAuth();
   const collapsed = state === "collapsed";
+  const userRole = profile?.role?.toLowerCase();
 
   const dashboardsNavMenu = useMemo(() => { // Renombrada la variable
     const departmentSubItems = departmentNavConfig.map(depto => ({
@@ -135,8 +154,8 @@ export const DashboardSidebar = () => {
     }));
 
     return {
-        id: 'dashboards', // ID actualizado
-        title: 'Dashboards', // Título actualizado
+        id: 'dashboards',
+        title: 'Dashboards',
         icon: FileText,
         subItems: departmentSubItems
     };
@@ -144,9 +163,8 @@ export const DashboardSidebar = () => {
 
   const adminItems = useMemo(() => {
     if (loading || !profile) return [];
-    const userRole = profile.role?.toLowerCase();
     return adminNavConfig.filter(item => item.roles.includes(userRole));
-  }, [profile, loading]);
+  }, [profile, loading, userRole]);
 
   return (
     <Sidebar className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-r bg-background/80 backdrop-blur-sm`}>
@@ -165,13 +183,14 @@ export const DashboardSidebar = () => {
             <SingleNavItem key={item.title} item={item} collapsed={collapsed} />
           ))}
 
-          <CollapsibleNavItem item={dashboardsNavMenu} collapsed={collapsed} />
+          <CollapsibleNavItem item={recursosHumanosNavConfig} collapsed={collapsed} userRole={userRole} />
+          <CollapsibleNavItem item={dashboardsNavMenu} collapsed={collapsed} userRole={userRole} />
 
           {adminItems.length > 0 && <SidebarSeparator className="my-2 border-dashed" />}
 
           {adminItems.map((item) => (
             item.subItems 
-              ? <CollapsibleNavItem key={item.id} item={item} collapsed={collapsed} />
+              ? <CollapsibleNavItem key={item.id} item={item} collapsed={collapsed} userRole={userRole}/>
               : <SingleNavItem key={item.id} item={item} collapsed={collapsed} />
           ))}
         </SidebarMenu>

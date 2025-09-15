@@ -1,3 +1,4 @@
+
 import { WidgetType } from "./AddWidget";
 import { buildWidgetQuery } from "@/lib/widget_query_builder";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,84 +17,61 @@ interface WidgetPreviewProps {
   table: string | null;
 }
 
+// LIMPIEZA TOTAL: Este componente ahora actúa como un simple orquestador.
+// La lógica de validación y transformación ha sido eliminada porque la config y los datos ya vienen en el formato correcto.
 export const WidgetPreview = ({ widgetType, config, title, table }: WidgetPreviewProps) => {
-  const isConfigured = () => {
-    if (!table) return false;
-
-    switch (widgetType) {
-      case 'kpi':
-        return !!config.column && !!config.aggregation;
-      
-      case 'line_chart':
-      case 'bar_chart':
-        if (!config.xAxis || !config.yAxisAggregation) {
-          return false;
-        }
-        if (config.yAxisAggregation !== 'COUNT' && !config.yAxisColumn) {
-          return false;
-        }
-        return true;
-
-      case 'donut_chart':
-        return !!config.category && !!config.value;
-        
-      case 'data_table':
-        return !!config.columns && config.columns.length > 0;
-        
-      default:
-        return false;
-    }
-  }
-
-  const query = isConfigured() ? buildWidgetQuery(widgetType, table!, config) : null;
+  
+  const query = buildWidgetQuery(widgetType, table!, config);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['widget_preview', query],
     queryFn: async () => {
-      if (!query) return null;
-      const { data, error } = await supabase.rpc('execute_sql', { query });
+      if (!query) return null; // Si no hay query, no se ejecuta la llamada
+      const { data, error } = await supabase.rpc('execute_query', { p_query: query });
       if (error) throw new Error(error.message);
-      return data;
+      return data || [];
     },
-    enabled: !!query 
+    enabled: !!query, // La query solo se habilita si la string `query` existe
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
   const renderPreview = () => {
-    if (!isConfigured()) {
-      return <p className="text-sm text-muted-foreground">La previsualización aparecerá aquí.</p>;
+    // Si no hay query, significa que la configuración está incompleta.
+    if (!query) {
+      return <p className="text-sm text-muted-foreground">Configura el widget para ver una previsualización.</p>;
     }
 
     if (isLoading) {
-      return <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Cargando datos...</div>;
+      return <div className="flex items-center gap-2"><Loader2 className="animate-spin" /> Cargando...</div>;
     }
 
     if (error) {
-      return <p className="text-sm text-red-500">Error al cargar datos: {(error as Error).message}</p>;
+      return <p className="text-sm text-red-500">Error: {(error as Error).message}</p>;
     }
 
     if (!data || data.length === 0) {
         return <p className="text-sm text-muted-foreground">No se encontraron datos para esta configuración.</p>;
     }
 
-    // SOLUCIÓN: Copiar los datos para hacerlos extensibles antes de pasarlos a la librería de gráficos.
-    const extensibleData = data.map(item => ({ ...item }));
-    const previewProps = { title, data: extensibleData, config };
+    // La `config` y los `data` se pasan directamente. No más adaptaciones.
+    const previewProps = { title, data, config };
 
     switch (widgetType) {
       case 'kpi':
         return <Kpi {...previewProps} />;
+      case 'data_table':
+        return <DataTable {...previewProps} />;
       case 'line_chart':
         return <LineChart {...previewProps} />;
       case 'bar_chart':
         return <BarChart {...previewProps} />;
       case 'donut_chart':
         return <DonutChart {...previewProps} />;
-      case 'data_table':
-        return <DataTable {...previewProps} />;
       default:
         return <p>Vista previa no disponible.</p>;
     }
   };
 
-  return <div className="w-full h-full p-4">{renderPreview()}</div>;
+  return <div className="w-full h-full p-4 flex items-center justify-center bg-gray-50/50 rounded-lg border">{renderPreview()}</div>;
 };

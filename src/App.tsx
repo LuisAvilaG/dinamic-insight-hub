@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,10 +17,11 @@ import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
 import { RecursosHumanosPage } from "./pages/RecursosHumanosPage";
 import { GestionRecursosHumanosPage } from "./pages/admin/GestionRecursosHumanosPage";
+import OrganigramaViewerPage from "./pages/OrganigramaViewerPage";
+import GestionarOrganigramaPage from "./pages/admin/GestionarOrganigramaPage";
 import VistaGlobalContratos from "./pages/admin/contratos";
 import GestionDashboardsPage from "./pages/admin/GestionDashboards";
 import DashboardDetailPage from "./pages/admin/DashboardDetailPage";
-import WidgetEditor from "./views/WidgetEditor"; // <-- Import the new editor
 import NotFound from "./pages/NotFound";
 import UsersAdmin from "./pages/UsersAdmin";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -87,6 +87,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardHome />} />
+          <Route path="organigrama" element={<OrganigramaViewerPage />} />
           <Route path="operativo" element={<OperativoPage />} />
           <Route path="financiero" element={<FinancieroPage />} />
           <Route path="consultoria" element={<ConsultoriaPage />} />
@@ -105,12 +106,10 @@ const AppRoutes = () => {
           {/* Rutas para Admin y RRHH */}
           <Route element={<AdminOrHrRoute />}>
             <Route path="admin/recursos-humanos" element={<GestionRecursosHumanosPage />} />
+            <Route path="admin/recursos-humanos/organigrama/editar" element={<GestionarOrganigramaPage />} />
             <Route path="admin/contratos" element={<VistaGlobalContratos />} />
             <Route path="admin/GestionDashboards" element={<GestionDashboardsPage />} />
             <Route path="admin/dashboards/:id" element={<DashboardDetailPage />} />
-            {/* --- Rutas para el editor de widgets --- */}
-            <Route path="admin/dashboards/:id/widgets/new" element={<WidgetEditor />} />
-            <Route path="admin/dashboards/:id/widgets/:widgetId/edit" element={<WidgetEditor />} />
           </Route>
 
         </Route>
