@@ -24,6 +24,7 @@ export const useNotifications = () => {
   const fetchAndSetNotifications = useCallback(async () => {
     if (!user) return;
     
+    // CORRECCIÓN: Apuntamos a la tabla en el esquema 'public' por defecto.
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -58,7 +59,6 @@ export const useNotifications = () => {
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         (payload) => {
           toast({ title: "Nueva Notificación", description: payload.new.message });
-          // FORZAMOS LA ACTUALIZACIÓN COMPLETA PARA ASEGURAR CONSISTENCIA
           fetchAndSetNotifications();
         }
       )

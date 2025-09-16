@@ -7,7 +7,6 @@ export type UserProfile = {
   nombre: string;
   role: string;
   avatar_url?: string;
-  RolEmpresa?: string;
 };
 
 interface AuthContextType {
@@ -27,20 +26,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const getSessionAndProfile = async (sessionUser: User | null) => {
       setUser(sessionUser);
       if (sessionUser) {
-        // CORRECCIÓN DEFINITIVA: Usamos el nombre exacto de la tabla entre comillas dobles.
-        const { data: userProfile } = await supabase
-          .from('"Cuentas"')
-          .select('Nombre, Rol, avatar_url, RolEmpresa')
-          .eq('user_id', sessionUser.id)
-          .single();
-        
-        if (userProfile) {
-          setProfile({
-            nombre: userProfile.Nombre,
-            role: userProfile.Rol,
-            avatar_url: userProfile.avatar_url,
-            RolEmpresa: userProfile.RolEmpresa,
-          });
+        const metadata = sessionUser.user_metadata;
+        if (metadata && (metadata.Rol || metadata.rol)) {
+          const profileData = {
+            nombre: metadata.Nombre || metadata.nombre || 'Usuario',
+            role: metadata.Rol || metadata.rol,
+            avatar_url: metadata.avatar_url,
+          };
+          setProfile(profileData);
+        } else {
+          // Fallback in case metadata is not synced yet, though this should be rare.
+          setProfile(null);
         }
       } else {
         setProfile(null);
@@ -56,8 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        await getSessionAndProfile(session?.user ?? null);
+      (_event, session) => {
+        getSessionAndProfile(session?.user ?? null);
       }
     );
 

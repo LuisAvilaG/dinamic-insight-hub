@@ -23,7 +23,7 @@ El núcleo de la aplicación es la capacidad de crear, visualizar y gestionar da
 
 **IMPORTANTE: Esquemas de Base de Datos**
 
-Todas las tablas de la aplicación residen en el esquema `be_exponential`, no en el esquema `public` por defecto. Esto es crucial, ya que **todas las interacciones con la base de datos deben especificar este esquema**. Las funciones RPC lo hacen en su código SQL interno. El código del cliente debe hacerlo en las raras ocasiones en que interactúa directamente con las tablas (aunque el patrón preferido es usar siempre RPC).
+Todas las tablas de la aplicación residen en el esquema `be_exponential`, no en el esquema `public` por defecto esto aplica solamente para el modulo de dashboards. Esto es crucial, ya que **todas las interacciones con la base de datos deben especificar este esquema**. Las funciones RPC lo hacen en su código SQL interno. El código del cliente debe hacerlo en las raras ocasiones en que interactúa directamente con las tablas (aunque el patrón preferido es usar siempre RPC).
 
 ### 2.2. Flujo de Creación y Configuración de Widgets
 

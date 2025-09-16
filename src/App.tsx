@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { DashboardHome } from "./components/dashboard/DashboardHome";
@@ -127,11 +127,9 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </AuthProvider>
+        <Toaster />
+        <Sonner />
+        <AppRoutes />
       </TooltipProvider>
     </QueryClientProvider>
   );

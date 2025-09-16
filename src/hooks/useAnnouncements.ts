@@ -9,9 +9,10 @@ type Announcement = {
   description: string | null;
   event_date: string | null;
   created_at: string;
+  announcement_type: 'Evento' | 'Informativo' | 'Urgente' | 'Cumpleaños';
 };
 
-export const useAnnouncements = (limit: number = 3) => {
+export const useAnnouncements = (limit: number = 10) => {
   const { toast } = useToast();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,7 @@ export const useAnnouncements = (limit: number = 3) => {
     const fetchAnnouncements = async () => {
       setLoading(true);
       
+      // CORRECCIÓN: Apuntamos a la tabla en el esquema 'public' por defecto.
       const { data, error } = await supabase
         .from("announcements")
         .select("*")
@@ -34,7 +36,7 @@ export const useAnnouncements = (limit: number = 3) => {
           variant: "destructive",
         });
       } else {
-        setAnnouncements(data);
+        setAnnouncements(data as Announcement[]);
       }
       
       setLoading(false);
