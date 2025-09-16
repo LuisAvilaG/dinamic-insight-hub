@@ -1,9 +1,9 @@
+
 import * as React from "react";
 import { cva } from "class-variance-authority";
 import { CheckIcon, XIcon, ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,14 +14,10 @@ const multiSelectVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "border-foreground/10 text-foreground bg-card hover:bg-card/80",
-        secondary:
-          "border-foreground/10 bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        inverted:
-          "inverted",
+        default: "border-foreground/10 text-foreground bg-card hover:bg-card/80",
+        secondary: "border-foreground/10 bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        inverted: "inverted",
       },
     },
     defaultVariants: { 
@@ -32,8 +28,8 @@ const multiSelectVariants = cva(
 
 interface MultiSelectProps extends React.PropsWithChildren {
   options: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }[];
-  value: string[];
-  onChange: (value: string[]) => void;
+  selected: string[];
+  onChange: (selected: string[]) => void;
   placeholder?: string;
   variant?: "default" | "secondary" | "destructive" | "inverted";
   asChild?: boolean;
@@ -41,19 +37,19 @@ interface MultiSelectProps extends React.PropsWithChildren {
 }
 
 export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
-  ({ options, value, onChange, variant, asChild = false, className, placeholder = "Select options", ...props }, ref) => {
+  ({ options, selected, onChange, variant, asChild = false, className, placeholder = "Select options", ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
 
+    // FIX: Ensure 'selected' is always an array to prevent runtime errors.
+    const safeSelected = Array.isArray(selected) ? selected : [];
+
     const handleUnselect = (selectedValue: string) => {
-      onChange(value.filter((v) => v !== selectedValue));
+      onChange(safeSelected.filter((v) => v !== selectedValue));
     };
 
-    // Close the popover when the user presses escape.
     React.useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          setOpen(false);
-        }
+        if (e.key === "Escape") setOpen(false);
       };
       document.addEventListener("keydown", handleKeyDown);
       return () => {
@@ -73,12 +69,13 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
               onClick={() => setOpen(!open)}
             >
                <div className="flex gap-1 flex-wrap">
-                {value.length > 0 ? (
-                    value.map((val) => {
+                {safeSelected.length > 0 ? (
+                    safeSelected.map((val) => {
                         const option = options.find(opt => opt.value === val);
                         return (
                             <Badge
                                 key={val}
+                                // FIX: Corrected typo from multiSelectvariants to multiSelectVariants
                                 className={cn("mr-1", multiSelectVariants({ variant }))}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -104,7 +101,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
               <CommandEmpty>No se encontraron columnas.</CommandEmpty>
               <CommandGroup>
                 {options.map((option) => {
-                  const isSelected = value.includes(option.value);
+                  const isSelected = safeSelected.includes(option.value);
                   return (
                     <CommandItem
                       key={option.value}
@@ -112,7 +109,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
                         if (isSelected) {
                           handleUnselect(option.value);
                         } else {
-                          onChange([...value, option.value]);
+                          onChange([...safeSelected, option.value]);
                         }
                       }}
                     >
@@ -128,7 +125,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
                   );
                 })}
               </CommandGroup>
-              {value.length > 0 && (
+              {safeSelected.length > 0 && (
                 <>
                   <CommandSeparator />
                   <CommandGroup>

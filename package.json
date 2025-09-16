@@ -49,6 +49,8 @@
     "@types/react-resizable": "^3.0.8",
     "@types/recharts": "^1.8.29",
     "@types/uuid": "^10.0.0",
+    "ag-grid-community": "^34.2.0",
+    "ag-grid-react": "^34.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
