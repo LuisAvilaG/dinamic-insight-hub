@@ -1,4 +1,5 @@
-import React from "react"; // Import React
+
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,8 +17,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Notifications } from "./Notifications"; // IMPORTAMOS EL NUEVO COMPONENTE
 
-// --- NUEVO COMPONENTE AÑADIDO Y EXPORTADO ---
 export const PageHeader = ({ title, description, icon }: { title: string, description: string, icon: React.ReactNode }) => {
   return (
     <div className="flex items-start space-x-4 p-1">
@@ -31,7 +32,6 @@ export const PageHeader = ({ title, description, icon }: { title: string, descri
     </div>
   );
 };
-
 
 // --- Helper Functions ---
 const getInitials = (name: string) => {
@@ -52,7 +52,7 @@ const pageTitles: { [key: string]: string } = {
   "/perfil": "Mi Perfil",
   "/admin/usuarios": "Administración de Usuarios",
   "/recursos-humanos": "Recursos Humanos",
-  "/admin/jerarquias": "Gestión de Jerarquías", // Título para la nueva página
+  "/admin/jerarquias": "Gestión de Jerarquías",
 };
 
 const getPageTitle = (pathname: string) => {
@@ -85,7 +85,6 @@ export const DashboardHeader = () => {
     navigate('/', { replace: true });
   };
 
-  // Capitalize the first letter of the role for display
   const displayRole = profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : "";
 
   return (
@@ -105,7 +104,8 @@ export const DashboardHeader = () => {
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2">
+        <Notifications /> {/* AÑADIMOS EL COMPONENTE DE NOTIFICACIONES */}
         <div className="border-l h-8 border-gray-300"></div>
         {loading ? (
           <UserMenuSkeleton />

@@ -235,3 +235,114 @@ AS $$
   ORDER BY c.ordinal_position;
 $$;
 ```
+
+---
+
+## Notification & Automation Functions
+
+### `public.handle_new_announcement()`
+
+**Trigger Function.** Se activa cuando se inserta una nueva fila en `public.announcements`. Su propósito es crear una notificación de tipo 'Anuncio' para cada usuario registrado en el sistema.
+
+- **Trigger:** `on_new_announcement` AFTER INSERT ON `public.announcements`
+- **Lógica:** Inserta una fila en `public.notifications` por cada usuario en `public."Cuentas"`.
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_announcement()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.notifications (user_id, message, type, link)
+    SELECT
+        id,
+        'Se ha publicado un nuevo anuncio: "' || NEW.title || '"',
+        'Anuncio',
+        '/dashboard'
+    FROM public."Cuentas";
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+---
+
+### `public.handle_new_leave_request()`
+
+**Trigger Function.** Se activa cuando se inserta una nueva solicitud en `public.vacaciones_solicitudes` o `public.permisos_solicitudes`. Su objetivo es notificar a todos los aprobadores designados de un empleado que tienen una nueva solicitud pendiente.
+
+- **Triggers:**
+    - `on_new_vacation_request` AFTER INSERT ON `public.vacaciones_solicitudes`
+    - `on_new_permission_request` AFTER INSERT ON `public.permisos_solicitudes`
+- **Lógica:** Busca en `public.vacaciones_aprobadores` quiénes son los líderes del solicitante y crea una notificación de tipo 'Solicitud' para cada uno de ellos.
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_leave_request()
+RETURNS TRIGGER AS $$
+DECLARE
+    solicitante_nombre TEXT;
+    tipo_solicitud TEXT;
+BEGIN
+    SELECT "Nombre" INTO solicitante_nombre FROM public."Cuentas" WHERE user_id = NEW.solicitante_user_id;
+
+    IF TG_TABLE_NAME = 'vacaciones_solicitudes' THEN
+        tipo_solicitud := 'vacaciones';
+    ELSE
+        tipo_solicitud := 'permiso';
+    END IF;
+
+    INSERT INTO public.notifications (user_id, message, type, link)
+    SELECT
+        aprobador_user_id,
+        solicitante_nombre || ' ha enviado una nueva solicitud de ' || tipo_solicitud,
+        'Solicitud',
+        '/recursos-humanos?tab=mi-equipo'
+    FROM public.vacaciones_aprobadores
+    WHERE empleado_user_id = NEW.solicitante_user_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+---
+
+### `public.handle_leave_request_update()`
+
+**Trigger Function.** Se activa cuando se actualiza una solicitud en `public.vacaciones_solicitudes` o `public.permisos_solicitudes`. Su propósito es notificar al empleado que el estado de su solicitud ha cambiado (ej. a 'aprobado').
+
+- **Triggers:**
+    - `on_vacation_request_update` AFTER UPDATE ON `public.vacaciones_solicitudes`
+    - `on_permission_request_update` AFTER UPDATE ON `public.permisos_solicitudes`
+- **Lógica:** Compara el estado `OLD.estado` con `NEW.estado`. Si son diferentes, crea una notificación de tipo 'Solicitud' para el empleado que originó la solicitud.
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_leave_request_update()
+RETURNS TRIGGER AS $$
+DECLARE
+    tipo_solicitud TEXT;
+    mensaje TEXT;
+BEGIN
+    IF OLD.estado <> NEW.estado THEN
+        IF TG_TABLE_NAME = 'vacaciones_solicitudes' THEN
+            tipo_solicitud := 'vacaciones';
+        ELSE
+            tipo_solicitud := 'permiso';
+        END IF;
+
+        IF NEW.estado = 'aprobado' THEN
+            mensaje := '¡Buenas noticias! Tu solicitud de ' || tipo_solicitud || ' ha sido aprobada.';
+        ELSE
+            mensaje := 'Tu solicitud de ' || tipo_solicitud || ' ha sido actualizada.';
+        END IF;
+
+        INSERT INTO public.notifications (user_id, message, type, link)
+        VALUES (
+            NEW.solicitante_user_id,
+            mensaje,
+            'Solicitud',
+            '/recursos-humanos'
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```

@@ -1,79 +1,74 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
-interface Profile {
+export type UserProfile = {
   nombre: string;
-  avatar_url: string;
-  role: string | null;
-}
+  role: string;
+  avatar_url?: string;
+  RolEmpresa?: string;
+};
 
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
+  profile: UserProfile | null;
   loading: boolean;
-  updateProfile: (newProfile: Partial<Profile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        try {
-          // DEFINITIVE FIX: Select the exact column name 'Rol' as specified.
-          const { data, error } = await supabase
-            .from('Cuentas')
-            .select('Nombre, avatar_url, Rol')
-            .eq('Correo', currentUser.email!)
-            .single();
-
-          if (error) {
-            console.error('[AUTH] Error fetching profile:', error);
-            setProfile(null);
-          } else {
-            // DEFINITIVE FIX: Assign the profile using the correct 'Rol' property.
-            const userRole = data.Rol || null;
-            setProfile({ nombre: data.Nombre, avatar_url: data.avatar_url, role: userRole });
-            console.log("[AUTH] Profile fetched successfully with role:", userRole);
-          }
-        } catch (e) {
-          setProfile(null);
+    const getSessionAndProfile = async (sessionUser: User | null) => {
+      setUser(sessionUser);
+      if (sessionUser) {
+        // CORRECCIÓN DEFINITIVA: Usamos el nombre exacto de la tabla entre comillas dobles.
+        const { data: userProfile } = await supabase
+          .from('"Cuentas"')
+          .select('Nombre, Rol, avatar_url, RolEmpresa')
+          .eq('user_id', sessionUser.id)
+          .single();
+        
+        if (userProfile) {
+          setProfile({
+            nombre: userProfile.Nombre,
+            role: userProfile.Rol,
+            avatar_url: userProfile.avatar_url,
+            RolEmpresa: userProfile.RolEmpresa,
+          });
         }
       } else {
-        setProfile(null); 
+        setProfile(null);
       }
       setLoading(false);
     };
 
-    fetchSessionAndProfile();
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await getSessionAndProfile(session?.user ?? null);
+    };
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchSessionAndProfile();
-    });
+    initializeAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        await getSessionAndProfile(session?.user ?? null);
+      }
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  const updateProfile = (newProfile: Partial<Profile>) => {
-    setProfile(prev => prev ? { ...prev, ...newProfile } : null);
-  };
+  const value = { user, profile, loading };
 
-  const value = { user, profile, loading, updateProfile };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

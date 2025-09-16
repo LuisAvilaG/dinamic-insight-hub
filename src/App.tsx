@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,6 +18,7 @@ import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
 import { RecursosHumanosPage } from "./pages/RecursosHumanosPage";
 import { GestionRecursosHumanosPage } from "./pages/admin/GestionRecursosHumanosPage";
+import { GestionAnunciosPage } from "./pages/admin/GestionAnuncios"; // IMPORTACIÓN AÑADIDA
 import OrganigramaViewerPage from "./pages/OrganigramaViewerPage";
 import GestionarOrganigramaPage from "./pages/admin/GestionarOrganigramaPage";
 import VistaGlobalContratos from "./pages/admin/contratos";
@@ -109,6 +111,7 @@ const AppRoutes = () => {
             <Route path="admin/recursos-humanos/organigrama/editar" element={<GestionarOrganigramaPage />} />
             <Route path="admin/contratos" element={<VistaGlobalContratos />} />
             <Route path="admin/GestionDashboards" element={<GestionDashboardsPage />} />
+            <Route path="admin/GestionAnuncios" element={<GestionAnunciosPage />} /> {/* RUTA AÑADIDA */}
             <Route path="admin/dashboards/:id" element={<DashboardDetailPage />} />
           </Route>
 
