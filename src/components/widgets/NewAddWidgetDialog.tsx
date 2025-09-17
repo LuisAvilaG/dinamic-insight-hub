@@ -12,10 +12,6 @@ import { TrendingUp, BarChart, Table, LineChart, PieChart, ArrowLeft, Loader2, R
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tables } from '@/types/supabase';
 
-// Importaciones para el nuevo widget
-import AdvancedTableConfig from './config/AdvancedTableConfig';
-import AdvancedTableWidget from './AdvancedTableWidget'; // Importamos el widget para la preview
-
 type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
 interface WidgetOption { type: string; name: string; description: string; icon: React.ElementType; }
@@ -35,8 +31,6 @@ const WIDGET_OPTIONS: WidgetOption[] = [
   { type: 'bar_chart', name: 'Gráfico de Barras', description: 'Compara valores entre categorías', icon: BarChart },
   { type: 'line_chart', name: 'Gráfico de Líneas', description: 'Muestra tendencias en el tiempo', icon: LineChart },
   { type: 'donut_chart', name: 'Gráfico de Dona', description: 'Muestra proporciones de un todo', icon: PieChart },
-  // Añadimos el nuevo widget a la lista de opciones
-  { type: 'advanced_table', name: 'Tabla Avanzada', description: 'Tabla de datos con orden y filtro', icon: Rows },
 ];
 const DEFAULT_LAYOUT = { x: 0, y: 0, w: 6, h: 4 };
 
@@ -80,8 +74,7 @@ export const NewAddWidgetDialog = (props: NewAddWidgetDialogProps) => {
             if (error) throw error;
             toast({ title: 'Éxito', description: 'Widget actualizado correctamente.' });
         } else {
-            // Ajustamos el layout por defecto para la tabla avanzada
-            const layout = selectedWidgetType === 'advanced_table' ? { x: 0, y: 0, w: 12, h: 6 } : (selectedWidgetType === 'kpi' ? { x: 0, y: 0, w: 4, h: 2 } : DEFAULT_LAYOUT);
+            const layout = selectedWidgetType === 'kpi' ? { x: 0, y: 0, w: 4, h: 2 } : DEFAULT_LAYOUT;
             const { error } = await supabase.rpc('create_widget', { 
                 p_dashboard_id: dashboardId,
                 p_widget_type: selectedWidgetType,
@@ -106,8 +99,6 @@ export const NewAddWidgetDialog = (props: NewAddWidgetDialogProps) => {
       switch(selectedWidgetType) {
         case 'kpi': return <KpiConfigScreen config={widgetConfig} onConfigChange={setWidgetConfig} />;
         case 'bar_chart': return <BarChartConfigScreen config={widgetConfig} onConfigChange={setWidgetConfig} />;
-        // Añadimos el caso para renderizar la configuración de la tabla avanzada
-        case 'advanced_table': return <AdvancedTableConfigScreen config={widgetConfig} onConfigChange={setWidgetConfig} />;
         default: return <div className="text-center p-8"><p>Configurador no disponible.</p></div>;
       }
     }
@@ -128,63 +119,6 @@ export const NewAddWidgetDialog = (props: NewAddWidgetDialogProps) => {
   );
 };
 
-// --- Componente de Configuración y Vista Previa para la Tabla Avanzada ---
-const AdvancedTableConfigScreen = ({ config, onConfigChange }: { config: any; onConfigChange: (c: any) => void }) => {
-    const handleMainConfigChange = (newConfig: { schema: string; table: string; columns: string[] }) => {
-        onConfigChange({ ...config, ...newConfig });
-    };
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
-            <div className="space-y-6">
-                <h3 className="font-semibold text-lg border-b pb-2">Configurar Tabla Avanzada</h3>
-                <div className="space-y-2">
-                    <Label>Nombre del Widget</Label>
-                    <Input 
-                        value={config.name || ''} 
-                        onChange={(e) => onConfigChange({ ...config, name: e.target.value })} 
-                        placeholder="Ej: Usuarios Activos"
-                    />
-                </div>
-                <AdvancedTableConfig 
-                    initialConfig={{ schema: config.schema, table: config.table, columns: config.columns }}
-                    onChange={handleMainConfigChange}
-                />
-            </div>
-            <div className="space-y-6">
-                <h3 className="font-semibold text-lg border-b pb-2">Vista Previa</h3>
-                <div className="p-4 bg-slate-50 rounded-lg h-full flex items-center justify-center">
-                    <AdvancedTablePreview config={config} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const AdvancedTablePreview = ({ config }: { config: any }) => {
-    const { name, schema, table, columns } = config;
-    const isConfigComplete = schema && table && columns && columns.length > 0;
-
-    return (
-        <Card className="w-full h-full flex flex-col">
-            <CardHeader>
-                <CardTitle className="truncate">{name || "Nombre del Widget"}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-grow">
-                {!isConfigComplete ? (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-slate-400 text-center">Completa la configuración para ver la vista previa.</p>
-                    </div>
-                ) : (
-                    <AdvancedTableWidget config={{ schema, table, columns }} />
-                )}
-            </CardContent>
-        </Card>
-    );
-};
-
-
-// Mantenemos los componentes existentes sin cambios
 const useSchemaInfo = (config: any) => {
   const [tables, setTables] = useState<SchemaTable[]>([]);
   const [columns, setColumns] = useState<{ column_name: string; data_type: string }[]>([]);

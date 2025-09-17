@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,12 +70,12 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
 
   return (
     <Card className="h-full flex flex-col justify-center border-none shadow-none bg-transparent">
-      <CardHeader className="pb-2 text-center">
-        <CardTitle className="text-base font-medium truncate" title={name}>{name || 'Gráfico sin nombre'}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow flex items-center justify-center">
-        {renderContent()}
-      </CardContent>
+        <CardHeader className="pb-2 text-center">
+            <CardTitle className="text-base font-medium truncate" title={name}>{name || 'Gráfico sin nombre'}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow flex items-center justify-center h-full w-full">
+            {renderContent()}
+        </CardContent>
     </Card>
   );
 };

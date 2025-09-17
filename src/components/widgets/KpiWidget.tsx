@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,9 +55,12 @@ export const KpiWidget = ({ widget }: KpiWidgetProps) => {
     if (error) {
       return <p className="text-xs text-red-500 text-center px-2">{error}</p>;
     }
+    
+    const formattedResult = result !== null ? new Intl.NumberFormat().format(result) : 'N/A';
+
     return (
-      <p className="text-4xl font-bold">
-        {result !== null ? new Intl.NumberFormat().format(result) : 'N/A'}
+      <p className="text-5xl font-bold text-center">
+        {formattedResult}
       </p>
     );
   }
@@ -66,7 +70,7 @@ export const KpiWidget = ({ widget }: KpiWidgetProps) => {
       <CardHeader className="pb-2 text-center">
         <CardTitle className="text-base font-medium truncate" title={name}>{name || 'KPI sin nombre'}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-grow flex items-center justify-center">
+      <CardContent className="flex-grow flex items-center justify-center h-full">
         {renderContent()}
       </CardContent>
     </Card>
