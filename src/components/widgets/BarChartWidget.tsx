@@ -14,7 +14,7 @@ interface BarChartWidgetProps {
 
 export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
   const { config } = widget;
-  const { name, schema, table, xAxis, yAxis, aggregation } = config as any;
+  const { name, query, xAxis, yAxis } = config as any;
   
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,7 +22,7 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
 
   useEffect(() => {
     const fetchChartData = async () => {
-      if (!schema || !table || !xAxis || !yAxis || !aggregation) {
+      if (!query) {
         setError('Configuración incompleta del widget.');
         setIsLoading(false);
         return;
@@ -30,9 +30,6 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
       
       setIsLoading(true);
       setError(null);
-
-      const yAxisExpression = yAxis === '*' ? '*' : `\"${yAxis}\"`;
-      const query = `SELECT \"${xAxis}\", ${aggregation}(${yAxisExpression}) as value FROM \"${schema}\".\"${table}\" GROUP BY \"${xAxis}\"`;
 
       try {
         const { data, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
@@ -47,7 +44,7 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
     };
 
     fetchChartData();
-  }, [name, schema, table, xAxis, yAxis, aggregation]);
+  }, [query]);
 
   const renderContent = () => {
     if (isLoading) return <Loader2 className="h-8 w-8 mx-auto animate-spin text-slate-400" />;
@@ -79,3 +76,5 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
     </Card>
   );
 };
+
+export default BarChartWidget;

@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelect } from '@/components/ui/multi-select'; 
 
 interface DataTableConfigProps {
@@ -11,71 +10,74 @@ interface DataTableConfigProps {
 }
 
 const DataTableConfig: React.FC<DataTableConfigProps> = ({ config, onChange }) => {
-    const [tables, setTables] = useState<{ table_schema: string; table_name: string }[]>([]);
-    const [columns, setColumns] = useState<{ column_name: string; data_type: string }[]>([]);
-    const [selectedTable, setSelectedTable] = useState<string>('');
-    const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+    const [allTables, setAllTables] = useState<{ value: string; label: string }[]>([]);
+    const [availableColumns, setAvailableColumns] = useState<{ value: string; label: string }[]>([]);
+    
+    const [selectedTables, setSelectedTables] = useState<string[]>(config?.tables || []);
+    const [selectedColumns, setSelectedColumns] = useState<string[]>(config?.columns || []);
 
+    // Cargar todas las tablas disponibles al montar el componente
     useEffect(() => {
         supabase.rpc('get_schema_tables').then(({ data }) => {
-            if (data) setTables(data);
+            if (data) {
+                setAllTables(data.map(t => ({
+                    value: `${t.table_schema}.${t.table_name}`,
+                    label: `${t.table_schema}.${t.table_name}`
+                })));
+            }
         });
     }, []);
 
+    // Cuando la selección de tablas cambia, cargar las columnas correspondientes
     useEffect(() => {
-        if (config?.schema && config?.table) {
-            const tableIdentifier = JSON.stringify([config.schema, config.table]);
-            setSelectedTable(tableIdentifier);
-            loadColumns(config.schema, config.table);
+        if (selectedTables.length > 0) {
+            supabase.rpc('get_columns_from_tables', { p_tables: selectedTables }).then(({ data, error }) => {
+                if (error) {
+                    console.error("Error fetching columns:", error);
+                    return;
+                }
+                if (data) {
+                    setAvailableColumns(data.map(c => ({
+                        value: c.display_name,
+                        label: c.display_name
+                    })));
+                }
+            });
+        } else {
+            setAvailableColumns([]);
         }
-        if (config?.columns) {
-            setSelectedColumns(config.columns);
-        }
-    }, [config]);
+    }, [selectedTables]);
 
-    const loadColumns = (schema: string, table: string) => {
-        supabase.rpc('get_table_columns', { p_schema_name: schema, p_table_name: table }).then(({ data }) => {
-            if (data) setColumns(data);
-        });
-    };
-
-    const handleTableChange = (value: string) => {
-        const [schema, table] = JSON.parse(value);
-        setSelectedTable(value);
-        setSelectedColumns([]);
-        onChange({ schema, table, columns: [] });
+    const handleTablesChange = (values: string[]) => {
+        setSelectedTables(values);
+        // Limpiar columnas seleccionadas si la lista de tablas cambia
+        const newSelectedColumns: string[] = [];
+        setSelectedColumns(newSelectedColumns);
+        onChange({ tables: values, columns: newSelectedColumns });
     };
 
     const handleColumnChange = (values: string[]) => {
         setSelectedColumns(values);
-        if (selectedTable) {
-            const [schema, table] = JSON.parse(selectedTable);
-            onChange({ schema, table, columns: values });
-        }
+        onChange({ tables: selectedTables, columns: values });
     };
 
     return (
         <div className="space-y-4">
             <div>
-                <Label>Tabla</Label>
-                <Select value={selectedTable} onValueChange={handleTableChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Seleccione una tabla" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {tables.map(t => (
-                            <SelectItem key={`${t.table_schema}.${t.table_name}`} value={JSON.stringify([t.table_schema, t.table_name])}>
-                                {t.table_schema}.{t.table_name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Label>Tablas</Label>
+                <MultiSelect
+                    options={allTables}
+                    selected={selectedTables}
+                    onChange={handleTablesChange}
+                    className="w-full"
+                    placeholder="Seleccione una o más tablas..."
+                />
             </div>
-            {selectedTable && (
+            {selectedTables.length > 0 && (
                 <div>
                     <Label>Columnas</Label>
                     <MultiSelect
-                        options={columns.map(c => ({ label: c.column_name, value: c.column_name }))}
+                        options={availableColumns}
                         selected={selectedColumns}
                         onChange={handleColumnChange}
                         className="w-full"

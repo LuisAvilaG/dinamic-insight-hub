@@ -16,7 +16,7 @@ interface DataTableWidgetProps {
   isPreview?: boolean;
 }
 
-const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPreview = false }) => {
+export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPreview = false }) => {
     const [viewData, setViewData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -64,7 +64,6 @@ const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPreview = f
                 type: "flat",
                 showTotals: "off",
                 showGrandTotals: "off",
-                autoColumnWidth: false
             }
         }
     };
@@ -85,5 +84,3 @@ const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPreview = f
         </Card>
     );
 };
-
-export default DataTableWidget;

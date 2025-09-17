@@ -1,125 +1,135 @@
 
-import { Label } from "@/components/ui/label";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Label } from '@/components/ui/label';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface ConfigProps {
-  config: any;
-  setConfig: (config: any) => void;
-  columns: { column_name: string; data_type: string }[];
+interface BarChartConfigProps {
+    config: any;
+    onChange: (newConfig: any) => void;
 }
 
-export const BarChartConfig = ({ config, setConfig, columns }: ConfigProps) => {
-  const numericTypes = [
-    'smallint', 'integer', 'bigint', 'decimal', 'numeric', 
-    'real', 'double precision', 
-    'smallserial', 'serial', 'bigserial',
-    'int', 'int2', 'int4', 'int8', 'float4', 'float8',
-    'money'
-  ];
-  const numericColumns = columns.filter(c => numericTypes.includes(c.data_type));
-  
-  const categoricalColumns = columns.filter(c => 
-    ['date', 'timestamp', 'timestamptz', 'text', 'character varying', 'varchar'].includes(c.data_type)
-  );
+const BarChartConfig: React.FC<BarChartConfigProps> = ({ config, onChange }) => {
+    const [allTables, setAllTables] = useState<{ value: string; label: string }[]>([]);
+    const [availableColumns, setAvailableColumns] = useState<{ value: string; label: string; data_type: string }[]>([]);
+    
+    const selectedTables = config?.tables || [];
+    const xAxis = config?.xAxis || '';
+    const yAxis = config?.yAxis || '';
+    const aggregation = config?.aggregation || '';
 
-  const aggregationOptions = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX'];
+    // Cargar todas las tablas disponibles
+    useEffect(() => {
+        supabase.rpc('get_schema_tables').then(({ data }) => {
+            if (data) {
+                setAllTables(data.map(t => ({ value: `${t.table_schema}.${t.table_name}`, label: `${t.table_schema}.${t.table_name}` })));
+            }
+        });
+    }, []);
 
-  const handleXAxisChange = (value: string) => {
-    setConfig({
-      ...config,
-      axes: {
-        ...config.axes,
-        xAxis: { key: value }
-      }
-    });
-  };
-
-  const handleYAggregationChange = (value: string) => {
-    const newYAxis = { ...config.axes?.yAxis, aggregation: value };
-    if (value === 'COUNT') {
-      delete newYAxis.key;
-    }
-    setConfig({
-      ...config,
-      axes: {
-        ...config.axes,
-        yAxis: newYAxis
-      }
-    });
-  };
-
-  const handleYColumnChange = (value: string) => {
-    setConfig({
-      ...config,
-      axes: {
-        ...config.axes,
-        yAxis: {
-          ...config.axes?.yAxis,
-          key: value
+    // Cargar columnas cuando cambian las tablas seleccionadas
+    const tablesKey = JSON.stringify(selectedTables);
+    useEffect(() => {
+        if (selectedTables.length > 0) {
+            supabase.rpc('get_columns_from_tables', { p_tables: selectedTables }).then(({ data, error }) => {
+                if (error) {
+                    console.error("Error fetching columns:", error);
+                    return;
+                }
+                if (data) {
+                    setAvailableColumns(data.map(c => ({
+                        value: c.display_name,
+                        label: c.display_name,
+                        data_type: c.data_type
+                    })));
+                }
+            });
+        } else {
+            setAvailableColumns([]);
         }
-      }
-    });
-  };
+    }, [tablesKey]);
 
-  return (
-    <div className="space-y-4 pt-4 border-t">
-       <p className="text-sm font-medium text-gray-700">Configuración de Ejes</p>
-      
-      <div className="space-y-2">
-        <Label>Eje X (Categoría)</Label>
-        <p className="text-xs text-muted-foreground">Columna para agrupar los datos.</p>
-        <Select
-          value={config.axes?.xAxis?.key || ""}
-          onValueChange={handleXAxisChange}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecciona el eje X" />
-          </SelectTrigger>
-          <SelectContent>
-            {categoricalColumns.map(c => (
-              <SelectItem key={c.column_name} value={c.column_name}>{c.column_name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label>Eje Y (Agregación)</Label>
-        <p className="text-xs text-muted-foreground">Operación para calcular el valor.</p>
-        <Select
-          value={config.axes?.yAxis?.aggregation || ""}
-          onValueChange={handleYAggregationChange}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecciona una agregación" />
-          </SelectTrigger>
-          <SelectContent>
-            {aggregationOptions.map(agg => (
-              <SelectItem key={agg} value={agg}>{agg}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    const handleTablesChange = (values: string[]) => {
+        onChange({ tables: values, xAxis: '', yAxis: '', aggregation: '' });
+    };
 
-      {config.axes?.yAxis?.aggregation && config.axes.yAxis.aggregation !== 'COUNT' && (
-        <div className="space-y-2">
-          <Label>Columna para el Eje Y</Label>
-          <p className="text-xs text-muted-foreground">Columna sobre la que se calculará la agregación.</p>
-          <Select
-            value={config.axes?.yAxis?.key || ""}
-            onValueChange={handleYColumnChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona una columna" />
-            </SelectTrigger>
-            <SelectContent>
-              {numericColumns.map(c => (
-                <SelectItem key={c.column_name} value={c.column_name}>{c.column_name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    const handleAggregationChange = (value: string) => {
+        onChange({ aggregation: value });
+    };
+    
+    const handleXAxisChange = (value: string) => {
+        onChange({ xAxis: value });
+    };
+
+    const handleYAxisChange = (value: string) => {
+        onChange({ yAxis: value });
+    };
+    
+    const numericTypes = ['integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint'];
+    const filteredYAxisColumns = aggregation === 'count' 
+        ? availableColumns 
+        : availableColumns.filter(c => numericTypes.includes(c.data_type));
+
+    return (
+        <div className="space-y-4">
+            <div>
+                <Label>Tablas</Label>
+                <MultiSelect
+                    options={allTables}
+                    selected={selectedTables}
+                    onChange={handleTablesChange}
+                    className="w-full"
+                    placeholder="Seleccione una o más tablas..."
+                />
+            </div>
+
+            {selectedTables.length > 0 && (
+                <>
+                    <div>
+                        <Label>Eje X (Categoría)</Label>
+                        <Select onValueChange={handleXAxisChange} value={xAxis}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleccione una columna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableColumns.map(col => (
+                                    <SelectItem key={col.value} value={col.value}>{col.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label>Agregación (Eje Y)</Label>
+                        <Select onValueChange={handleAggregationChange} value={aggregation}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleccione una agregación" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="count">Recuento (Count)</SelectItem>
+                                <SelectItem value="sum">Suma (Sum)</SelectItem>
+                                <SelectItem value="avg">Promedio (Average)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label>Columna del Eje Y</Label>
+                        <Select onValueChange={handleYAxisChange} value={yAxis}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleccione una columna" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {aggregation === 'count' && <SelectItem value="*">* (Todas las filas)</SelectItem>}
+                                {filteredYAxisColumns.map(col => (
+                                    <SelectItem key={col.value} value={col.value}>{col.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
+
+export default BarChartConfig;

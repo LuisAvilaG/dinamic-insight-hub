@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { KpiWidget } from "./KpiWidget";
 import { BarChartWidget } from "./BarChartWidget";
-import DataTableWidget from './DataTableWidget';
+import { DataTableWidget } from './DataTableWidget';
 
 type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 

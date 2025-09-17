@@ -13,7 +13,7 @@ interface KpiWidgetProps {
 
 export const KpiWidget = ({ widget }: KpiWidgetProps) => {
   const { config } = widget;
-  const { name, schema, table, column, aggregation } = config as any;
+  const { name, query } = config as any;
   
   const [result, setResult] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,17 +21,14 @@ export const KpiWidget = ({ widget }: KpiWidgetProps) => {
 
   useEffect(() => {
     const fetchKpiData = async () => {
-      if (!schema || !table || !column || !aggregation) {
-        setError('Configuración incompleta del widget.');
+      if (!query) {
+        setError('La configuración del widget está incompleta.');
         setIsLoading(false);
         return;
       }
       
       setIsLoading(true);
       setError(null);
-
-      const columnExpression = column === '*' ? '*' : `\"${column}\"`;
-      const query = `SELECT ${aggregation}(${columnExpression}) as value FROM \"${schema}\".\"${table}\"`;
 
       try {
         const { data, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
@@ -46,7 +43,7 @@ export const KpiWidget = ({ widget }: KpiWidgetProps) => {
     };
 
     fetchKpiData();
-  }, [name, schema, table, column, aggregation]);
+  }, [query]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -55,12 +52,9 @@ export const KpiWidget = ({ widget }: KpiWidgetProps) => {
     if (error) {
       return <p className="text-xs text-red-500 text-center px-2">{error}</p>;
     }
-    
-    const formattedResult = result !== null ? new Intl.NumberFormat().format(result) : 'N/A';
-
     return (
       <p className="text-5xl font-bold text-center">
-        {formattedResult}
+        {result !== null ? new Intl.NumberFormat().format(result) : 'N/A'}
       </p>
     );
   }
@@ -76,3 +70,5 @@ export const KpiWidget = ({ widget }: KpiWidgetProps) => {
     </Card>
   );
 };
+
+export default KpiWidget;
