@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MultiSelect } from '@/components/ui/multi-select'; // Assuming you have a multi-select component
+import { MultiSelect } from '@/components/ui/multi-select'; 
 
 interface DataTableConfigProps {
-    initialConfig: any;
+    config: any;
     onChange: (newConfig: any) => void;
 }
 
-const DataTableConfig: React.FC<DataTableConfigProps> = ({ initialConfig, onChange }) => {
+const DataTableConfig: React.FC<DataTableConfigProps> = ({ config, onChange }) => {
     const [tables, setTables] = useState<{ table_schema: string; table_name: string }[]>([]);
     const [columns, setColumns] = useState<{ column_name: string; data_type: string }[]>([]);
     const [selectedTable, setSelectedTable] = useState<string>('');
@@ -23,33 +23,35 @@ const DataTableConfig: React.FC<DataTableConfigProps> = ({ initialConfig, onChan
     }, []);
 
     useEffect(() => {
-        if (initialConfig.table) {
-            setSelectedTable(JSON.stringify([initialConfig.schema, initialConfig.table]));
+        if (config?.schema && config?.table) {
+            const tableIdentifier = JSON.stringify([config.schema, config.table]);
+            setSelectedTable(tableIdentifier);
+            loadColumns(config.schema, config.table);
         }
-        if (initialConfig.columns) {
-            setSelectedColumns(initialConfig.columns);
+        if (config?.columns) {
+            setSelectedColumns(config.columns);
         }
-    }, [initialConfig]);
+    }, [config]);
 
-    useEffect(() => {
-        if (selectedTable) {
-            const [schema, table] = JSON.parse(selectedTable);
-            supabase.rpc('get_table_columns', { p_schema_name: schema, p_table_name: table }).then(({ data }) => {
-                if (data) setColumns(data);
-            });
-        }
-    }, [selectedTable]);
+    const loadColumns = (schema: string, table: string) => {
+        supabase.rpc('get_table_columns', { p_schema_name: schema, p_table_name: table }).then(({ data }) => {
+            if (data) setColumns(data);
+        });
+    };
 
     const handleTableChange = (value: string) => {
         const [schema, table] = JSON.parse(value);
         setSelectedTable(value);
         setSelectedColumns([]);
-        onChange({ ...initialConfig, schema, table, columns: [] });
+        onChange({ schema, table, columns: [] });
     };
 
     const handleColumnChange = (values: string[]) => {
         setSelectedColumns(values);
-        onChange({ ...initialConfig, ...JSON.parse(selectedTable), columns: values });
+        if (selectedTable) {
+            const [schema, table] = JSON.parse(selectedTable);
+            onChange({ schema, table, columns: values });
+        }
     };
 
     return (
@@ -77,6 +79,7 @@ const DataTableConfig: React.FC<DataTableConfigProps> = ({ initialConfig, onChan
                         selected={selectedColumns}
                         onChange={handleColumnChange}
                         className="w-full"
+                        placeholder="Seleccione columnas..."
                     />
                 </div>
             )}

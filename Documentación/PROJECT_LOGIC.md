@@ -31,7 +31,7 @@ El núcleo de la aplicación es la gestión de dashboards y widgets. La lógica 
 ### 2.3. Visualización y Diseño de Widgets
 
 -   **Carga de Datos:** Al cargar un dashboard, la RPC `get_dashboard_details()` devuelve toda la información necesaria, incluyendo un array anidado con la configuración de cada widget.
--   **Renderizado de Widgets:** El frontend itera sobre los widgets y renderiza el componente adecuado (`KpiWidget`, `BarChartWidget`, etc.) basándose en el `widget_type`.
+-   **Renderizado de Widgets:** El frontend itera sobre los widgets y renderiza el componente adecuado (`KpiWidget`, `BarChartWidget`, `DataTableWidget`, etc.) basándose en el `widget_type`.
 -   **Diseño Unificado sin Títulos Externos:**
     -   Para maximizar el espacio y mantener una apariencia limpia y moderna, **se ha eliminado la barra de título externa de todos los widgets**.
     -   El título de cada widget ahora se muestra **dentro** del propio componente, utilizando el nombre definido en su objeto de `config`.
@@ -41,3 +41,29 @@ El núcleo de la aplicación es la gestión de dashboards y widgets. La lógica 
 -   **Responsividad y Escalado:**
     -   Los componentes de widget están diseñados para ser responsivos. Los gráficos (como el de barras) utilizan contenedores flexibles para ajustarse al tamaño del widget.
     -   Para componentes de texto como el KPI, se utiliza un SVG con un `viewBox` dinámico para asegurar que el texto escale correctamente y sea visible incluso en tamaños de widget muy pequeños.
+
+## 3. Integración de WebDataRocks para Tablas de Datos
+
+Para ofrecer una experiencia de análisis de datos avanzada y familiar para el usuario, se ha integrado la librería **WebDataRocks**.
+
+### 3.1. ¿Qué es WebDataRocks?
+
+WebDataRocks es una herramienta de informes web gratuita y potente, escrita en JavaScript, que permite el análisis y la visualización de datos en una tabla dinámica (pivot grid) interactiva. Es ligera, se integra fácilmente sin dependencias de frameworks externos y ofrece una interfaz similar a Excel, ideal para usuarios sin conocimientos de programación.
+
+### 3.2. Características Clave Utilizadas
+
+-   **Análisis Interactivo:** Permite a los usuarios finales manipular los datos directamente en la tabla.
+-   **Vista de Tabla Plana (Flat Table):** Para el widget "Tabla de Datos", se utiliza la vista plana, que presenta los datos en su forma cruda, sin agregaciones, permitiendo una visión general y acceso a los detalles de cada registro.
+-   **Funcionalidades de Grid:** Incluso en la vista plana, los usuarios pueden filtrar, ordenar y cambiar el orden de las columnas, así como ver totales generales para valores numéricos.
+-   **Exportación:** Los usuarios pueden exportar los informes a formatos como PDF, Excel y HTML directamente desde la barra de herramientas del widget.
+
+### 3.3. Proceso de Integración
+
+1.  **Instalación:** La librería se instala en el proyecto a través de npm con el paquete `@webdatarocks/react-webdatarocks`.
+2.  **Carga de Estilos:** El CSS de la librería se importa directamente en el componente que la utiliza (`DataTableWidget.tsx`) para asegurar que los estilos se apliquen correctamente.
+3.  **Componente Contenedor (`DataTableWidget.tsx`):**
+    -   Este componente sigue la lógica del proyecto, obteniendo su configuración (tabla, columnas, etc.) del objeto `widget`.
+    -   Utiliza la RPC `execute_query` para construir y ejecutar una consulta `SELECT` que obtiene los datos crudos de la base de datos.
+    -   Los datos obtenidos se pasan al componente `<WebDataRocks.Pivot>`.
+    -   Se configura el `report` para usar la vista `flat` y se activan la `toolbar` para que los usuarios puedan interactuar con los datos.
+4.  **Actualización de la Base de Datos:** Se añadió el valor `'data_table'` al tipo `enum` `widget_type` en la base de datos de Supabase a través de una migración, permitiendo que el nuevo tipo de widget sea guardado correctamente.

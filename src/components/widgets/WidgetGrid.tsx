@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { KpiWidget } from "./KpiWidget";
 import { BarChartWidget } from "./BarChartWidget";
+import DataTableWidget from './DataTableWidget';
 
 type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
@@ -77,6 +78,8 @@ export const WidgetGrid = ({ widgets, isEditMode, onLayoutChange, onEditWidget, 
         return <KpiWidget widget={widget} />;
       case 'bar_chart':
         return <BarChartWidget widget={widget} />;
+      case 'data_table':
+        return <DataTableWidget widget={widget} />;
       default:
         return <div className="flex items-center justify-center h-full bg-slate-100 p-4"><p className="text-slate-500">Widget no soportado: {widget.widget_type}</p></div>;
     }

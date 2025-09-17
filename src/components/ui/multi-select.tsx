@@ -1,148 +1,103 @@
 
-import * as React from "react";
-import { cva } from "class-variance-authority";
-import { CheckIcon, XIcon, ChevronDown } from "lucide-react";
+import React, { useState } from 'react';
+import { X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Command as CommandPrimitive } from "cmdk";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+type Option = {
+  value: string;
+  label: string;
+};
 
-const multiSelectVariants = cva(
-  "m-1 transition ease-in-out delay-150",
-  {
-    variants: {
-      variant: {
-        default: "border-foreground/10 text-foreground bg-card hover:bg-card/80",
-        secondary: "border-foreground/10 bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        inverted: "inverted",
-      },
-    },
-    defaultVariants: { 
-      variant: "default",
-    },
-  }
-)
-
-interface MultiSelectProps extends React.PropsWithChildren {
-  options: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }[];
+interface MultiSelectProps {
+  options: Option[];
   selected: string[];
-  onChange: (selected: string[]) => void;
+  onChange: (value: string[]) => void;
   placeholder?: string;
-  variant?: "default" | "secondary" | "destructive" | "inverted";
-  asChild?: boolean;
   className?: string;
 }
 
-export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
-  ({ options, selected, onChange, variant, asChild = false, className, placeholder = "Select options", ...props }, ref) => {
-    const [open, setOpen] = React.useState(false);
+export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, placeholder = "Select options...", className }) => {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
 
-    // FIX: Ensure 'selected' is always an array to prevent runtime errors.
-    const safeSelected = Array.isArray(selected) ? selected : [];
+  const handleUnselect = (value: string) => {
+    onChange(selected.filter((s) => s !== value));
+  };
 
-    const handleUnselect = (selectedValue: string) => {
-      onChange(safeSelected.filter((v) => v !== selectedValue));
-    };
+  const handleSelect = (value: string) => {
+    if (!selected.includes(value)) {
+      onChange([...selected, value]);
+    }
+  };
 
-    React.useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") setOpen(false);
-      };
-      document.addEventListener("keydown", handleKeyDown);
-      return () => {
-        document.removeEventListener("keydown", handleKeyDown);
-      };
-    }, []);
+  const filteredOptions = options.filter(option => 
+    !selected.includes(option.value) && 
+    option.label.toLowerCase().includes(inputValue.toLowerCase())
+  );
 
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-            <Button
-              ref={ref}
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className={cn("w-full justify-between", className)}
-              onClick={() => setOpen(!open)}
-            >
-               <div className="flex gap-1 flex-wrap">
-                {safeSelected.length > 0 ? (
-                    safeSelected.map((val) => {
-                        const option = options.find(opt => opt.value === val);
-                        return (
-                            <Badge
-                                key={val}
-                                // FIX: Corrected typo from multiSelectvariants to multiSelectVariants
-                                className={cn("mr-1", multiSelectVariants({ variant }))}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUnselect(val);
-                                }}
-                            >
-                                {option ? option.label : val}
-                                <XIcon className="ml-1 h-3 w-3" />
-                            </Badge>
-                        );
-                    })
-                ) : (
-                    <span className="text-sm text-muted-foreground">{placeholder}</span>
-                )}
-            </div>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0">
-          <Command className={className}>
-            <CommandInput placeholder="Buscar columna..." />
+  return (
+    <CommandPrimitive onKeyDown={(e) => {
+      if (e.key === "Escape") setOpen(false);
+    }} className="overflow-visible bg-transparent">
+      <div className="group border border-input px-3 py-2 text-sm ring-offset-background rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+        <div className="flex gap-1 flex-wrap">
+          {selected.map((value) => {
+            const label = options.find(option => option.value === value)?.label;
+            return (
+              <Badge key={value} variant="secondary">
+                {label}
+                <button
+                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  onClick={() => handleUnselect(value)}
+                >
+                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                </button>
+              </Badge>
+            );
+          })}
+          <CommandPrimitive.Input
+            placeholder={placeholder}
+            className="ml-2 bg-transparent outline-none placeholder:text-muted-foreground flex-1"
+            value={inputValue}
+            onValueChange={setInputValue}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+          />
+        </div>
+      </div>
+      <div className="relative mt-2">
+        {open && filteredOptions.length > 0 ? (
+          <div className="absolute w-full z-10 top-0 rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
             <CommandList>
-              <CommandEmpty>No se encontraron columnas.</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => {
-                  const isSelected = safeSelected.includes(option.value);
-                  return (
-                    <CommandItem
-                      key={option.value}
-                      onSelect={() => {
-                        if (isSelected) {
-                          handleUnselect(option.value);
-                        } else {
-                          onChange([...safeSelected, option.value]);
-                        }
-                      }}
-                    >
-                      <div className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
-                      )}>
-                        <CheckIcon className={cn("h-4 w-4")} />
-                      </div>
-                      {option.icon && <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />} 
-                      <span>{option.label}</span>
-                    </CommandItem>
-                  );
-                })}
+              <CommandGroup className="h-full overflow-auto">
+                {filteredOptions.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onSelect={() => {
+                      handleSelect(option.value);
+                      setInputValue("");
+                    }}
+                    className={"cursor-pointer"}
+                  >
+                    {option.label}
+                  </CommandItem>
+                ))}
               </CommandGroup>
-              {safeSelected.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup>
-                    <CommandItem
-                      onSelect={() => onChange([])}
-                      className="justify-center text-center"
-                    >
-                      Limpiar selección
-                    </CommandItem>
-                  </CommandGroup>
-                </>
-              )}
             </CommandList>
-          </Command>
-        </PopoverContent>
-        {props.children}
-      </Popover>
-    );
-  }
-);
+          </div>
+        ) : null}
+      </div>
+    </CommandPrimitive>
+  );
+};
