@@ -1,6 +1,5 @@
 
-import { WidgetType } from "./AddWidget";
-import { buildWidgetQuery } from "@/lib/widget_query_builder";
+import { WidgetType } from "@/components/widgets/AddWidget";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Kpi } from "./previews/Kpi";
@@ -20,8 +19,10 @@ interface WidgetPreviewProps {
 // LIMPIEZA TOTAL: Este componente ahora actúa como un simple orquestador.
 // La lógica de validación y transformación ha sido eliminada porque la config y los datos ya vienen en el formato correcto.
 export const WidgetPreview = ({ widgetType, config, title, table }: WidgetPreviewProps) => {
-  
-  const query = buildWidgetQuery(widgetType, table!, config);
+  // Aquí está el cambio clave:
+  // En lugar de llamar a una función externa, usamos el 'query' que ya se ha generado
+  // y almacenado en el objeto 'config' durante el proceso de configuración.
+  const { query } = config;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['widget_preview', query],

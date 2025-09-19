@@ -28,6 +28,7 @@ import NotFound from "./pages/NotFound";
 import UsersAdmin from "./pages/UsersAdmin";
 import ProfileSettings from "./pages/ProfileSettings";
 import { supabase } from "@/integrations/supabase/client";
+import SyncHubPage from "./pages/admin/SyncHubPage";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,7 @@ const AppRoutes = () => {
           {/* Rutas solo para Admin */}
           <Route element={<AdminRoute />}>
             <Route path="admin/usuarios" element={<UsersAdmin />} />
+            <Route path="admin/sync-hub" element={<SyncHubPage />} />
           </Route>
 
           {/* Rutas para Admin y RRHH */}

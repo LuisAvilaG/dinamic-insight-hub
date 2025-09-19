@@ -5,27 +5,32 @@ import { Label } from '@/components/ui/label';
 import { MultiSelect } from '@/components/ui/multi-select'; 
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
-interface DataTableConfigProps {
+interface PivotTableConfigProps {
     config: any;
     onChange: (newConfig: any) => void;
 }
 
-export const DataTableConfig: React.FC<DataTableConfigProps> = ({ config, onChange }) => {
+export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onChange }) => {
     const [allTables, setAllTables] = useState<{ value: string; label: string }[]>([]);
     const [availableColumns, setAvailableColumns] = useState<{ value: string; label: string }[]>([]);
+    const [numericColumns, setNumericColumns] = useState<{ value: string; label: string }[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    
+
     const selectedTables = config?.tables || [];
-    const selectedColumns = config?.columns || [];
+    const rows = config?.rows || [];
+    const columns = config?.columns || [];
+    const measures = config?.measures || [];
 
     const fetchAllColumns = async () => {
         if (selectedTables.length === 0) {
             setAvailableColumns([]);
+            setNumericColumns([]);
             return;
         }
 
@@ -36,20 +41,19 @@ export const DataTableConfig: React.FC<DataTableConfigProps> = ({ config, onChan
         if (calcError) { console.error("Error fetching calculated fields:", calcError); return; }
 
         const filteredCalcFields = calcFields.filter(field => field.tables_used.every((table: string) => selectedTables.includes(table)));
-
-        const combinedColumns = [
-            ...tableColumns.map(c => ({ value: c.display_name, label: c.display_name })),
-            ...filteredCalcFields.map(f => ({ value: f.name, label: `${f.name} (Calculado)`}))
+        const combined = [
+            ...tableColumns.map(c => ({ value: c.display_name, label: c.display_name, data_type: c.data_type })),
+            ...filteredCalcFields.map(f => ({ value: f.name, label: `${f.name} (Calculado)`, data_type: 'calculated' }))
         ];
         
-        setAvailableColumns(combinedColumns);
+        setAvailableColumns(combined.map(({ value, label }) => ({ value, label })));
+        const numericDataTypes = ['integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint'];
+        setNumericColumns(combined.filter(c => numericDataTypes.includes(c.data_type) || c.data_type === 'calculated').map(({ value, label }) => ({ value, label })));
     };
 
     useEffect(() => {
         supabase.rpc('get_schema_tables').then(({ data }) => {
-            if (data) {
-                setAllTables(data.map(t => ({ value: `${t.table_schema}.${t.table_name}`, label: `${t.table_schema}.${t.table_name}` })));
-            }
+            if (data) setAllTables(data.map(t => ({ value: `${t.table_schema}.${t.table_name}`, label: `${t.table_schema}.${t.table_name}` })));
         });
     }, []);
 
@@ -58,60 +62,90 @@ export const DataTableConfig: React.FC<DataTableConfigProps> = ({ config, onChan
         fetchAllColumns();
     }, [tablesKey]);
 
-    const handleTablesChange = (values: string[]) => {
-        onChange({ ...config, tables: values, columns: [] });
+    const handleUpdate = (key: string, value: any) => {
+        onChange({ ...config, [key]: value });
     };
 
-    const handleColumnChange = (values: string[]) => {
-        onChange({ ...config, columns: values });
+    const addMeasure = () => {
+        const newMeasure = { column: '', aggregation: 'sum' };
+        handleUpdate('measures', [...measures, newMeasure]);
     };
 
-    const actionButton = {
-        label: "Nuevo Campo Calculado",
-        onClick: () => setIsModalOpen(true)
+    const updateMeasure = (index: number, newMeasure: any) => {
+        const newMeasures = [...measures];
+        newMeasures[index] = newMeasure;
+        handleUpdate('measures', newMeasures);
+    };
+
+    const removeMeasure = (index: number) => {
+        const newMeasures = measures.filter((_: any, i: number) => i !== index);
+        handleUpdate('measures', newMeasures);
     };
 
     return (
         <div className="space-y-4">
             <div>
                 <Label>Tablas</Label>
-                <MultiSelect
-                    options={allTables}
-                    selected={selectedTables}
-                    onChange={handleTablesChange}
-                    className="w-full"
-                    placeholder="Seleccione una o más tablas..."
-                />
+                <MultiSelect options={allTables} selected={selectedTables} onChange={(v) => handleUpdate('tables', v)} className="w-full" placeholder="Seleccione una o más tablas..."/>
             </div>
             {selectedTables.length > 0 && (
                 <>
                     <div>
-                        <Label>Columnas</Label>
-                        <MultiSelect
-                            options={availableColumns}
-                            selected={selectedColumns}
-                            onChange={handleColumnChange}
-                            className="w-full"
-                            placeholder="Seleccione columnas..."
-                            actionButton={actionButton}
-                        />
+                        <Label>Filas (Rows)</Label>
+                        <MultiSelect options={availableColumns} selected={rows} onChange={(v) => handleUpdate('rows', v)} className="w-full" placeholder="Seleccione campos para las filas..."/>
                     </div>
-                    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                        <CreateEditFieldModal 
-                            selectedTables={selectedTables} 
-                            onSave={() => {
-                                fetchAllColumns();
-                                setIsModalOpen(false);
-                            }} 
-                        />
-                    </Dialog>
+                    <div>
+                        <Label>Columnas (Columns)</Label>
+                        <MultiSelect options={availableColumns} selected={columns} onChange={(v) => handleUpdate('columns', v)} className="w-full" placeholder="Seleccione campos para las columnas..."/>
+                    </div>
+                    <div>
+                        <Label>Medidas (Measures)</Label>
+                        <div className="space-y-2 rounded-md border p-2">
+                            {measures.map((measure: any, index: number) => (
+                                <div key={index} className="flex items-center gap-2">
+                                    <Select value={measure.column} onValueChange={(v) => updateMeasure(index, { ...measure, column: v })}>
+                                        <SelectTrigger><SelectValue placeholder="Columna..." /></SelectTrigger>
+                                        <SelectContent>{numericColumns.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <Select value={measure.aggregation} onValueChange={(v) => updateMeasure(index, { ...measure, aggregation: v })}>
+                                        <SelectTrigger><SelectValue placeholder="Agregación..." /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="sum">Suma</SelectItem>
+                                            <SelectItem value="count">Recuento</SelectItem>
+                                            <SelectItem value="average">Promedio</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button variant="ghost" size="icon" onClick={() => removeMeasure(index)}><Trash2 className="h-4 w-4 text-red-500"/></Button>
+                                </div>
+                            ))}
+                            <Button variant="outline" size="sm" className="w-full" onClick={addMeasure}><PlusCircle className="h-4 w-4 mr-2"/>Añadir Medida</Button>
+                        </div>
+                    </div>
+                    <div>
+                        <Label>Campos Calculados</Label>
+                        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full mt-1">
+                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    Crear o Gestionar Campos
+                                </Button>
+                            </DialogTrigger>
+                            <CreateEditFieldModal 
+                                selectedTables={selectedTables} 
+                                onSave={() => {
+                                    fetchAllColumns();
+                                    setIsModalOpen(false);
+                                }} 
+                            />
+                        </Dialog>
+                    </div>
                 </>
             )}
         </div>
     );
 };
 
-// Este modal es idéntico al de los otros componentes de configuración
+// ... (CreateEditFieldModal sigue siendo el mismo)
 const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: string[], onSave: () => void }) => {
     const [name, setName] = useState('');
     const [expression, setExpression] = useState('');
@@ -216,4 +250,4 @@ const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: stri
     );
 };
 
-export default DataTableConfig;
+export default PivotTableConfig;

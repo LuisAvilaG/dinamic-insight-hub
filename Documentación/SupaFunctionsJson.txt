@@ -1,0 +1,1442 @@
+[
+  {
+    "schema": "auth",
+    "function_name": "email",
+    "arguments": "",
+    "return_type": "text",
+    "description": "Deprecated. Use auth.jwt() -> 'email' instead.",
+    "definition": "CREATE OR REPLACE FUNCTION auth.email()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.email', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')\n  )::text\n$function$\n"
+  },
+  {
+    "schema": "auth",
+    "function_name": "jwt",
+    "arguments": "",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION auth.jwt()\n RETURNS jsonb\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n    coalesce(\n        nullif(current_setting('request.jwt.claim', true), ''),\n        nullif(current_setting('request.jwt.claims', true), '')\n    )::jsonb\n$function$\n"
+  },
+  {
+    "schema": "auth",
+    "function_name": "role",
+    "arguments": "",
+    "return_type": "text",
+    "description": "Deprecated. Use auth.jwt() -> 'role' instead.",
+    "definition": "CREATE OR REPLACE FUNCTION auth.role()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.role', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')\n  )::text\n$function$\n"
+  },
+  {
+    "schema": "auth",
+    "function_name": "uid",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": "Deprecated. Use auth.jwt() -> 'sub' instead.",
+    "definition": "CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "create_log_entry",
+    "arguments": "p_log_level text, p_status text, p_details text, p_folder_name text DEFAULT NULL::text, p_list_name text DEFAULT NULL::text",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.create_log_entry(p_log_level text, p_status text, p_details text, p_folder_name text DEFAULT NULL::text, p_list_name text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.import_logs(log_level, status, details, folder_name, list_name)\n    VALUES (p_log_level, p_status, p_details, p_folder_name, p_list_name);\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "delete_widget",
+    "arguments": "p_widget_id uuid",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.delete_widget(p_widget_id uuid)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    DELETE FROM be_exponential.report_widgets\n    WHERE id = p_widget_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "handle_updated_at",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.handle_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    NEW.updated_at = now();\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "update_widget_config_and_type",
+    "arguments": "p_widget_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.update_widget_config_and_type(p_widget_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    UPDATE be_exponential.report_widgets\n    SET\n        widget_type = p_widget_type,\n        config = p_config,\n        layout = p_layout\n    WHERE\n        id = p_widget_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "update_widget_config_and_type",
+    "arguments": "p_widget_id uuid, p_widget_type text, p_config jsonb",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.update_widget_config_and_type(p_widget_id uuid, p_widget_type text, p_config jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    UPDATE be_exponential.report_widgets\n    SET\n        type = p_widget_type,\n        config = p_config,\n        title = p_config->>'title',\n        query = p_config->>'query'\n    WHERE id = p_widget_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_action_items",
+    "arguments": "tasks_data be_exponential.clickup_task_action_items_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_action_items(tasks_data be_exponential.clickup_task_action_items_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_action_items(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, status, custom_Responsable, priority, start_date, due_date, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, status = EXCLUDED.status, custom_Responsable = EXCLUDED.custom_Responsable, priority = EXCLUDED.priority, start_date = EXCLUDED.start_date, due_date = EXCLUDED.due_date, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_assignments",
+    "arguments": "tasks_data be_exponential.clickup_task_assignments_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_assignments(tasks_data be_exponential.clickup_task_assignments_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_assignments(clickup_task_id, clickup_list_id, clickup_folder_id, clickup_space_id, space_name, folder_name, list_name, name, status, priority, assignees, start_date, due_date, time_tracked_ms, is_subtask, parent_task_id, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_space_id = EXCLUDED.clickup_space_id, space_name = EXCLUDED.space_name, folder_name = EXCLUDED.folder_name, list_name = EXCLUDED.list_name, name = EXCLUDED.name, status = EXCLUDED.status, priority = EXCLUDED.priority, assignees = EXCLUDED.assignees, start_date = EXCLUDED.start_date, due_date = EXCLUDED.due_date, time_tracked_ms = EXCLUDED.time_tracked_ms, is_subtask = EXCLUDED.is_subtask, parent_task_id = EXCLUDED.parent_task_id, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_documents",
+    "arguments": "tasks_data be_exponential.clickup_task_documents_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_documents(tasks_data be_exponential.clickup_task_documents_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_documents(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, status, custom_Documento, custom_Estatus, custom_fase_del_proyecto, custom_fecha_de_firma_cierre, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, status = EXCLUDED.status, custom_Documento = EXCLUDED.custom_Documento, custom_Estatus = EXCLUDED.custom_Estatus, custom_fase_del_proyecto = EXCLUDED.custom_fase_del_proyecto, custom_fecha_de_firma_cierre = EXCLUDED.custom_fecha_de_firma_cierre, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_from_clickup",
+    "arguments": "tasks_data be_exponential.clickup_task_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_from_clickup(tasks_data be_exponential.clickup_task_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    FOR i IN 1..array_length(tasks_data, 1) LOOP\n        INSERT INTO be_exponential.tasks (\n            clickup_task_id, clickup_list_id, clickup_folder_id, clickup_space_id, \n            space_name, folder_name, list_name, \n            name, status, priority, start_date, due_date, time_tracked_ms, is_subtask, parent_task_id, last_synced_at, \n            -- Campos personalizados\n            custom_fecha_planeada_go_live, custom_fecha_inicio, custom_fecha_limite_linea_base, custom_horas_totales, \n            custom_hrs_estimadas, custom_dias_num, custom_total_dias_num, custom_prioridad_cliente, custom_estado_proyecto, \n            custom_escalar_al\n        )\n        VALUES (\n            (tasks_data[i]).clickup_task_id, (tasks_data[i]).clickup_list_id, (tasks_data[i]).clickup_folder_id, (tasks_data[i]).clickup_space_id,\n            (tasks_data[i]).space_name, (tasks_data[i]).folder_name, (tasks_data[i]).list_name,\n            (tasks_data[i]).name, (tasks_data[i]).status, (tasks_data[i]).priority, (tasks_data[i]).start_date, (tasks_data[i]).due_date, \n            (tasks_data[i]).time_tracked_ms, (tasks_data[i]).is_subtask, (tasks_data[i]).parent_task_id, (tasks_data[i]).last_synced_at, \n            -- Campos personalizados\n            (tasks_data[i]).custom_fecha_planeada_go_live, (tasks_data[i]).custom_fecha_inicio, (tasks_data[i]).custom_fecha_limite_linea_base, \n            (tasks_data[i]).custom_horas_totales, (tasks_data[i]).custom_hrs_estimadas, (tasks_data[i]).custom_dias_num, \n            (tasks_data[i]).custom_total_dias_num, (tasks_data[i]).custom_prioridad_cliente, (tasks_data[i]).custom_estado_proyecto, \n            (tasks_data[i]).custom_escalar_al\n        )\n        ON CONFLICT (clickup_task_id) DO UPDATE SET\n            clickup_list_id = EXCLUDED.clickup_list_id, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_space_id = EXCLUDED.clickup_space_id,\n            space_name = EXCLUDED.space_name, folder_name = EXCLUDED.folder_name, list_name = EXCLUDED.list_name,\n            name = EXCLUDED.name, status = EXCLUDED.status, priority = EXCLUDED.priority, start_date = EXCLUDED.start_date, due_date = EXCLUDED.due_date,\n            time_tracked_ms = EXCLUDED.time_tracked_ms, is_subtask = EXCLUDED.is_subtask, parent_task_id = EXCLUDED.parent_task_id,\n            last_synced_at = EXCLUDED.last_synced_at,\n            -- Campos personalizados\n            custom_fecha_planeada_go_live = EXCLUDED.custom_fecha_planeada_go_live, custom_fecha_inicio = EXCLUDED.custom_fecha_inicio, \n            custom_fecha_limite_linea_base = EXCLUDED.custom_fecha_limite_linea_base, custom_horas_totales = EXCLUDED.custom_horas_totales, \n            custom_hrs_estimadas = EXCLUDED.custom_hrs_estimadas, custom_dias_num = EXCLUDED.custom_dias_num, \n            custom_total_dias_num = EXCLUDED.custom_total_dias_num, custom_prioridad_cliente = EXCLUDED.custom_prioridad_cliente, \n            custom_estado_proyecto = EXCLUDED.custom_estado_proyecto, custom_escalar_al = EXCLUDED.custom_escalar_al;\n    END LOOP;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_gaps",
+    "arguments": "tasks_data be_exponential.clickup_task_gaps_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_gaps(tasks_data be_exponential.clickup_task_gaps_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_gaps(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, status, custom_Gap_Estatus, priority, custom_detalles, custom_fecha_de_identificacion, custom_hrs_estimadas, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, status = EXCLUDED.status, custom_Gap_Estatus = EXCLUDED.custom_Gap_Estatus, priority = EXCLUDED.priority, custom_detalles = EXCLUDED.custom_detalles, custom_fecha_de_identificacion = EXCLUDED.custom_fecha_de_identificacion, custom_hrs_estimadas = EXCLUDED.custom_hrs_estimadas, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_orders_of_change",
+    "arguments": "tasks_data be_exponential.clickup_task_orders_of_change_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_orders_of_change(tasks_data be_exponential.clickup_task_orders_of_change_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_orders_of_change(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, priority, status, custom_Impacto, custom_Estatus, custom_costo, custom_fecha_de_firma, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, priority = EXCLUDED.priority, status = EXCLUDED.status, custom_Impacto = EXCLUDED.custom_Impacto, custom_Estatus = EXCLUDED.custom_Estatus, custom_costo = EXCLUDED.custom_costo, custom_fecha_de_firma = EXCLUDED.custom_fecha_de_firma, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_project_information",
+    "arguments": "tasks_data be_exponential.clickup_task_project_information_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_project_information(tasks_data be_exponential.clickup_task_project_information_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_project_information(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, custom_Project_Manager, custom_fase_del_proyecto, custom_fecha_de_kick_off, custom_fecha_planeada_go_live, custom_horas_contratadas, custom_horas_proyecto, custom_horas_integraciones_o_desarrollos, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, custom_Project_Manager = EXCLUDED.custom_Project_Manager, custom_fase_del_proyecto = EXCLUDED.custom_fase_del_proyecto, custom_fecha_de_kick_off = EXCLUDED.custom_fecha_de_kick_off, custom_fecha_planeada_go_live = EXCLUDED.custom_fecha_planeada_go_live, custom_horas_contratadas = EXCLUDED.custom_horas_contratadas, custom_horas_proyecto = EXCLUDED.custom_horas_proyecto, custom_horas_integraciones_o_desarrollos = EXCLUDED.custom_horas_integraciones_o_desarrollos, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_project_plan",
+    "arguments": "tasks_data be_exponential.clickup_task_project_plan_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_project_plan(tasks_data be_exponential.clickup_task_project_plan_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_project_plan(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, status, assignees, start_date, due_date, time_spent, time_estimate, last_synced_at, is_subtask, parent_task_id)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, status = EXCLUDED.status, assignees = EXCLUDED.assignees, start_date = EXCLUDED.start_date, due_date = EXCLUDED.due_date, time_spent = EXCLUDED.time_spent, time_estimate = EXCLUDED.time_estimate, last_synced_at = EXCLUDED.last_synced_at, is_subtask = EXCLUDED.is_subtask, parent_task_id = EXCLUDED.parent_task_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "upsert_tasks_risks_issues",
+    "arguments": "tasks_data be_exponential.clickup_task_risks_issues_import_type[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.upsert_tasks_risks_issues(tasks_data be_exponential.clickup_task_risks_issues_import_type[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO be_exponential.tasks_risks_issues(clickup_task_id, clickup_list_id, clickup_list_name, clickup_folder_id, clickup_folder_name, name, custom_Responsable, priority, status, custom_Estatus, custom_action_plan, custom_fecha_de_reporte, custom_tipo, last_synced_at)\n    SELECT u.* FROM unnest(tasks_data) u\n    ON CONFLICT (clickup_task_id) DO UPDATE SET\n        clickup_list_id = EXCLUDED.clickup_list_id, clickup_list_name = EXCLUDED.clickup_list_name, clickup_folder_id = EXCLUDED.clickup_folder_id, clickup_folder_name = EXCLUDED.clickup_folder_name, name = EXCLUDED.name, custom_Responsable = EXCLUDED.custom_Responsable, priority = EXCLUDED.priority, status = EXCLUDED.status, custom_Estatus = EXCLUDED.custom_Estatus, custom_action_plan = EXCLUDED.custom_action_plan, custom_fecha_de_reporte = EXCLUDED.custom_fecha_de_reporte, custom_tipo = EXCLUDED.custom_tipo, last_synced_at = EXCLUDED.last_synced_at;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "alter_job",
+    "arguments": "job_id bigint, schedule text DEFAULT NULL::text, command text DEFAULT NULL::text, database text DEFAULT NULL::text, username text DEFAULT NULL::text, active boolean DEFAULT NULL::boolean",
+    "return_type": "void",
+    "description": "Alter the job identified by job_id. Any option left as NULL will not be modified.",
+    "definition": "CREATE OR REPLACE FUNCTION cron.alter_job(job_id bigint, schedule text DEFAULT NULL::text, command text DEFAULT NULL::text, database text DEFAULT NULL::text, username text DEFAULT NULL::text, active boolean DEFAULT NULL::boolean)\n RETURNS void\n LANGUAGE c\nAS '$libdir/pg_cron', $function$cron_alter_job$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "job_cache_invalidate",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": "invalidate job cache",
+    "definition": "CREATE OR REPLACE FUNCTION cron.job_cache_invalidate()\n RETURNS trigger\n LANGUAGE c\nAS '$libdir/pg_cron', $function$cron_job_cache_invalidate$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "schedule",
+    "arguments": "schedule text, command text",
+    "return_type": "bigint",
+    "description": "schedule a pg_cron job",
+    "definition": "CREATE OR REPLACE FUNCTION cron.schedule(schedule text, command text)\n RETURNS bigint\n LANGUAGE c\n STRICT\nAS '$libdir/pg_cron', $function$cron_schedule$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "schedule",
+    "arguments": "job_name text, schedule text, command text",
+    "return_type": "bigint",
+    "description": "schedule a pg_cron job",
+    "definition": "CREATE OR REPLACE FUNCTION cron.schedule(job_name text, schedule text, command text)\n RETURNS bigint\n LANGUAGE c\nAS '$libdir/pg_cron', $function$cron_schedule_named$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "schedule_in_database",
+    "arguments": "job_name text, schedule text, command text, database text, username text DEFAULT NULL::text, active boolean DEFAULT true",
+    "return_type": "bigint",
+    "description": "schedule a pg_cron job",
+    "definition": "CREATE OR REPLACE FUNCTION cron.schedule_in_database(job_name text, schedule text, command text, database text, username text DEFAULT NULL::text, active boolean DEFAULT true)\n RETURNS bigint\n LANGUAGE c\nAS '$libdir/pg_cron', $function$cron_schedule_named$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "unschedule",
+    "arguments": "job_name text",
+    "return_type": "boolean",
+    "description": "unschedule a pg_cron job",
+    "definition": "CREATE OR REPLACE FUNCTION cron.unschedule(job_name text)\n RETURNS boolean\n LANGUAGE c\n STRICT\nAS '$libdir/pg_cron', $function$cron_unschedule_named$function$\n"
+  },
+  {
+    "schema": "cron",
+    "function_name": "unschedule",
+    "arguments": "job_id bigint",
+    "return_type": "boolean",
+    "description": "unschedule a pg_cron job",
+    "definition": "CREATE OR REPLACE FUNCTION cron.unschedule(job_id bigint)\n RETURNS boolean\n LANGUAGE c\n STRICT\nAS '$libdir/pg_cron', $function$cron_unschedule$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "armor",
+    "arguments": "bytea",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "armor",
+    "arguments": "bytea, text[], text[]",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea, text[], text[])\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "crypt",
+    "arguments": "text, text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.crypt(text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_crypt$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "dearmor",
+    "arguments": "text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.dearmor(text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_dearmor$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "decrypt",
+    "arguments": "bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.decrypt(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_decrypt$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "decrypt_iv",
+    "arguments": "bytea, bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.decrypt_iv(bytea, bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_decrypt_iv$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "digest",
+    "arguments": "bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.digest(bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_digest$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "digest",
+    "arguments": "text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.digest(text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_digest$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "encrypt",
+    "arguments": "bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.encrypt(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_encrypt$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "encrypt_iv",
+    "arguments": "bytea, bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.encrypt_iv(bytea, bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_encrypt_iv$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "gen_random_bytes",
+    "arguments": "integer",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.gen_random_bytes(integer)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_random_bytes$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "gen_random_uuid",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.gen_random_uuid()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE\nAS '$libdir/pgcrypto', $function$pg_random_uuid$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "gen_salt",
+    "arguments": "text, integer",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text, integer)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "gen_salt",
+    "arguments": "text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "grant_pg_cron_access",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": "Grants access to pg_cron",
+    "definition": "CREATE OR REPLACE FUNCTION extensions.grant_pg_cron_access()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  IF EXISTS (\n    SELECT\n    FROM pg_event_trigger_ddl_commands() AS ev\n    JOIN pg_extension AS ext\n    ON ev.objid = ext.oid\n    WHERE ext.extname = 'pg_cron'\n  )\n  THEN\n    grant usage on schema cron to postgres with grant option;\n\n    alter default privileges in schema cron grant all on tables to postgres with grant option;\n    alter default privileges in schema cron grant all on functions to postgres with grant option;\n    alter default privileges in schema cron grant all on sequences to postgres with grant option;\n\n    alter default privileges for user supabase_admin in schema cron grant all\n        on sequences to postgres with grant option;\n    alter default privileges for user supabase_admin in schema cron grant all\n        on tables to postgres with grant option;\n    alter default privileges for user supabase_admin in schema cron grant all\n        on functions to postgres with grant option;\n\n    grant all privileges on all tables in schema cron to postgres with grant option;\n    revoke all on table cron.job from postgres;\n    grant select on table cron.job to postgres with grant option;\n  END IF;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "grant_pg_graphql_access",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": "Grants access to pg_graphql",
+    "definition": "CREATE OR REPLACE FUNCTION extensions.grant_pg_graphql_access()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    func_is_graphql_resolve bool;\nBEGIN\n    func_is_graphql_resolve = (\n        SELECT n.proname = 'resolve'\n        FROM pg_event_trigger_ddl_commands() AS ev\n        LEFT JOIN pg_catalog.pg_proc AS n\n        ON ev.objid = n.oid\n    );\n\n    IF func_is_graphql_resolve\n    THEN\n        -- Update public wrapper to pass all arguments through to the pg_graphql resolve func\n        DROP FUNCTION IF EXISTS graphql_public.graphql;\n        create or replace function graphql_public.graphql(\n            \"operationName\" text default null,\n            query text default null,\n            variables jsonb default null,\n            extensions jsonb default null\n        )\n            returns jsonb\n            language sql\n        as $$\n            select graphql.resolve(\n                query := query,\n                variables := coalesce(variables, '{}'),\n                \"operationName\" := \"operationName\",\n                extensions := extensions\n            );\n        $$;\n\n        -- This hook executes when `graphql.resolve` is created. That is not necessarily the last\n        -- function in the extension so we need to grant permissions on existing entities AND\n        -- update default permissions to any others that are created after `graphql.resolve`\n        grant usage on schema graphql to postgres, anon, authenticated, service_role;\n        grant select on all tables in schema graphql to postgres, anon, authenticated, service_role;\n        grant execute on all functions in schema graphql to postgres, anon, authenticated, service_role;\n        grant all on all sequences in schema graphql to postgres, anon, authenticated, service_role;\n        alter default privileges in schema graphql grant all on tables to postgres, anon, authenticated, service_role;\n        alter default privileges in schema graphql grant all on functions to postgres, anon, authenticated, service_role;\n        alter default privileges in schema graphql grant all on sequences to postgres, anon, authenticated, service_role;\n\n        -- Allow postgres role to allow granting usage on graphql and graphql_public schemas to custom roles\n        grant usage on schema graphql_public to postgres with grant option;\n        grant usage on schema graphql to postgres with grant option;\n    END IF;\n\nEND;\n$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "grant_pg_net_access",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": "Grants access to pg_net",
+    "definition": "CREATE OR REPLACE FUNCTION extensions.grant_pg_net_access()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  IF EXISTS (\n    SELECT 1\n    FROM pg_event_trigger_ddl_commands() AS ev\n    JOIN pg_extension AS ext\n    ON ev.objid = ext.oid\n    WHERE ext.extname = 'pg_net'\n  )\n  THEN\n    IF NOT EXISTS (\n      SELECT 1\n      FROM pg_roles\n      WHERE rolname = 'supabase_functions_admin'\n    )\n    THEN\n      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;\n    END IF;\n\n    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;\n\n    IF EXISTS (\n      SELECT FROM pg_extension\n      WHERE extname = 'pg_net'\n      -- all versions in use on existing projects as of 2025-02-20\n      -- version 0.12.0 onwards don't need these applied\n      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')\n    ) THEN\n      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;\n      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;\n\n      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;\n      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;\n\n      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;\n      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;\n\n      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;\n      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;\n    END IF;\n  END IF;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "hmac",
+    "arguments": "text, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.hmac(text, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "hmac",
+    "arguments": "bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.hmac(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pg_stat_statements",
+    "arguments": "showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone",
+    "return_type": "SETOF record",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone)\n RETURNS SETOF record\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pg_stat_statements', $function$pg_stat_statements_1_11$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pg_stat_statements_info",
+    "arguments": "OUT dealloc bigint, OUT stats_reset timestamp with time zone",
+    "return_type": "record",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone)\n RETURNS record\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pg_stat_statements', $function$pg_stat_statements_info$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pg_stat_statements_reset",
+    "arguments": "userid oid DEFAULT 0, dbid oid DEFAULT 0, queryid bigint DEFAULT 0, minmax_only boolean DEFAULT false",
+    "return_type": "timestamp with time zone",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pg_stat_statements_reset(userid oid DEFAULT 0, dbid oid DEFAULT 0, queryid bigint DEFAULT 0, minmax_only boolean DEFAULT false)\n RETURNS timestamp with time zone\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pg_stat_statements', $function$pg_stat_statements_reset_1_11$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_armor_headers",
+    "arguments": "text, OUT key text, OUT value text",
+    "return_type": "SETOF record",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_armor_headers(text, OUT key text, OUT value text)\n RETURNS SETOF record\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_armor_headers$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_key_id",
+    "arguments": "bytea",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_key_id(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_key_id_w$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt",
+    "arguments": "bytea, bytea, text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt",
+    "arguments": "bytea, bytea",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt",
+    "arguments": "bytea, bytea, text, text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt_bytea",
+    "arguments": "bytea, bytea, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt_bytea",
+    "arguments": "bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt_bytea",
+    "arguments": "bytea, bytea",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_encrypt",
+    "arguments": "text, bytea",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt(text, bytea)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_encrypt",
+    "arguments": "text, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt(text, bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_encrypt_bytea",
+    "arguments": "bytea, bytea",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_encrypt_bytea",
+    "arguments": "bytea, bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_decrypt",
+    "arguments": "bytea, text, text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt(bytea, text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_decrypt",
+    "arguments": "bytea, text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt(bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_decrypt_bytea",
+    "arguments": "bytea, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_decrypt_bytea",
+    "arguments": "bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_encrypt",
+    "arguments": "text, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt(text, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_encrypt",
+    "arguments": "text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt(text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_encrypt_bytea",
+    "arguments": "bytea, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_encrypt_bytea",
+    "arguments": "bytea, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgrst_ddl_watch",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgrst_ddl_watch()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()\n  LOOP\n    IF cmd.command_tag IN (\n      'CREATE SCHEMA', 'ALTER SCHEMA'\n    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'\n    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'\n    , 'CREATE VIEW', 'ALTER VIEW'\n    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'\n    , 'CREATE FUNCTION', 'ALTER FUNCTION'\n    , 'CREATE TRIGGER'\n    , 'CREATE TYPE', 'ALTER TYPE'\n    , 'CREATE RULE'\n    , 'COMMENT'\n    )\n    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp\n    AND cmd.schema_name is distinct from 'pg_temp'\n    THEN\n      NOTIFY pgrst, 'reload schema';\n    END IF;\n  END LOOP;\nEND; $function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgrst_drop_watch",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgrst_drop_watch()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  obj record;\nBEGIN\n  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()\n  LOOP\n    IF obj.object_type IN (\n      'schema'\n    , 'table'\n    , 'foreign table'\n    , 'view'\n    , 'materialized view'\n    , 'function'\n    , 'trigger'\n    , 'type'\n    , 'rule'\n    )\n    AND obj.is_temporary IS false -- no pg_temp objects\n    THEN\n      NOTIFY pgrst, 'reload schema';\n    END IF;\n  END LOOP;\nEND; $function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "set_graphql_placeholder",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": "Reintroduces placeholder function for graphql_public.graphql",
+    "definition": "CREATE OR REPLACE FUNCTION extensions.set_graphql_placeholder()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\n    DECLARE\n    graphql_is_dropped bool;\n    BEGIN\n    graphql_is_dropped = (\n        SELECT ev.schema_name = 'graphql_public'\n        FROM pg_event_trigger_dropped_objects() AS ev\n        WHERE ev.schema_name = 'graphql_public'\n    );\n\n    IF graphql_is_dropped\n    THEN\n        create or replace function graphql_public.graphql(\n            \"operationName\" text default null,\n            query text default null,\n            variables jsonb default null,\n            extensions jsonb default null\n        )\n            returns jsonb\n            language plpgsql\n        as $$\n            DECLARE\n                server_version float;\n            BEGIN\n                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);\n\n                IF server_version >= 14 THEN\n                    RETURN jsonb_build_object(\n                        'errors', jsonb_build_array(\n                            jsonb_build_object(\n                                'message', 'pg_graphql extension is not enabled.'\n                            )\n                        )\n                    );\n                ELSE\n                    RETURN jsonb_build_object(\n                        'errors', jsonb_build_array(\n                            jsonb_build_object(\n                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'\n                            )\n                        )\n                    );\n                END IF;\n            END;\n        $$;\n    END IF;\n\n    END;\n$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_generate_v1",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v1()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v1$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_generate_v1mc",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v1mc()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v1mc$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_generate_v3",
+    "arguments": "namespace uuid, name text",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v3(namespace uuid, name text)\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v3$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_generate_v4",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v4()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v4$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_generate_v5",
+    "arguments": "namespace uuid, name text",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v5(namespace uuid, name text)\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v5$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_nil",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_nil()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_nil$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_ns_dns",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_dns()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_dns$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_ns_oid",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_oid()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_oid$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_ns_url",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_url()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_url$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "uuid_ns_x500",
+    "arguments": "",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_x500()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_x500$function$\n"
+  },
+  {
+    "schema": "graphql",
+    "function_name": "_internal_resolve",
+    "arguments": "query text, variables jsonb DEFAULT '{}'::jsonb, \"operationName\" text DEFAULT NULL::text, extensions jsonb DEFAULT NULL::jsonb",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql._internal_resolve(query text, variables jsonb DEFAULT '{}'::jsonb, \"operationName\" text DEFAULT NULL::text, extensions jsonb DEFAULT NULL::jsonb)\n RETURNS jsonb\n LANGUAGE c\nAS '$libdir/pg_graphql', $function$resolve_wrapper$function$\n"
+  },
+  {
+    "schema": "graphql",
+    "function_name": "comment_directive",
+    "arguments": "comment_ text",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql.comment_directive(comment_ text)\n RETURNS jsonb\n LANGUAGE sql\n IMMUTABLE\nAS $function$\n    /*\n    comment on column public.account.name is '@graphql.name: myField'\n    */\n    select\n        coalesce(\n            (\n                regexp_match(\n                    comment_,\n                    '@graphql\\((.+)\\)'\n                )\n            )[1]::jsonb,\n            jsonb_build_object()\n        )\n$function$\n"
+  },
+  {
+    "schema": "graphql",
+    "function_name": "exception",
+    "arguments": "message text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql.exception(message text)\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\nbegin\n    raise exception using errcode='22000', message=message;\nend;\n$function$\n"
+  },
+  {
+    "schema": "graphql",
+    "function_name": "get_schema_version",
+    "arguments": "",
+    "return_type": "integer",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql.get_schema_version()\n RETURNS integer\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\n    select last_value from graphql.seq_schema_version;\n$function$\n"
+  },
+  {
+    "schema": "graphql",
+    "function_name": "increment_schema_version",
+    "arguments": "",
+    "return_type": "event_trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql.increment_schema_version()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nbegin\n    perform pg_catalog.nextval('graphql.seq_schema_version');\nend;\n$function$\n"
+  },
+  {
+    "schema": "graphql",
+    "function_name": "resolve",
+    "arguments": "query text, variables jsonb DEFAULT '{}'::jsonb, \"operationName\" text DEFAULT NULL::text, extensions jsonb DEFAULT NULL::jsonb",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql.resolve(query text, variables jsonb DEFAULT '{}'::jsonb, \"operationName\" text DEFAULT NULL::text, extensions jsonb DEFAULT NULL::jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\nAS $function$\ndeclare\n    res jsonb;\n    message_text text;\nbegin\n  begin\n    select graphql._internal_resolve(\"query\" := \"query\",\n                                     \"variables\" := \"variables\",\n                                     \"operationName\" := \"operationName\",\n                                     \"extensions\" := \"extensions\") into res;\n    return res;\n  exception\n    when others then\n    get stacked diagnostics message_text = message_text;\n    return\n    jsonb_build_object('data', null,\n                       'errors', jsonb_build_array(jsonb_build_object('message', message_text)));\n  end;\nend;\n$function$\n"
+  },
+  {
+    "schema": "graphql_public",
+    "function_name": "graphql",
+    "arguments": "\"operationName\" text DEFAULT NULL::text, query text DEFAULT NULL::text, variables jsonb DEFAULT NULL::jsonb, extensions jsonb DEFAULT NULL::jsonb",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION graphql_public.graphql(\"operationName\" text DEFAULT NULL::text, query text DEFAULT NULL::text, variables jsonb DEFAULT NULL::jsonb, extensions jsonb DEFAULT NULL::jsonb)\n RETURNS jsonb\n LANGUAGE sql\nAS $function$\n            select graphql.resolve(\n                query := query,\n                variables := coalesce(variables, '{}'),\n                \"operationName\" := \"operationName\",\n                extensions := extensions\n            );\n        $function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "_await_response",
+    "arguments": "request_id bigint",
+    "return_type": "boolean",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net._await_response(request_id bigint)\n RETURNS boolean\n LANGUAGE plpgsql\n PARALLEL SAFE STRICT\nAS $function$\ndeclare\n    rec net._http_response;\nbegin\n    while rec is null loop\n        select *\n        into rec\n        from net._http_response\n        where id = request_id;\n\n        if rec is null then\n            -- Wait 50 ms before checking again\n            perform pg_sleep(0.05);\n        end if;\n    end loop;\n\n    return true;\nend;\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "_encode_url_with_params_array",
+    "arguments": "url text, params_array text[]",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net._encode_url_with_params_array(url text, params_array text[])\n RETURNS text\n LANGUAGE c\n IMMUTABLE STRICT\nAS 'pg_net', $function$_encode_url_with_params_array$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "_http_collect_response",
+    "arguments": "request_id bigint, async boolean DEFAULT true",
+    "return_type": "net.http_response_result",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net._http_collect_response(request_id bigint, async boolean DEFAULT true)\n RETURNS net.http_response_result\n LANGUAGE plpgsql\n PARALLEL SAFE STRICT\nAS $function$\ndeclare\n    rec net._http_response;\n    req_exists boolean;\nbegin\n\n    if not async then\n        perform net._await_response(request_id);\n    end if;\n\n    select *\n    into rec\n    from net._http_response\n    where id = request_id;\n\n    if rec is null or rec.error_msg is not null then\n        -- The request is either still processing or the request_id provided does not exist\n\n        -- TODO: request in progress is indistinguishable from request that doesn't exist\n\n        -- No request matching request_id found\n        return (\n            'ERROR',\n            coalesce(rec.error_msg, 'request matching request_id not found'),\n            null\n        )::net.http_response_result;\n\n    end if;\n\n    -- Return a valid, populated http_response_result\n    return (\n        'SUCCESS',\n        'ok',\n        (\n            rec.status_code,\n            rec.headers,\n            rec.content\n        )::net.http_response\n    )::net.http_response_result;\nend;\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "_urlencode_string",
+    "arguments": "string character varying",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net._urlencode_string(string character varying)\n RETURNS text\n LANGUAGE c\n IMMUTABLE STRICT\nAS 'pg_net', $function$_urlencode_string$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "check_worker_is_up",
+    "arguments": "",
+    "return_type": "void",
+    "description": "raises an exception if the pg_net background worker is not up, otherwise it doesn't return anything",
+    "definition": "CREATE OR REPLACE FUNCTION net.check_worker_is_up()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nbegin\n  if not exists (select pid from pg_stat_activity where backend_type ilike '%pg_net%') then\n    raise exception using\n      message = 'the pg_net background worker is not up'\n    , detail  = 'the pg_net background worker is down due to an internal error and cannot process requests'\n    , hint    = 'make sure that you didn''t modify any of pg_net internal tables';\n  end if;\nend\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "http_collect_response",
+    "arguments": "request_id bigint, async boolean DEFAULT true",
+    "return_type": "net.http_response_result",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net.http_collect_response(request_id bigint, async boolean DEFAULT true)\n RETURNS net.http_response_result\n LANGUAGE plpgsql\n PARALLEL SAFE STRICT\nAS $function$\nbegin\n  raise notice 'The net.http_collect_response function is deprecated.';\n  select net._http_collect_response(request_id, async);\nend;\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "http_delete",
+    "arguments": "url text, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{}'::jsonb, timeout_milliseconds integer DEFAULT 5000",
+    "return_type": "bigint",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net.http_delete(url text, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{}'::jsonb, timeout_milliseconds integer DEFAULT 5000)\n RETURNS bigint\n LANGUAGE plpgsql\n PARALLEL SAFE STRICT\nAS $function$\ndeclare\n    request_id bigint;\n    params_array text[];\nbegin\n    select coalesce(array_agg(net._urlencode_string(key) || '=' || net._urlencode_string(value)), '{}')\n    into params_array\n    from jsonb_each_text(params);\n\n    -- Add to the request queue\n    insert into net.http_request_queue(method, url, headers, timeout_milliseconds)\n    values (\n        'DELETE',\n        net._encode_url_with_params_array(url, params_array),\n        headers,\n        timeout_milliseconds\n    )\n    returning id\n    into request_id;\n\n    return request_id;\nend\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "http_get",
+    "arguments": "url text, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{}'::jsonb, timeout_milliseconds integer DEFAULT 5000",
+    "return_type": "bigint",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net.http_get(url text, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{}'::jsonb, timeout_milliseconds integer DEFAULT 5000)\n RETURNS bigint\n LANGUAGE plpgsql\n PARALLEL SAFE STRICT\nAS $function$\ndeclare\n    request_id bigint;\n    params_array text[];\nbegin\n    select coalesce(array_agg(net._urlencode_string(key) || '=' || net._urlencode_string(value)), '{}')\n    into params_array\n    from jsonb_each_text(params);\n\n    -- Add to the request queue\n    insert into net.http_request_queue(method, url, headers, timeout_milliseconds)\n    values (\n        'GET',\n        net._encode_url_with_params_array(url, params_array),\n        headers,\n        timeout_milliseconds\n    )\n    returning id\n    into request_id;\n\n    return request_id;\nend\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "http_post",
+    "arguments": "url text, body jsonb DEFAULT '{}'::jsonb, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{\"Content-Type\": \"application/json\"}'::jsonb, timeout_milliseconds integer DEFAULT 5000",
+    "return_type": "bigint",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net.http_post(url text, body jsonb DEFAULT '{}'::jsonb, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{\"Content-Type\": \"application/json\"}'::jsonb, timeout_milliseconds integer DEFAULT 5000)\n RETURNS bigint\n LANGUAGE plpgsql\n PARALLEL SAFE\nAS $function$\ndeclare\n    request_id bigint;\n    params_array text[];\n    content_type text;\nbegin\n\n    -- Exctract the content_type from headers\n    select\n        header_value into content_type\n    from\n        jsonb_each_text(coalesce(headers, '{}'::jsonb)) r(header_name, header_value)\n    where\n        lower(header_name) = 'content-type'\n    limit\n        1;\n\n    -- If the user provided new headers and omitted the content type\n    -- add it back in automatically\n    if content_type is null then\n        select headers || '{\"Content-Type\": \"application/json\"}'::jsonb into headers;\n    end if;\n\n    -- Confirm that the content-type is set as \"application/json\"\n    if content_type <> 'application/json' then\n        raise exception 'Content-Type header must be \"application/json\"';\n    end if;\n\n    select\n        coalesce(array_agg(net._urlencode_string(key) || '=' || net._urlencode_string(value)), '{}')\n    into\n        params_array\n    from\n        jsonb_each_text(params);\n\n    -- Add to the request queue\n    insert into net.http_request_queue(method, url, headers, body, timeout_milliseconds)\n    values (\n        'POST',\n        net._encode_url_with_params_array(url, params_array),\n        headers,\n        convert_to(body::text, 'UTF8'),\n        timeout_milliseconds\n    )\n    returning id\n    into request_id;\n\n    return request_id;\nend\n$function$\n"
+  },
+  {
+    "schema": "net",
+    "function_name": "worker_restart",
+    "arguments": "",
+    "return_type": "boolean",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION net.worker_restart()\n RETURNS boolean\n LANGUAGE c\nAS 'pg_net', $function$worker_restart$function$\n"
+  },
+  {
+    "schema": "pgbouncer",
+    "function_name": "get_auth",
+    "arguments": "p_usename text",
+    "return_type": "TABLE(username text, password text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION pgbouncer.get_auth(p_usename text)\n RETURNS TABLE(username text, password text)\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nbegin\n    raise debug 'PgBouncer auth request: %', p_usename;\n\n    return query\n    select \n        rolname::text, \n        case when rolvaliduntil < now() \n            then null \n            else rolpassword::text \n        end \n    from pg_authid \n    where rolname=$1 and rolcanlogin;\nend;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "actualizar_saldo_vacaciones",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.actualizar_saldo_vacaciones()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  -- Si una solicitud es APROBADA\n  IF NEW.estado = 'Aprobada' AND OLD.estado <> 'Aprobada' THEN\n    UPDATE public.vacaciones_saldos\n    SET dias_tomados = dias_tomados + NEW.dias_solicitados\n    WHERE user_id = NEW.solicitante_user_id;\n\n  -- Si una solicitud que estaba APROBADA es RECHAZADA o cambiada a PENDIENTE (cancelación)\n  ELSIF OLD.estado = 'Aprobada' AND NEW.estado <> 'Aprobada' THEN\n    UPDATE public.vacaciones_saldos\n    SET dias_tomados = dias_tomados - OLD.dias_solicitados\n    WHERE user_id = OLD.solicitante_user_id;\n  END IF;\n  \n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "check_permisos_saldo",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.check_permisos_saldo()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    dias_asignados DECIMAL;\r\n    dias_usados DECIMAL;\r\n    dias_restantes DECIMAL;\r\nBEGIN\r\n    -- 1. Obtener el total de días especiales asignados al usuario desde permisos_saldos\r\n    SELECT dias_especiales_disponibles INTO dias_asignados\r\n    FROM permisos_saldos\r\n    WHERE user_id = NEW.solicitante_user_id;\r\n\r\n    -- Si no tiene saldo asignado, no puede solicitar.\r\n    IF dias_asignados IS NULL THEN\r\n        RAISE EXCEPTION 'No tienes un saldo de permisos especiales asignado. Contacta a RRHH.';\r\n    END IF;\r\n\r\n    -- 2. Calcular el total de días ya usados o pendientes de aprobación\r\n    SELECT COALESCE(SUM(total_dias), 0) INTO dias_usados\r\n    FROM permisos_solicitudes\r\n    WHERE solicitante_user_id = NEW.solicitante_user_id\r\n      AND estado IN ('aprobado', 'pendiente');\r\n\r\n    -- 3. Calcular los días que le quedarían\r\n    dias_restantes := dias_asignados - dias_usados;\r\n\r\n    -- 4. Verificar si los días solicitados en la nueva solicitud superan los días restantes\r\n    IF NEW.total_dias > dias_restantes THEN\r\n        RAISE EXCEPTION 'Saldo insuficiente. Solicitas % y solo te quedan % disponibles.', NEW.total_dias, dias_restantes;\r\n    END IF;\r\n\r\n    -- Si la validación pasa, permitir la inserción\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "check_saldo_al_crear_solicitud",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.check_saldo_al_crear_solicitud()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  dias_disponibles INTEGER;\n  dias_tomados_actuales INTEGER;\n  dias_asignados_anuales INTEGER;\nBEGIN\n  -- Obtener el saldo actual del usuario\n  SELECT dias_disponibles_anual, dias_tomados\n  INTO dias_asignados_anuales, dias_tomados_actuales\n  FROM public.vacaciones_saldos\n  WHERE user_id = NEW.solicitante_user_id;\n\n  -- Si el usuario no tiene un registro de saldo, no puede crear solicitudes.\n  IF NOT FOUND THEN\n      RAISE EXCEPTION 'No se puede crear la solicitud. No tienes un registro de saldo de vacaciones asignado.';\n  END IF;\n\n  -- Calcular los días realmente disponibles\n  dias_disponibles := dias_asignados_anuales - dias_tomados_actuales;\n\n  -- Validar si los días que se solicitan superan los disponibles\n  IF NEW.dias_solicitados > dias_disponibles THEN\n    RAISE EXCEPTION 'No tienes suficientes días de vacaciones. Disponibles: %, Solicitados: %.', dias_disponibles, NEW.dias_solicitados;\n  END IF;\n\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "check_saldo_suficiente_antes_de_aprobar",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.check_saldo_suficiente_antes_de_aprobar()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  dias_disponibles INTEGER;\n  dias_tomados_actuales INTEGER;\n  dias_asignados_anuales INTEGER;\nBEGIN\n  -- Solo se ejecuta si la solicitud se está moviendo a 'Aprobada'\n  IF NEW.estado = 'Aprobada' AND OLD.estado <> 'Aprobada' THEN\n    \n    -- Obtener el saldo actual del usuario\n    SELECT dias_disponibles_anual, dias_tomados\n    INTO dias_asignados_anuales, dias_tomados_actuales\n    FROM public.vacaciones_saldos\n    WHERE user_id = NEW.solicitante_user_id;\n\n    -- Calcular días disponibles reales\n    dias_disponibles := dias_asignados_anuales - dias_tomados_actuales;\n\n    -- Si los días solicitados son más de los disponibles, lanzar un error\n    IF NEW.dias_solicitados > dias_disponibles THEN\n      RAISE EXCEPTION 'No se puede aprobar la solicitud. El empleado solo tiene % días disponibles, pero está solicitando %.',\n        dias_disponibles, NEW.dias_solicitados;\n    END IF;\n  END IF;\n\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "create_dashboard",
+    "arguments": "p_name text, p_description text, p_department text",
+    "return_type": "be_exponential.report_dashboards",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.create_dashboard(p_name text, p_description text, p_department text)\n RETURNS be_exponential.report_dashboards\n LANGUAGE sql\nAS $function$\n  INSERT INTO be_exponential.report_dashboards(name, description, department)\n  VALUES (p_name, p_description, p_department)\n  RETURNING *;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "create_widget",
+    "arguments": "p_dashboard_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb",
+    "return_type": "SETOF be_exponential.report_widgets",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.create_widget(p_dashboard_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb)\n RETURNS SETOF be_exponential.report_widgets\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  RETURN QUERY\n  INSERT INTO be_exponential.report_widgets(dashboard_id, widget_type, config, layout)\n  VALUES (\n    p_dashboard_id,\n    p_widget_type::be_exponential.widget_type, -- <-- CORRECCIÓN: Cassteo a ENUM\n    p_config,\n    p_layout\n  )\n  RETURNING *;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "create_widget_with_layout",
+    "arguments": "p_dashboard_id uuid, p_type text, p_title text, p_query text, p_config jsonb, p_layout jsonb",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.create_widget_with_layout(p_dashboard_id uuid, p_type text, p_title text, p_query text, p_config jsonb, p_layout jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    new_widget_row be_exponential.report_widgets;\r\n    new_widget_jsonb JSONB;\r\nBEGIN\r\n    INSERT INTO be_exponential.report_widgets (dashboard_id, widget_type, config, layout)\r\n    VALUES (p_dashboard_id, p_type::be_exponential.widget_type, p_config, p_layout)\r\n    RETURNING * INTO new_widget_row;\r\n    \r\n    -- Construir manualmente el JSON para que sea idéntico a lo que devuelve get_dashboard_details\r\n    SELECT jsonb_build_object(\r\n        'id', new_widget_row.id,\r\n        'dashboard_id', new_widget_row.dashboard_id,\r\n        'title', new_widget_row.config->>'title',\r\n        'type', new_widget_row.widget_type, -- Devolvemos 'type', no 'widget_type'\r\n        'query', new_widget_row.config->>'query',\r\n        'config', new_widget_row.config,\r\n        'layout', new_widget_row.layout\r\n    )\r\n    INTO new_widget_jsonb;\r\n\r\n    RETURN new_widget_jsonb;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "delete_widget",
+    "arguments": "p_widget_id text",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.delete_widget(p_widget_id text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    -- La operación de borrado será verificada por las políticas de seguridad (RLS).\r\n    DELETE FROM be_exponential.report_widgets\r\n    WHERE id = p_widget_id::UUID;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "execute_query",
+    "arguments": "p_query text",
+    "return_type": "json",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.execute_query(p_query text)\n RETURNS json\n LANGUAGE plpgsql\n STABLE\nAS $function$\nDECLARE\n    json_result JSON;\nBEGIN\n    -- Validar que la consulta sea únicamente un SELECT y no contenga sentencias peligrosas.\n    IF NOT (p_query ~* '^\\s*SELECT') OR (p_query ~* ';') THEN\n        RAISE EXCEPTION 'Solo se permiten consultas SELECT únicas y seguras.';\n    END IF;\n\n    -- Ejecutar la consulta y agregar los resultados en un único objeto JSON.\n    EXECUTE 'SELECT json_agg(t) FROM (' || p_query || ') t' INTO json_result;\n    \n    -- Devolver el resultado JSON. Si no hay resultados, devuelve NULL (JSON).\n    RETURN json_result;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "execute_sql",
+    "arguments": "query text",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.execute_sql(query text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  res jsonb;\r\n  safe_query text;\r\nBEGIN\r\n  -- Medida de seguridad básica: solo permitir consultas SELECT.\r\n  safe_query := trim(lower(query));\r\n  IF safe_query NOT LIKE 'select %' THEN\r\n    RAISE EXCEPTION 'Solo se permiten consultas de tipo SELECT.';\r\n  END IF;\r\n\r\n  EXECUTE 'SELECT jsonb_agg(row_to_json(q)) FROM (' || query || ') q'\r\n  INTO res;\r\n\r\n  RETURN res;\r\nEXCEPTION\r\n  WHEN OTHERS THEN\r\n    RETURN jsonb_build_object('error', SQLERRM);\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_calculated_fields",
+    "arguments": "",
+    "return_type": "TABLE(id uuid, name text, expression text, tables_used text[], user_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_calculated_fields()\n RETURNS TABLE(id uuid, name text, expression text, tables_used text[], user_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone)\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    -- Utilizar la seguridad a nivel de fila (RLS) implícita de Supabase.\r\n    -- La política que creamos en la migración anterior asegurará que esta consulta\r\n    -- solo devuelva las filas donde auth.uid() = user_id.\r\n    RETURN QUERY\r\n    SELECT\r\n        f.id,\r\n        f.name,\r\n        f.expression,\r\n        f.tables_used,\r\n        f.user_id,\r\n        f.created_at,\r\n        f.updated_at\r\n    FROM\r\n        be_exponential.calculated_fields f\r\n    WHERE\r\n        f.user_id = auth.uid();\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_columns_from_tables",
+    "arguments": "p_tables text[]",
+    "return_type": "TABLE(display_name text, schema_name text, table_name text, column_name text, data_type text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_columns_from_tables(p_tables text[])\n RETURNS TABLE(display_name text, schema_name text, table_name text, column_name text, data_type text)\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    table_identifier TEXT;\r\n    schema_part TEXT;\r\n    table_part TEXT;\r\nBEGIN\r\n    -- Iterar sobre cada identificador de tabla en el array de entrada (ej: 'be_exponential.tasks')\r\n    FOREACH table_identifier IN ARRAY p_tables\r\n    LOOP\r\n        -- Separar el esquema y el nombre de la tabla\r\n        schema_part := SPLIT_PART(table_identifier, '.', 1);\r\n        table_part := SPLIT_PART(table_identifier, '.', 2);\r\n\r\n        -- Unir con information_schema.columns para obtener las columnas de la tabla actual\r\n        RETURN QUERY\r\n        SELECT\r\n            -- Crear el nombre de visualización único, ej: 'tasks.status'\r\n            table_part || '.' || c.column_name AS display_name,\r\n            c.table_schema::TEXT AS schema_name,\r\n            c.table_name::TEXT AS table_name,\r\n            c.column_name::TEXT AS column_name,\r\n            c.data_type::TEXT AS data_type\r\n        FROM\r\n            information_schema.columns c\r\n        WHERE\r\n            c.table_schema = schema_part\r\n            AND c.table_name = table_part;\r\n    END LOOP;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_current_user_role",
+    "arguments": "",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_current_user_role()\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  rol TEXT;\nBEGIN\n  SELECT lower(raw_user_meta_data->>'Rol')\n  INTO rol\n  FROM auth.users\n  WHERE id = auth.uid();\n  RETURN rol;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_dashboard_details",
+    "arguments": "p_dashboard_id uuid",
+    "return_type": "json",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_dashboard_details(p_dashboard_id uuid)\n RETURNS json\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    result json;\r\nBEGIN\r\n    SELECT\r\n        json_build_object(\r\n            'id', d.id,\r\n            'name', d.name,\r\n            'description', d.description,\r\n            'department', d.department,\r\n            'created_at', d.created_at,\r\n            'widgets', COALESCE(\r\n                (\r\n                    SELECT json_agg(\r\n                      json_build_object(\r\n                        'id', w.id,\r\n                        'dashboard_id', w.dashboard_id,\r\n                        'config', w.config, -- The query is inside this JSONB object\r\n                        'layout', w.layout,\r\n                        'widget_type', w.widget_type,\r\n                        'created_at', w.created_at\r\n                      ) ORDER BY (w.layout->>'y')::numeric, (w.layout->>'x')::numeric\r\n                    )\r\n                    FROM be_exponential.report_widgets AS w\r\n                    WHERE w.dashboard_id = d.id\r\n                ),\r\n                '[]'::json\r\n            )\r\n        )\r\n    INTO result\r\n    FROM be_exponential.report_dashboards AS d\r\n    WHERE d.id = p_dashboard_id;\r\n\r\n    RETURN result;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_dashboards",
+    "arguments": "",
+    "return_type": "SETOF be_exponential.report_dashboards",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_dashboards()\n RETURNS SETOF be_exponential.report_dashboards\n LANGUAGE sql\n STABLE\nAS $function$\n  -- Consulta la tabla correcta en el esquema correcto.\n  SELECT * FROM be_exponential.report_dashboards ORDER BY created_at DESC;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_most_viewed_report",
+    "arguments": "",
+    "return_type": "TABLE(nombre_reporte text, departamento_reporte text, view_count bigint)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_most_viewed_report()\n RETURNS TABLE(nombre_reporte text, departamento_reporte text, view_count bigint)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT\n        r.nombre AS nombre_reporte,\n        r.departamento AS departamento_reporte,\n        COUNT(rv.id) AS view_count\n    FROM\n        public.report_views rv\n    JOIN\n        public.reportes r ON rv.report_id = r.id\n    WHERE\n        rv.viewed_at >= NOW() - INTERVAL '30 days'\n    GROUP BY\n        r.id, r.nombre, r.departamento\n    ORDER BY\n        view_count DESC\n    LIMIT 1;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_my_claim",
+    "arguments": "claim text",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_my_claim(claim text)\n RETURNS jsonb\n LANGUAGE sql\n STABLE\nAS $function$\n  SELECT COALESCE(NULLIF(current_setting('request.jwt.claims', true), '')::JSONB -> claim, 'null'::JSONB)\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_my_profile",
+    "arguments": "",
+    "return_type": "TABLE(\"Nombre\" text, avatar_url text, \"Rol\" text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_my_profile()\n RETURNS TABLE(\"Nombre\" text, avatar_url text, \"Rol\" text)\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT\r\n    c.\"Nombre\",\r\n    c.\"avatar_url\",\r\n    c.\"Rol\"\r\n  FROM\r\n    public.\"Cuentas\" c\r\n  WHERE\r\n    lower(c.\"Correo\") = lower(auth.email());\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_my_profile_data",
+    "arguments": "",
+    "return_type": "TABLE(\"Nombre\" text, \"Rol\" text, avatar_url text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_my_profile_data()\n RETURNS TABLE(\"Nombre\" text, \"Rol\" text, avatar_url text)\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT \"Nombre\", \"Rol\", \"avatar_url\"\n  FROM public.\"Cuentas\"\n  WHERE user_id = auth.uid();\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_my_role",
+    "arguments": "",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_my_role()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\n  SELECT get_my_claim('user_role')::TEXT\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_peak_user_day",
+    "arguments": "",
+    "return_type": "TABLE(login_day date, user_count bigint)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_peak_user_day()\n RETURNS TABLE(login_day date, user_count bigint)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT\n        DATE(login_at) AS login_day,\n        COUNT(DISTINCT user_id) AS user_count\n    FROM\n        public.user_logins\n    WHERE\n        login_at >= NOW() - INTERVAL '30 days'\n    GROUP BY\n        login_day\n    ORDER BY\n        user_count DESC\n    LIMIT 1;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_schema_tables",
+    "arguments": "",
+    "return_type": "TABLE(table_schema text, table_name text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_schema_tables()\n RETURNS TABLE(table_schema text, table_name text)\n LANGUAGE sql\n STABLE\nAS $function$\n  SELECT t.table_schema::text, t.table_name::text\n  FROM information_schema.tables t\n  WHERE t.table_schema IN ('public', 'be_exponential')\n    AND t.table_type = 'BASE TABLE'\n  ORDER BY t.table_schema, t.table_name;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_table_columns",
+    "arguments": "p_schema_name text, p_table_name text",
+    "return_type": "TABLE(column_name text, data_type text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_table_columns(p_schema_name text, p_table_name text)\n RETURNS TABLE(column_name text, data_type text)\n LANGUAGE sql\n STABLE\nAS $function$\n  SELECT c.column_name::text, c.data_type::text\n  FROM information_schema.columns c\n  WHERE c.table_schema = p_schema_name\n    AND c.table_name = p_table_name\n  ORDER BY c.ordinal_position;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_user_role",
+    "arguments": "p_user_id uuid",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_user_role(p_user_id uuid)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  user_role TEXT;\nBEGIN\n  SELECT \"Rol\" INTO user_role\n  FROM public.\"Cuentas\"\n  WHERE user_id = p_user_id;\n  RETURN user_role;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_user_tables",
+    "arguments": "",
+    "return_type": "TABLE(table_name text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_user_tables()\n RETURNS TABLE(table_name text)\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT\r\n    t.table_name::text\r\n  FROM\r\n    information_schema.tables t\r\n  WHERE\r\n    -- Apunta exclusivamente al esquema 'be_exponential'\r\n    t.table_schema = 'be_exponential'\r\n    AND t.table_type = 'BASE TABLE'\r\n    -- Excluye las tablas de la propia aplicación para evitar confusión\r\n    AND t.table_name NOT IN ('reports', 'report_widgets', 'dashboards');\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "handle_leave_request_update",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_leave_request_update()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    tipo_solicitud TEXT;\r\n    mensaje TEXT;\r\nBEGIN\r\n    -- Solo se ejecuta si el estado ha cambiado\r\n    IF OLD.estado <> NEW.estado THEN\r\n        IF TG_TABLE_NAME = 'vacaciones_solicitudes' THEN\r\n            tipo_solicitud := 'vacaciones';\r\n        ELSE\r\n            tipo_solicitud := 'permiso';\r\n        END IF;\r\n\r\n        IF NEW.estado = 'aprobado' THEN\r\n            mensaje := '¡Buenas noticias! Tu solicitud de ' || tipo_solicitud || ' ha sido aprobada.';\r\n        ELSE\r\n            -- Para cualquier otro estado (ej. rechazado, cancelado)\r\n            mensaje := 'Tu solicitud de ' || tipo_solicitud || ' ha sido actualizada.';\r\n        END IF;\r\n\r\n        -- Inserta una notificación para el empleado que hizo la solicitud\r\n        INSERT INTO public.notifications (user_id, message, type, link)\r\n        VALUES (\r\n            NEW.solicitante_user_id,\r\n            mensaje,\r\n            'Solicitud',\r\n            '/recursos-humanos' -- Enlace a la sección de RRHH del empleado\r\n        );\r\n    END IF;\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "handle_new_announcement",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_new_announcement()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    INSERT INTO public.notifications (user_id, message, type, link)\n    SELECT user_id, 'Se ha publicado un nuevo anuncio: \"' || NEW.title || '\"', 'Anuncio', '/dashboard'\n    FROM public.\"Cuentas\";\n    RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "handle_new_leave_request",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_new_leave_request()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    solicitante_nombre TEXT;\r\n    tipo_solicitud TEXT;\r\nBEGIN\r\n    -- Obtenemos el nombre del solicitante\r\n    SELECT \"Nombre\" INTO solicitante_nombre FROM public.\"Cuentas\" WHERE user_id = NEW.solicitante_user_id;\r\n\r\n    -- Determinamos el tipo de solicitud basado en la tabla\r\n    IF TG_TABLE_NAME = 'vacaciones_solicitudes' THEN\r\n        tipo_solicitud := 'vacaciones';\r\n    ELSE\r\n        tipo_solicitud := 'permiso';\r\n    END IF;\r\n\r\n    -- Inserta una notificación para CADA aprobador de este empleado\r\n    INSERT INTO public.notifications (user_id, message, type, link)\r\n    SELECT\r\n        aprobador_user_id,\r\n        solicitante_nombre || ' ha enviado una nueva solicitud de ' || tipo_solicitud,\r\n        'Solicitud',\r\n        '/recursos-humanos?tab=mi-equipo' -- Enlace a la sección de gestión de equipo\r\n    FROM public.vacaciones_aprobadores\r\n    WHERE empleado_user_id = NEW.solicitante_user_id;\r\n\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "handle_updated_at",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- Set the updated_at column of the new row to the current time.\n    NEW.updated_at = now();\n    RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "insert_widget",
+    "arguments": "p_dashboard_id uuid, p_widget_type_text text, p_config jsonb, p_layout jsonb",
+    "return_type": "SETOF be_exponential.report_widgets",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.insert_widget(p_dashboard_id uuid, p_widget_type_text text, p_config jsonb, p_layout jsonb)\n RETURNS SETOF be_exponential.report_widgets\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- La columna correcta es \"widget_type\", no \"type\". El input de texto se castea al tipo ENUM.\n    RETURN QUERY\n    INSERT INTO be_exponential.report_widgets(dashboard_id, widget_type, config, layout)\n    VALUES (\n        p_dashboard_id,\n        p_widget_type_text::be_exponential.widget_type, \n        p_config,\n        p_layout\n    )\n    RETURNING *;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "is_team_leader",
+    "arguments": "p_user_id uuid",
+    "return_type": "boolean",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.is_team_leader(p_user_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  RETURN EXISTS (\r\n    SELECT 1\r\n    FROM public.vacaciones_aprobadores\r\n    WHERE empleado_user_id = p_user_id AND aprobador_user_id = auth.uid()\r\n  );\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "recalcular_dias_tomados",
+    "arguments": "p_user_id uuid",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.recalcular_dias_tomados(p_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  total_dias_aprobados INTEGER;\nBEGIN\n  -- Calcular la suma de días para todas las solicitudes aprobadas del usuario\n  SELECT COALESCE(SUM(dias_solicitados), 0)\n  INTO total_dias_aprobados\n  FROM public.vacaciones_solicitudes\n  WHERE solicitante_user_id = p_user_id AND estado = 'Aprobada';\n\n  -- Actualizar la tabla de saldos con el valor correcto\n  UPDATE public.vacaciones_saldos\n  SET dias_tomados = total_dias_aprobados\n  WHERE user_id = p_user_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "renovar_vacaciones_anualmente",
+    "arguments": "",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.renovar_vacaciones_anualmente()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  empleado RECORD;\nBEGIN\n  FOR empleado IN\n    SELECT user_id, fecha_inicio_labores, dias_disponibles_anual\n    FROM public.vacaciones_saldos\n    WHERE fecha_inicio_labores IS NOT NULL\n  LOOP\n    IF to_char(CURRENT_DATE, 'MM-DD') = to_char(empleado.fecha_inicio_labores, 'MM-DD') THEN\n      IF CURRENT_DATE > empleado.fecha_inicio_labores THEN\n        RAISE NOTICE 'Aniversario detectado para el usuario %.', empleado.user_id;\n        UPDATE public.vacaciones_saldos\n        SET \n          dias_tomados = 0,\n          dias_disponibles_anual = dias_disponibles_anual + 2\n        WHERE user_id = empleado.user_id;\n        RAISE NOTICE 'Saldo de vacaciones renovado para el usuario %.', empleado.user_id;\n      END IF;\n    END IF;\n  END LOOP;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "set_current_timestamp_updated_at",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.set_current_timestamp_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  _new_record RECORD;\nBEGIN\n  _new_record := NEW;\n  _new_record.\"updated_at\" = NOW();\n  RETURN _new_record;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "sync_last_sign_in",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.sync_last_sign_in()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n  UPDATE public.\"Cuentas\"\n  SET ultimo_acceso = NEW.last_sign_in_at\n  WHERE user_id = NEW.id;\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "sync_user_metadata_from_cuentas",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.sync_user_metadata_from_cuentas()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n  UPDATE auth.users\n  SET\n    raw_user_meta_data = jsonb_set(\n        COALESCE(raw_user_meta_data, '{}'::jsonb),\n        '{Rol}', to_jsonb(NEW.\"Rol\")\n    ) || jsonb_build_object(\n        'Nombre', NEW.\"Nombre\",\n        'avatar_url', NEW.avatar_url\n    )\n  WHERE\n    id = NEW.user_id;\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "trigger_recalcular_saldo_despues_de_cambio",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.trigger_recalcular_saldo_despues_de_cambio()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  -- Si el estado de una solicitud ha cambiado (Aprobada, Rechazada, Cancelada)\n  IF OLD.estado IS DISTINCT FROM NEW.estado THEN\n    -- Recalcular para el solicitante\n    PERFORM public.recalcular_dias_tomados(NEW.solicitante_user_id);\n    \n    -- Si el estado anterior era Aprobada, también se recalcula por si acaso\n    IF OLD.estado = 'Aprobada' THEN\n        PERFORM public.recalcular_dias_tomados(OLD.solicitante_user_id);\n    END IF;\n  END IF;\n  \n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "update_updated_at_column",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\nNEW.updated_at = now();\nRETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "update_widget",
+    "arguments": "p_widget_id uuid, p_config jsonb, p_layout jsonb",
+    "return_type": "SETOF be_exponential.report_widgets",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.update_widget(p_widget_id uuid, p_config jsonb, p_layout jsonb)\n RETURNS SETOF be_exponential.report_widgets\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    UPDATE be_exponential.report_widgets\n    SET\n        config = p_config,\n        layout = p_layout,\n        updated_at = now()\n    WHERE id = p_widget_id\n    RETURNING *;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "update_widget_config",
+    "arguments": "p_widget_id uuid, p_widget_type text, p_config jsonb",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.update_widget_config(p_widget_id uuid, p_widget_type text, p_config jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  UPDATE be_exponential.report_widgets\n  SET\n    widget_type = p_widget_type::be_exponential.widget_type, -- <-- CORRECCIÓN: Cassteo a ENUM\n    config = p_config\n  WHERE id = p_widget_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "update_widget_layout",
+    "arguments": "p_widget_id uuid, p_layout jsonb",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.update_widget_layout(p_widget_id uuid, p_layout jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  UPDATE be_exponential.report_widgets\n  SET layout = p_layout\n  WHERE id = p_widget_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "validate_sql_expression",
+    "arguments": "p_expression text, p_tables text[]",
+    "return_type": "json",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.validate_sql_expression(p_expression text, p_tables text[])\n RETURNS json\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    subquery TEXT;\r\n    final_query TEXT;\r\n    table_identifier TEXT;\r\n    schema_part TEXT;\r\n    table_part TEXT;\r\n    select_clauses TEXT[];\r\nBEGIN\r\n    -- Construir una subconsulta UNION ALL para simular la estructura de datos\r\n    -- a partir de la cual se seleccionará la expresión.\r\n    FOREACH table_identifier IN ARRAY p_tables\r\n    LOOP\r\n        schema_part := SPLIT_PART(table_identifier, '.', 1);\r\n        table_part := SPLIT_PART(table_identifier, '.', 2);\r\n        select_clauses := array_append(select_clauses, 'SELECT * FROM \"' || schema_part || '\".\"' || table_part || '\"');\r\n    END LOOP;\r\n    \r\n    subquery := array_to_string(select_clauses, ' UNION ALL ');\r\n\r\n    -- Construir la consulta final que intentará ejecutar la expresión sobre un conjunto vacío.\r\n    final_query := 'SELECT ' || p_expression || ' FROM (' || subquery || ') as data LIMIT 0';\r\n\r\n    -- Intentar ejecutar la consulta. Si falla, el bloque de excepción capturará el error.\r\n    EXECUTE final_query;\r\n\r\n    -- Si la ejecución llega hasta aquí, la sintaxis es válida.\r\n    RETURN json_build_object('valid', true, 'error', null);\r\n\r\nEXCEPTION\r\n    -- Si ocurre un error durante la ejecución (ej: error de sintaxis), capturarlo.\r\n    WHEN others THEN\r\n        -- Devolver un JSON indicando que la validación falló, junto con el mensaje de error.\r\n        RETURN json_build_object('valid', false, 'error', SQLERRM);\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "apply_rls",
+    "arguments": "wal jsonb, max_record_bytes integer DEFAULT (1024 * 1024)",
+    "return_type": "SETOF realtime.wal_rls",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer DEFAULT (1024 * 1024))\n RETURNS SETOF realtime.wal_rls\n LANGUAGE plpgsql\nAS $function$\ndeclare\n-- Regclass of the table e.g. public.notes\nentity_ regclass = (quote_ident(wal ->> 'schema') || '.' || quote_ident(wal ->> 'table'))::regclass;\n\n-- I, U, D, T: insert, update ...\naction realtime.action = (\n    case wal ->> 'action'\n        when 'I' then 'INSERT'\n        when 'U' then 'UPDATE'\n        when 'D' then 'DELETE'\n        else 'ERROR'\n    end\n);\n\n-- Is row level security enabled for the table\nis_rls_enabled bool = relrowsecurity from pg_class where oid = entity_;\n\nsubscriptions realtime.subscription[] = array_agg(subs)\n    from\n        realtime.subscription subs\n    where\n        subs.entity = entity_;\n\n-- Subscription vars\nroles regrole[] = array_agg(distinct us.claims_role::text)\n    from\n        unnest(subscriptions) us;\n\nworking_role regrole;\nclaimed_role regrole;\nclaims jsonb;\n\nsubscription_id uuid;\nsubscription_has_access bool;\nvisible_to_subscription_ids uuid[] = '{}';\n\n-- structured info for wal's columns\ncolumns realtime.wal_column[];\n-- previous identity values for update/delete\nold_columns realtime.wal_column[];\n\nerror_record_exceeds_max_size boolean = octet_length(wal::text) > max_record_bytes;\n\n-- Primary jsonb output for record\noutput jsonb;\n\nbegin\nperform set_config('role', null, true);\n\ncolumns =\n    array_agg(\n        (\n            x->>'name',\n            x->>'type',\n            x->>'typeoid',\n            realtime.cast(\n                (x->'value') #>> '{}',\n                coalesce(\n                    (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4\n                    (x->>'type')::regtype\n                )\n            ),\n            (pks ->> 'name') is not null,\n            true\n        )::realtime.wal_column\n    )\n    from\n        jsonb_array_elements(wal -> 'columns') x\n        left join jsonb_array_elements(wal -> 'pk') pks\n            on (x ->> 'name') = (pks ->> 'name');\n\nold_columns =\n    array_agg(\n        (\n            x->>'name',\n            x->>'type',\n            x->>'typeoid',\n            realtime.cast(\n                (x->'value') #>> '{}',\n                coalesce(\n                    (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4\n                    (x->>'type')::regtype\n                )\n            ),\n            (pks ->> 'name') is not null,\n            true\n        )::realtime.wal_column\n    )\n    from\n        jsonb_array_elements(wal -> 'identity') x\n        left join jsonb_array_elements(wal -> 'pk') pks\n            on (x ->> 'name') = (pks ->> 'name');\n\nfor working_role in select * from unnest(roles) loop\n\n    -- Update `is_selectable` for columns and old_columns\n    columns =\n        array_agg(\n            (\n                c.name,\n                c.type_name,\n                c.type_oid,\n                c.value,\n                c.is_pkey,\n                pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')\n            )::realtime.wal_column\n        )\n        from\n            unnest(columns) c;\n\n    old_columns =\n            array_agg(\n                (\n                    c.name,\n                    c.type_name,\n                    c.type_oid,\n                    c.value,\n                    c.is_pkey,\n                    pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')\n                )::realtime.wal_column\n            )\n            from\n                unnest(old_columns) c;\n\n    if action <> 'DELETE' and count(1) = 0 from unnest(columns) c where c.is_pkey then\n        return next (\n            jsonb_build_object(\n                'schema', wal ->> 'schema',\n                'table', wal ->> 'table',\n                'type', action\n            ),\n            is_rls_enabled,\n            -- subscriptions is already filtered by entity\n            (select array_agg(s.subscription_id) from unnest(subscriptions) as s where claims_role = working_role),\n            array['Error 400: Bad Request, no primary key']\n        )::realtime.wal_rls;\n\n    -- The claims role does not have SELECT permission to the primary key of entity\n    elsif action <> 'DELETE' and sum(c.is_selectable::int) <> count(1) from unnest(columns) c where c.is_pkey then\n        return next (\n            jsonb_build_object(\n                'schema', wal ->> 'schema',\n                'table', wal ->> 'table',\n                'type', action\n            ),\n            is_rls_enabled,\n            (select array_agg(s.subscription_id) from unnest(subscriptions) as s where claims_role = working_role),\n            array['Error 401: Unauthorized']\n        )::realtime.wal_rls;\n\n    else\n        output = jsonb_build_object(\n            'schema', wal ->> 'schema',\n            'table', wal ->> 'table',\n            'type', action,\n            'commit_timestamp', to_char(\n                ((wal ->> 'timestamp')::timestamptz at time zone 'utc'),\n                'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'\n            ),\n            'columns', (\n                select\n                    jsonb_agg(\n                        jsonb_build_object(\n                            'name', pa.attname,\n                            'type', pt.typname\n                        )\n                        order by pa.attnum asc\n                    )\n                from\n                    pg_attribute pa\n                    join pg_type pt\n                        on pa.atttypid = pt.oid\n                where\n                    attrelid = entity_\n                    and attnum > 0\n                    and pg_catalog.has_column_privilege(working_role, entity_, pa.attname, 'SELECT')\n            )\n        )\n        -- Add \"record\" key for insert and update\n        || case\n            when action in ('INSERT', 'UPDATE') then\n                jsonb_build_object(\n                    'record',\n                    (\n                        select\n                            jsonb_object_agg(\n                                -- if unchanged toast, get column name and value from old record\n                                coalesce((c).name, (oc).name),\n                                case\n                                    when (c).name is null then (oc).value\n                                    else (c).value\n                                end\n                            )\n                        from\n                            unnest(columns) c\n                            full outer join unnest(old_columns) oc\n                                on (c).name = (oc).name\n                        where\n                            coalesce((c).is_selectable, (oc).is_selectable)\n                            and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))\n                    )\n                )\n            else '{}'::jsonb\n        end\n        -- Add \"old_record\" key for update and delete\n        || case\n            when action = 'UPDATE' then\n                jsonb_build_object(\n                        'old_record',\n                        (\n                            select jsonb_object_agg((c).name, (c).value)\n                            from unnest(old_columns) c\n                            where\n                                (c).is_selectable\n                                and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))\n                        )\n                    )\n            when action = 'DELETE' then\n                jsonb_build_object(\n                    'old_record',\n                    (\n                        select jsonb_object_agg((c).name, (c).value)\n                        from unnest(old_columns) c\n                        where\n                            (c).is_selectable\n                            and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))\n                            and ( not is_rls_enabled or (c).is_pkey ) -- if RLS enabled, we can't secure deletes so filter to pkey\n                    )\n                )\n            else '{}'::jsonb\n        end;\n\n        -- Create the prepared statement\n        if is_rls_enabled and action <> 'DELETE' then\n            if (select 1 from pg_prepared_statements where name = 'walrus_rls_stmt' limit 1) > 0 then\n                deallocate walrus_rls_stmt;\n            end if;\n            execute realtime.build_prepared_statement_sql('walrus_rls_stmt', entity_, columns);\n        end if;\n\n        visible_to_subscription_ids = '{}';\n\n        for subscription_id, claims in (\n                select\n                    subs.subscription_id,\n                    subs.claims\n                from\n                    unnest(subscriptions) subs\n                where\n                    subs.entity = entity_\n                    and subs.claims_role = working_role\n                    and (\n                        realtime.is_visible_through_filters(columns, subs.filters)\n                        or (\n                          action = 'DELETE'\n                          and realtime.is_visible_through_filters(old_columns, subs.filters)\n                        )\n                    )\n        ) loop\n\n            if not is_rls_enabled or action = 'DELETE' then\n                visible_to_subscription_ids = visible_to_subscription_ids || subscription_id;\n            else\n                -- Check if RLS allows the role to see the record\n                perform\n                    -- Trim leading and trailing quotes from working_role because set_config\n                    -- doesn't recognize the role as valid if they are included\n                    set_config('role', trim(both '\"' from working_role::text), true),\n                    set_config('request.jwt.claims', claims::text, true);\n\n                execute 'execute walrus_rls_stmt' into subscription_has_access;\n\n                if subscription_has_access then\n                    visible_to_subscription_ids = visible_to_subscription_ids || subscription_id;\n                end if;\n            end if;\n        end loop;\n\n        perform set_config('role', null, true);\n\n        return next (\n            output,\n            is_rls_enabled,\n            visible_to_subscription_ids,\n            case\n                when error_record_exceeds_max_size then array['Error 413: Payload Too Large']\n                else '{}'\n            end\n        )::realtime.wal_rls;\n\n    end if;\nend loop;\n\nperform set_config('role', null, true);\nend;\n$function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "broadcast_changes",
+    "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    -- Declare a variable to hold the JSONB representation of the row\n    row_data jsonb := '{}'::jsonb;\nBEGIN\n    IF level = 'STATEMENT' THEN\n        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';\n    END IF;\n    -- Check the operation type and handle accordingly\n    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN\n        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);\n        PERFORM realtime.send (row_data, event_name, topic_name);\n    ELSE\n        RAISE EXCEPTION 'Unexpected operation type: %', operation;\n    END IF;\nEXCEPTION\n    WHEN OTHERS THEN\n        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;\nEND;\n\n$function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "build_prepared_statement_sql",
+    "arguments": "prepared_statement_name text, entity regclass, columns realtime.wal_column[]",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[])\n RETURNS text\n LANGUAGE sql\nAS $function$\n      /*\n      Builds a sql string that, if executed, creates a prepared statement to\n      tests retrive a row from *entity* by its primary key columns.\n      Example\n          select realtime.build_prepared_statement_sql('public.notes', '{\"id\"}'::text[], '{\"bigint\"}'::text[])\n      */\n          select\n      'prepare ' || prepared_statement_name || ' as\n          select\n              exists(\n                  select\n                      1\n                  from\n                      ' || entity || '\n                  where\n                      ' || string_agg(quote_ident(pkc.name) || '=' || quote_nullable(pkc.value #>> '{}') , ' and ') || '\n              )'\n          from\n              unnest(columns) pkc\n          where\n              pkc.is_pkey\n          group by\n              entity\n      $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "cast",
+    "arguments": "val text, type_ regtype",
+    "return_type": "jsonb",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.\"cast\"(val text, type_ regtype)\n RETURNS jsonb\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\n    declare\n      res jsonb;\n    begin\n      execute format('select to_jsonb(%L::'|| type_::text || ')', val)  into res;\n      return res;\n    end\n    $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "check_equality_op",
+    "arguments": "op realtime.equality_op, type_ regtype, val_1 text, val_2 text",
+    "return_type": "boolean",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\n      /*\n      Casts *val_1* and *val_2* as type *type_* and check the *op* condition for truthiness\n      */\n      declare\n          op_symbol text = (\n              case\n                  when op = 'eq' then '='\n                  when op = 'neq' then '!='\n                  when op = 'lt' then '<'\n                  when op = 'lte' then '<='\n                  when op = 'gt' then '>'\n                  when op = 'gte' then '>='\n                  when op = 'in' then '= any'\n                  else 'UNKNOWN OP'\n              end\n          );\n          res boolean;\n      begin\n          execute format(\n              'select %L::'|| type_::text || ' ' || op_symbol\n              || ' ( %L::'\n              || (\n                  case\n                      when op = 'in' then type_::text || '[]'\n                      else type_::text end\n              )\n              || ')', val_1, val_2) into res;\n          return res;\n      end;\n      $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "is_visible_through_filters",
+    "arguments": "columns realtime.wal_column[], filters realtime.user_defined_filter[]",
+    "return_type": "boolean",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[])\n RETURNS boolean\n LANGUAGE sql\n IMMUTABLE\nAS $function$\n    /*\n    Should the record be visible (true) or filtered out (false) after *filters* are applied\n    */\n        select\n            -- Default to allowed when no filters present\n            $2 is null -- no filters. this should not happen because subscriptions has a default\n            or array_length($2, 1) is null -- array length of an empty array is null\n            or bool_and(\n                coalesce(\n                    realtime.check_equality_op(\n                        op:=f.op,\n                        type_:=coalesce(\n                            col.type_oid::regtype, -- null when wal2json version <= 2.4\n                            col.type_name::regtype\n                        ),\n                        -- cast jsonb to text\n                        val_1:=col.value #>> '{}',\n                        val_2:=f.value\n                    ),\n                    false -- if null, filter does not match\n                )\n            )\n        from\n            unnest(filters) f\n            join unnest(columns) col\n                on f.column_name = col.name;\n    $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "list_changes",
+    "arguments": "publication name, slot_name name, max_changes integer, max_record_bytes integer",
+    "return_type": "SETOF realtime.wal_rls",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer)\n RETURNS SETOF realtime.wal_rls\n LANGUAGE sql\n SET log_min_messages TO 'fatal'\nAS $function$\n      with pub as (\n        select\n          concat_ws(\n            ',',\n            case when bool_or(pubinsert) then 'insert' else null end,\n            case when bool_or(pubupdate) then 'update' else null end,\n            case when bool_or(pubdelete) then 'delete' else null end\n          ) as w2j_actions,\n          coalesce(\n            string_agg(\n              realtime.quote_wal2json(format('%I.%I', schemaname, tablename)::regclass),\n              ','\n            ) filter (where ppt.tablename is not null and ppt.tablename not like '% %'),\n            ''\n          ) w2j_add_tables\n        from\n          pg_publication pp\n          left join pg_publication_tables ppt\n            on pp.pubname = ppt.pubname\n        where\n          pp.pubname = publication\n        group by\n          pp.pubname\n        limit 1\n      ),\n      w2j as (\n        select\n          x.*, pub.w2j_add_tables\n        from\n          pub,\n          pg_logical_slot_get_changes(\n            slot_name, null, max_changes,\n            'include-pk', 'true',\n            'include-transaction', 'false',\n            'include-timestamp', 'true',\n            'include-type-oids', 'true',\n            'format-version', '2',\n            'actions', pub.w2j_actions,\n            'add-tables', pub.w2j_add_tables\n          ) x\n      )\n      select\n        xyz.wal,\n        xyz.is_rls_enabled,\n        xyz.subscription_ids,\n        xyz.errors\n      from\n        w2j,\n        realtime.apply_rls(\n          wal := w2j.data::jsonb,\n          max_record_bytes := max_record_bytes\n        ) xyz(wal, is_rls_enabled, subscription_ids, errors)\n      where\n        w2j.w2j_add_tables <> ''\n        and xyz.subscription_ids[1] is not null\n    $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "quote_wal2json",
+    "arguments": "entity regclass",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.quote_wal2json(entity regclass)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE STRICT\nAS $function$\n      select\n        (\n          select string_agg('' || ch,'')\n          from unnest(string_to_array(nsp.nspname::text, null)) with ordinality x(ch, idx)\n          where\n            not (x.idx = 1 and x.ch = '\"')\n            and not (\n              x.idx = array_length(string_to_array(nsp.nspname::text, null), 1)\n              and x.ch = '\"'\n            )\n        )\n        || '.'\n        || (\n          select string_agg('' || ch,'')\n          from unnest(string_to_array(pc.relname::text, null)) with ordinality x(ch, idx)\n          where\n            not (x.idx = 1 and x.ch = '\"')\n            and not (\n              x.idx = array_length(string_to_array(nsp.nspname::text, null), 1)\n              and x.ch = '\"'\n            )\n          )\n      from\n        pg_class pc\n        join pg_namespace nsp\n          on pc.relnamespace = nsp.oid\n      where\n        pc.oid = entity\n    $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "send",
+    "arguments": "payload jsonb, event text, topic text, private boolean DEFAULT true",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  BEGIN\n    -- Set the topic configuration\n    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);\n\n    -- Attempt to insert the message\n    INSERT INTO realtime.messages (payload, event, topic, private, extension)\n    VALUES (payload, event, topic, private, 'broadcast');\n  EXCEPTION\n    WHEN OTHERS THEN\n      -- Capture and notify the error\n      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;\n  END;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "subscription_check_filters",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.subscription_check_filters()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n    /*\n    Validates that the user defined filters for a subscription:\n    - refer to valid columns that the claimed role may access\n    - values are coercable to the correct column type\n    */\n    declare\n        col_names text[] = coalesce(\n                array_agg(c.column_name order by c.ordinal_position),\n                '{}'::text[]\n            )\n            from\n                information_schema.columns c\n            where\n                format('%I.%I', c.table_schema, c.table_name)::regclass = new.entity\n                and pg_catalog.has_column_privilege(\n                    (new.claims ->> 'role'),\n                    format('%I.%I', c.table_schema, c.table_name)::regclass,\n                    c.column_name,\n                    'SELECT'\n                );\n        filter realtime.user_defined_filter;\n        col_type regtype;\n\n        in_val jsonb;\n    begin\n        for filter in select * from unnest(new.filters) loop\n            -- Filtered column is valid\n            if not filter.column_name = any(col_names) then\n                raise exception 'invalid column for filter %', filter.column_name;\n            end if;\n\n            -- Type is sanitized and safe for string interpolation\n            col_type = (\n                select atttypid::regtype\n                from pg_catalog.pg_attribute\n                where attrelid = new.entity\n                      and attname = filter.column_name\n            );\n            if col_type is null then\n                raise exception 'failed to lookup type for column %', filter.column_name;\n            end if;\n\n            -- Set maximum number of entries for in filter\n            if filter.op = 'in'::realtime.equality_op then\n                in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);\n                if coalesce(jsonb_array_length(in_val), 0) > 100 then\n                    raise exception 'too many values for `in` filter. Maximum 100';\n                end if;\n            else\n                -- raises an exception if value is not coercable to type\n                perform realtime.cast(filter.value, col_type);\n            end if;\n\n        end loop;\n\n        -- Apply consistent order to filters so the unique constraint on\n        -- (subscription_id, entity, filters) can't be tricked by a different filter order\n        new.filters = coalesce(\n            array_agg(f order by f.column_name, f.op, f.value),\n            '{}'\n        ) from unnest(new.filters) f;\n\n        return new;\n    end;\n    $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "to_regrole",
+    "arguments": "role_name text",
+    "return_type": "regrole",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.to_regrole(role_name text)\n RETURNS regrole\n LANGUAGE sql\n IMMUTABLE\nAS $function$ select role_name::regrole $function$\n"
+  },
+  {
+    "schema": "realtime",
+    "function_name": "topic",
+    "arguments": "",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION realtime.topic()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\nselect nullif(current_setting('realtime.topic', true), '')::text;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "add_prefixes",
+    "arguments": "_bucket_id text, _name text",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.add_prefixes(_bucket_id text, _name text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n    prefixes text[];\nBEGIN\n    prefixes := \"storage\".\"get_prefixes\"(\"_name\");\n\n    IF array_length(prefixes, 1) > 0 THEN\n        INSERT INTO storage.prefixes (name, bucket_id)\n        SELECT UNNEST(prefixes) as name, \"_bucket_id\" ON CONFLICT DO NOTHING;\n    END IF;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "can_insert_object",
+    "arguments": "bucketid text, name text, owner uuid, metadata jsonb",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  INSERT INTO \"storage\".\"objects\" (\"bucket_id\", \"name\", \"owner\", \"metadata\") VALUES (bucketid, name, owner, metadata);\n  -- hack to rollback the successful insert\n  RAISE sqlstate 'PT200' using\n  message = 'ROLLBACK',\n  detail = 'rollback successful insert';\nEND\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "delete_prefix",
+    "arguments": "_bucket_id text, _name text",
+    "return_type": "boolean",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.delete_prefix(_bucket_id text, _name text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    -- Check if we can delete the prefix\n    IF EXISTS(\n        SELECT FROM \"storage\".\"prefixes\"\n        WHERE \"prefixes\".\"bucket_id\" = \"_bucket_id\"\n          AND level = \"storage\".\"get_level\"(\"_name\") + 1\n          AND \"prefixes\".\"name\" COLLATE \"C\" LIKE \"_name\" || '/%'\n        LIMIT 1\n    )\n    OR EXISTS(\n        SELECT FROM \"storage\".\"objects\"\n        WHERE \"objects\".\"bucket_id\" = \"_bucket_id\"\n          AND \"storage\".\"get_level\"(\"objects\".\"name\") = \"storage\".\"get_level\"(\"_name\") + 1\n          AND \"objects\".\"name\" COLLATE \"C\" LIKE \"_name\" || '/%'\n        LIMIT 1\n    ) THEN\n    -- There are sub-objects, skip deletion\n    RETURN false;\n    ELSE\n        DELETE FROM \"storage\".\"prefixes\"\n        WHERE \"prefixes\".\"bucket_id\" = \"_bucket_id\"\n          AND level = \"storage\".\"get_level\"(\"_name\")\n          AND \"prefixes\".\"name\" = \"_name\";\n        RETURN true;\n    END IF;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "delete_prefix_hierarchy_trigger",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.delete_prefix_hierarchy_trigger()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    prefix text;\nBEGIN\n    prefix := \"storage\".\"get_prefix\"(OLD.\"name\");\n\n    IF coalesce(prefix, '') != '' THEN\n        PERFORM \"storage\".\"delete_prefix\"(OLD.\"bucket_id\", prefix);\n    END IF;\n\n    RETURN OLD;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "enforce_bucket_name_length",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.enforce_bucket_name_length()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nbegin\n    if length(new.name) > 100 then\n        raise exception 'bucket name \"%\" is too long (% characters). Max is 100.', new.name, length(new.name);\n    end if;\n    return new;\nend;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "extension",
+    "arguments": "name text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.extension(name text)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\nDECLARE\n    _parts text[];\n    _filename text;\nBEGIN\n    SELECT string_to_array(name, '/') INTO _parts;\n    SELECT _parts[array_length(_parts,1)] INTO _filename;\n    RETURN reverse(split_part(reverse(_filename), '.', 1));\nEND\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "filename",
+    "arguments": "name text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.filename(name text)\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n_parts text[];\nBEGIN\n\tselect string_to_array(name, '/') into _parts;\n\treturn _parts[array_length(_parts,1)];\nEND\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "foldername",
+    "arguments": "name text",
+    "return_type": "text[]",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.foldername(name text)\n RETURNS text[]\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\nDECLARE\n    _parts text[];\nBEGIN\n    -- Split on \"/\" to get path segments\n    SELECT string_to_array(name, '/') INTO _parts;\n    -- Return everything except the last segment\n    RETURN _parts[1 : array_length(_parts,1) - 1];\nEND\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "get_level",
+    "arguments": "name text",
+    "return_type": "integer",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.get_level(name text)\n RETURNS integer\n LANGUAGE sql\n IMMUTABLE STRICT\nAS $function$\nSELECT array_length(string_to_array(\"name\", '/'), 1);\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "get_prefix",
+    "arguments": "name text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.get_prefix(name text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE STRICT\nAS $function$\nSELECT\n    CASE WHEN strpos(\"name\", '/') > 0 THEN\n             regexp_replace(\"name\", '[\\/]{1}[^\\/]+\\/?$', '')\n         ELSE\n             ''\n        END;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "get_prefixes",
+    "arguments": "name text",
+    "return_type": "text[]",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.get_prefixes(name text)\n RETURNS text[]\n LANGUAGE plpgsql\n IMMUTABLE STRICT\nAS $function$\nDECLARE\n    parts text[];\n    prefixes text[];\n    prefix text;\nBEGIN\n    -- Split the name into parts by '/'\n    parts := string_to_array(\"name\", '/');\n    prefixes := '{}';\n\n    -- Construct the prefixes, stopping one level below the last part\n    FOR i IN 1..array_length(parts, 1) - 1 LOOP\n            prefix := array_to_string(parts[1:i], '/');\n            prefixes := array_append(prefixes, prefix);\n    END LOOP;\n\n    RETURN prefixes;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "get_size_by_bucket",
+    "arguments": "",
+    "return_type": "TABLE(size bigint, bucket_id text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.get_size_by_bucket()\n RETURNS TABLE(size bigint, bucket_id text)\n LANGUAGE plpgsql\n STABLE\nAS $function$\nBEGIN\n    return query\n        select sum((metadata->>'size')::bigint) as size, obj.bucket_id\n        from \"storage\".objects as obj\n        group by obj.bucket_id;\nEND\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "list_multipart_uploads_with_delimiter",
+    "arguments": "bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, next_key_token text DEFAULT ''::text, next_upload_token text DEFAULT ''::text",
+    "return_type": "TABLE(key text, id text, created_at timestamp with time zone)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, next_key_token text DEFAULT ''::text, next_upload_token text DEFAULT ''::text)\n RETURNS TABLE(key text, id text, created_at timestamp with time zone)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY EXECUTE\n        'SELECT DISTINCT ON(key COLLATE \"C\") * from (\n            SELECT\n                CASE\n                    WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN\n                        substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1)))\n                    ELSE\n                        key\n                END AS key, id, created_at\n            FROM\n                storage.s3_multipart_uploads\n            WHERE\n                bucket_id = $5 AND\n                key ILIKE $1 || ''%'' AND\n                CASE\n                    WHEN $4 != '''' AND $6 = '''' THEN\n                        CASE\n                            WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN\n                                substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1))) COLLATE \"C\" > $4\n                            ELSE\n                                key COLLATE \"C\" > $4\n                            END\n                    ELSE\n                        true\n                END AND\n                CASE\n                    WHEN $6 != '''' THEN\n                        id COLLATE \"C\" > $6\n                    ELSE\n                        true\n                    END\n            ORDER BY\n                key COLLATE \"C\" ASC, created_at ASC) as e order by key COLLATE \"C\" LIMIT $3'\n        USING prefix_param, delimiter_param, max_keys, next_key_token, bucket_id, next_upload_token;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "list_objects_with_delimiter",
+    "arguments": "bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, start_after text DEFAULT ''::text, next_token text DEFAULT ''::text",
+    "return_type": "TABLE(name text, id uuid, metadata jsonb, updated_at timestamp with time zone)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.list_objects_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, start_after text DEFAULT ''::text, next_token text DEFAULT ''::text)\n RETURNS TABLE(name text, id uuid, metadata jsonb, updated_at timestamp with time zone)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY EXECUTE\n        'SELECT DISTINCT ON(name COLLATE \"C\") * from (\n            SELECT\n                CASE\n                    WHEN position($2 IN substring(name from length($1) + 1)) > 0 THEN\n                        substring(name from 1 for length($1) + position($2 IN substring(name from length($1) + 1)))\n                    ELSE\n                        name\n                END AS name, id, metadata, updated_at\n            FROM\n                storage.objects\n            WHERE\n                bucket_id = $5 AND\n                name ILIKE $1 || ''%'' AND\n                CASE\n                    WHEN $6 != '''' THEN\n                    name COLLATE \"C\" > $6\n                ELSE true END\n                AND CASE\n                    WHEN $4 != '''' THEN\n                        CASE\n                            WHEN position($2 IN substring(name from length($1) + 1)) > 0 THEN\n                                substring(name from 1 for length($1) + position($2 IN substring(name from length($1) + 1))) COLLATE \"C\" > $4\n                            ELSE\n                                name COLLATE \"C\" > $4\n                            END\n                    ELSE\n                        true\n                END\n            ORDER BY\n                name COLLATE \"C\" ASC) as e order by name COLLATE \"C\" LIMIT $3'\n        USING prefix_param, delimiter_param, max_keys, next_token, bucket_id, start_after;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "objects_insert_prefix_trigger",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.objects_insert_prefix_trigger()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    PERFORM \"storage\".\"add_prefixes\"(NEW.\"bucket_id\", NEW.\"name\");\n    NEW.level := \"storage\".\"get_level\"(NEW.\"name\");\n\n    RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "objects_update_prefix_trigger",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.objects_update_prefix_trigger()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    old_prefixes TEXT[];\nBEGIN\n    -- Ensure this is an update operation and the name has changed\n    IF TG_OP = 'UPDATE' AND (NEW.\"name\" <> OLD.\"name\" OR NEW.\"bucket_id\" <> OLD.\"bucket_id\") THEN\n        -- Retrieve old prefixes\n        old_prefixes := \"storage\".\"get_prefixes\"(OLD.\"name\");\n\n        -- Remove old prefixes that are only used by this object\n        WITH all_prefixes as (\n            SELECT unnest(old_prefixes) as prefix\n        ),\n        can_delete_prefixes as (\n             SELECT prefix\n             FROM all_prefixes\n             WHERE NOT EXISTS (\n                 SELECT 1 FROM \"storage\".\"objects\"\n                 WHERE \"bucket_id\" = OLD.\"bucket_id\"\n                   AND \"name\" <> OLD.\"name\"\n                   AND \"name\" LIKE (prefix || '%')\n             )\n         )\n        DELETE FROM \"storage\".\"prefixes\" WHERE name IN (SELECT prefix FROM can_delete_prefixes);\n\n        -- Add new prefixes\n        PERFORM \"storage\".\"add_prefixes\"(NEW.\"bucket_id\", NEW.\"name\");\n    END IF;\n    -- Set the new level\n    NEW.\"level\" := \"storage\".\"get_level\"(NEW.\"name\");\n\n    RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "operation",
+    "arguments": "",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.operation()\n RETURNS text\n LANGUAGE plpgsql\n STABLE\nAS $function$\nBEGIN\n    RETURN current_setting('storage.operation', true);\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "prefixes_insert_trigger",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.prefixes_insert_trigger()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    PERFORM \"storage\".\"add_prefixes\"(NEW.\"bucket_id\", NEW.\"name\");\n    RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "search",
+    "arguments": "prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text",
+    "return_type": "TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.search(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text)\n RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)\n LANGUAGE plpgsql\nAS $function$\ndeclare\n    can_bypass_rls BOOLEAN;\nbegin\n    SELECT rolbypassrls\n    INTO can_bypass_rls\n    FROM pg_roles\n    WHERE rolname = coalesce(nullif(current_setting('role', true), 'none'), current_user);\n\n    IF can_bypass_rls THEN\n        RETURN QUERY SELECT * FROM storage.search_v1_optimised(prefix, bucketname, limits, levels, offsets, search, sortcolumn, sortorder);\n    ELSE\n        RETURN QUERY SELECT * FROM storage.search_legacy_v1(prefix, bucketname, limits, levels, offsets, search, sortcolumn, sortorder);\n    END IF;\nend;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "search_legacy_v1",
+    "arguments": "prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text",
+    "return_type": "TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.search_legacy_v1(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text)\n RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)\n LANGUAGE plpgsql\n STABLE\nAS $function$\ndeclare\n    v_order_by text;\n    v_sort_order text;\nbegin\n    case\n        when sortcolumn = 'name' then\n            v_order_by = 'name';\n        when sortcolumn = 'updated_at' then\n            v_order_by = 'updated_at';\n        when sortcolumn = 'created_at' then\n            v_order_by = 'created_at';\n        when sortcolumn = 'last_accessed_at' then\n            v_order_by = 'last_accessed_at';\n        else\n            v_order_by = 'name';\n        end case;\n\n    case\n        when sortorder = 'asc' then\n            v_sort_order = 'asc';\n        when sortorder = 'desc' then\n            v_sort_order = 'desc';\n        else\n            v_sort_order = 'asc';\n        end case;\n\n    v_order_by = v_order_by || ' ' || v_sort_order;\n\n    return query execute\n        'with folders as (\n           select path_tokens[$1] as folder\n           from storage.objects\n             where objects.name ilike $2 || $3 || ''%''\n               and bucket_id = $4\n               and array_length(objects.path_tokens, 1) <> $1\n           group by folder\n           order by folder ' || v_sort_order || '\n     )\n     (select folder as \"name\",\n            null as id,\n            null as updated_at,\n            null as created_at,\n            null as last_accessed_at,\n            null as metadata from folders)\n     union all\n     (select path_tokens[$1] as \"name\",\n            id,\n            updated_at,\n            created_at,\n            last_accessed_at,\n            metadata\n     from storage.objects\n     where objects.name ilike $2 || $3 || ''%''\n       and bucket_id = $4\n       and array_length(objects.path_tokens, 1) = $1\n     order by ' || v_order_by || ')\n     limit $5\n     offset $6' using levels, prefix, search, bucketname, limits, offsets;\nend;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "search_v1_optimised",
+    "arguments": "prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text",
+    "return_type": "TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.search_v1_optimised(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text)\n RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)\n LANGUAGE plpgsql\n STABLE\nAS $function$\ndeclare\n    v_order_by text;\n    v_sort_order text;\nbegin\n    case\n        when sortcolumn = 'name' then\n            v_order_by = 'name';\n        when sortcolumn = 'updated_at' then\n            v_order_by = 'updated_at';\n        when sortcolumn = 'created_at' then\n            v_order_by = 'created_at';\n        when sortcolumn = 'last_accessed_at' then\n            v_order_by = 'last_accessed_at';\n        else\n            v_order_by = 'name';\n        end case;\n\n    case\n        when sortorder = 'asc' then\n            v_sort_order = 'asc';\n        when sortorder = 'desc' then\n            v_sort_order = 'desc';\n        else\n            v_sort_order = 'asc';\n        end case;\n\n    v_order_by = v_order_by || ' ' || v_sort_order;\n\n    return query execute\n        'with folders as (\n           select (string_to_array(name, ''/''))[level] as name\n           from storage.prefixes\n             where lower(prefixes.name) like lower($2 || $3) || ''%''\n               and bucket_id = $4\n               and level = $1\n           order by name ' || v_sort_order || '\n     )\n     (select name,\n            null as id,\n            null as updated_at,\n            null as created_at,\n            null as last_accessed_at,\n            null as metadata from folders)\n     union all\n     (select path_tokens[level] as \"name\",\n            id,\n            updated_at,\n            created_at,\n            last_accessed_at,\n            metadata\n     from storage.objects\n     where lower(objects.name) like lower($2 || $3) || ''%''\n       and bucket_id = $4\n       and level = $1\n     order by ' || v_order_by || ')\n     limit $5\n     offset $6' using levels, prefix, search, bucketname, limits, offsets;\nend;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "search_v2",
+    "arguments": "prefix text, bucket_name text, limits integer DEFAULT 100, levels integer DEFAULT 1, start_after text DEFAULT ''::text",
+    "return_type": "TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, metadata jsonb)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer DEFAULT 100, levels integer DEFAULT 1, start_after text DEFAULT ''::text)\n RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, metadata jsonb)\n LANGUAGE plpgsql\n STABLE\nAS $function$\nBEGIN\n    RETURN query EXECUTE\n        $sql$\n        SELECT * FROM (\n            (\n                SELECT\n                    split_part(name, '/', $4) AS key,\n                    name || '/' AS name,\n                    NULL::uuid AS id,\n                    NULL::timestamptz AS updated_at,\n                    NULL::timestamptz AS created_at,\n                    NULL::jsonb AS metadata\n                FROM storage.prefixes\n                WHERE name COLLATE \"C\" LIKE $1 || '%'\n                AND bucket_id = $2\n                AND level = $4\n                AND name COLLATE \"C\" > $5\n                ORDER BY prefixes.name COLLATE \"C\" LIMIT $3\n            )\n            UNION ALL\n            (SELECT split_part(name, '/', $4) AS key,\n                name,\n                id,\n                updated_at,\n                created_at,\n                metadata\n            FROM storage.objects\n            WHERE name COLLATE \"C\" LIKE $1 || '%'\n                AND bucket_id = $2\n                AND level = $4\n                AND name COLLATE \"C\" > $5\n            ORDER BY name COLLATE \"C\" LIMIT $3)\n        ) obj\n        ORDER BY name COLLATE \"C\" LIMIT $3;\n        $sql$\n        USING prefix, bucket_name, limits, levels, start_after;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "storage",
+    "function_name": "update_updated_at_column",
+    "arguments": "",
+    "return_type": "trigger",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION storage.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    NEW.updated_at = now();\n    RETURN NEW; \nEND;\n$function$\n"
+  },
+  {
+    "schema": "vault",
+    "function_name": "_crypto_aead_det_decrypt",
+    "arguments": "message bytea, additional bytea, key_id bigint, context bytea DEFAULT '\\x7067736f6469756d'::bytea, nonce bytea DEFAULT NULL::bytea",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION vault._crypto_aead_det_decrypt(message bytea, additional bytea, key_id bigint, context bytea DEFAULT '\\x7067736f6469756d'::bytea, nonce bytea DEFAULT NULL::bytea)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE\nAS '$libdir/supabase_vault', $function$pgsodium_crypto_aead_det_decrypt_by_id$function$\n"
+  },
+  {
+    "schema": "vault",
+    "function_name": "_crypto_aead_det_encrypt",
+    "arguments": "message bytea, additional bytea, key_id bigint, context bytea DEFAULT '\\x7067736f6469756d'::bytea, nonce bytea DEFAULT NULL::bytea",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION vault._crypto_aead_det_encrypt(message bytea, additional bytea, key_id bigint, context bytea DEFAULT '\\x7067736f6469756d'::bytea, nonce bytea DEFAULT NULL::bytea)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE\nAS '$libdir/supabase_vault', $function$pgsodium_crypto_aead_det_encrypt_by_id$function$\n"
+  },
+  {
+    "schema": "vault",
+    "function_name": "_crypto_aead_det_noncegen",
+    "arguments": "",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION vault._crypto_aead_det_noncegen()\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE\nAS '$libdir/supabase_vault', $function$pgsodium_crypto_aead_det_noncegen$function$\n"
+  },
+  {
+    "schema": "vault",
+    "function_name": "create_secret",
+    "arguments": "new_secret text, new_name text DEFAULT NULL::text, new_description text DEFAULT ''::text, new_key_id uuid DEFAULT NULL::uuid",
+    "return_type": "uuid",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION vault.create_secret(new_secret text, new_name text DEFAULT NULL::text, new_description text DEFAULT ''::text, new_key_id uuid DEFAULT NULL::uuid)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nDECLARE\n  rec record;\nBEGIN\n  INSERT INTO vault.secrets (secret, name, description)\n  VALUES (\n    new_secret,\n    new_name,\n    new_description\n  )\n  RETURNING * INTO rec;\n  UPDATE vault.secrets s\n  SET secret = encode(vault._crypto_aead_det_encrypt(\n    message := convert_to(rec.secret, 'utf8'),\n    additional := convert_to(s.id::text, 'utf8'),\n    key_id := 0,\n    context := 'pgsodium'::bytea,\n    nonce := rec.nonce\n  ), 'base64')\n  WHERE id = rec.id;\n  RETURN rec.id;\nEND\n$function$\n"
+  },
+  {
+    "schema": "vault",
+    "function_name": "update_secret",
+    "arguments": "secret_id uuid, new_secret text DEFAULT NULL::text, new_name text DEFAULT NULL::text, new_description text DEFAULT NULL::text, new_key_id uuid DEFAULT NULL::uuid",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION vault.update_secret(secret_id uuid, new_secret text DEFAULT NULL::text, new_name text DEFAULT NULL::text, new_description text DEFAULT NULL::text, new_key_id uuid DEFAULT NULL::uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nDECLARE\n  decrypted_secret text := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE id = secret_id);\nBEGIN\n  UPDATE vault.secrets s\n  SET\n    secret = CASE WHEN new_secret IS NULL THEN s.secret\n                  ELSE encode(vault._crypto_aead_det_encrypt(\n                    message := convert_to(new_secret, 'utf8'),\n                    additional := convert_to(s.id::text, 'utf8'),\n                    key_id := 0,\n                    context := 'pgsodium'::bytea,\n                    nonce := s.nonce\n                  ), 'base64') END,\n    name = coalesce(new_name, s.name),\n    description = coalesce(new_description, s.description),\n    updated_at = now()\n  WHERE s.id = secret_id;\nEND\n$function$\n"
+  }
+]

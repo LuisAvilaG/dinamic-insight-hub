@@ -1,22 +1,25 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import { Pivot } from '@webdatarocks/react-webdatarocks';
 import "@webdatarocks/webdatarocks/webdatarocks.min.css";
 
-interface DataTableWidgetProps {
+interface PivotTableWidgetProps {
   widget: {
     config: {
       name?: string;
-      query: string;
+      query?: string;
+      rows?: string[];
+      columns?: string[];
+      measures?: { column: string; aggregation: string }[];
     }
   };
   isPreview?: boolean;
 }
 
-export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPreview = false }) => {
+export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPreview = false }) => {
     const [viewData, setViewData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
     useEffect(() => {
         const fetchData = async () => {
             if (!config.query) {
+                setError("La configuración del widget está incompleta.");
                 setIsLoading(false);
                 return;
             }
@@ -36,7 +40,6 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
                 setViewData(data || []);
             } catch (err: any) {
                 setError(`Error al cargar datos: ${err.message}`);
-                console.error("Error fetching table data:", err);
             } finally {
                 setIsLoading(false);
             }
@@ -57,34 +60,24 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
         dataSource: {
             data: viewData
         },
-        slice: {},
-        options: {
-            grid: {
-                type: "flat",
-                showGrandTotals: "off",
-            }
+        slice: {
+            rows: config.rows?.map(r => ({ uniqueName: r })),
+            columns: config.columns?.map(c => ({ uniqueName: c })),
+            measures: config.measures?.map(m => ({
+                uniqueName: m.column,
+                aggregation: m.aggregation
+            }))
         }
-    };
-
-    // This function customizes the toolbar using the WebDataRocks API
-    const customizeToolbar = (toolbar: any) => {
-        const tabs = toolbar.getTabs();
-        // We create a new getTabs function that returns a filtered list
-        toolbar.getTabs = () => {
-            // This filters out the "Fields" tab, removing the button
-            return tabs.filter((tab: any) => tab.id !== "wdr-tab-fields");
-        };
     };
 
     return (
         <Card className="h-full flex flex-col border-none shadow-none">
-            <CardHeader>
-                <CardTitle>{config.name || "Tabla de Datos"}</CardTitle>
-            </CardHeader>
+            <h3 className="text-lg font-semibold text-center py-2">
+                {config.name || "Tabla Dinámica"}
+            </h3>
             <CardContent className="flex-grow p-0">
                 <Pivot
-                    toolbar={true} // Toolbar is now always enabled
-                    beforetoolbarcreated={customizeToolbar} // Hook to customize the toolbar
+                    toolbar={isPreview}
                     width="100%" 
                     height="100%" 
                     report={report}

@@ -4,21 +4,49 @@ import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface KpiConfigProps {
     config: any;
     onChange: (newConfig: any) => void;
 }
 
-const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
+export const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
     const [allTables, setAllTables] = useState<{ value: string; label: string }[]>([]);
     const [availableColumns, setAvailableColumns] = useState<{ value: string; label: string; data_type: string }[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     
     const selectedTables = config?.tables || [];
     const selectedColumn = config?.column || '';
     const aggregation = config?.aggregation || '';
 
-    // Cargar todas las tablas disponibles
+    const fetchAllColumns = async () => {
+        if (selectedTables.length === 0) {
+            setAvailableColumns([]);
+            return;
+        }
+
+        const { data: tableColumns, error: tableError } = await supabase.rpc('get_columns_from_tables', { p_tables: selectedTables });
+        if (tableError) { console.error("Error fetching table columns:", tableError); return; }
+        
+        const { data: calcFields, error: calcError } = await supabase.rpc('get_calculated_fields');
+        if (calcError) { console.error("Error fetching calculated fields:", calcError); return; }
+
+        const filteredCalcFields = calcFields.filter(field => field.tables_used.every((table: string) => selectedTables.includes(table)));
+
+        const combinedColumns = [
+            ...tableColumns.map(c => ({ value: c.display_name, label: c.display_name, data_type: c.data_type })),
+            ...filteredCalcFields.map(f => ({ value: f.name, label: `${f.name} (Calculado)`, data_type: 'calculated' }))
+        ];
+        
+        setAvailableColumns(combinedColumns);
+    };
+
     useEffect(() => {
         supabase.rpc('get_schema_tables').then(({ data }) => {
             if (data) {
@@ -27,44 +55,32 @@ const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
         });
     }, []);
 
-    // Cargar columnas cuando cambian las tablas seleccionadas
     const tablesKey = JSON.stringify(selectedTables);
     useEffect(() => {
-        if (selectedTables.length > 0) {
-            supabase.rpc('get_columns_from_tables', { p_tables: selectedTables }).then(({ data, error }) => {
-                if (error) {
-                    console.error("Error fetching columns:", error);
-                    return;
-                }
-                if (data) {
-                    setAvailableColumns(data.map(c => ({
-                        value: c.display_name,
-                        label: c.display_name,
-                        data_type: c.data_type
-                    })));
-                }
-            });
-        } else {
-            setAvailableColumns([]);
-        }
+        fetchAllColumns();
     }, [tablesKey]);
 
     const handleTablesChange = (values: string[]) => {
-        onChange({ tables: values, column: '', aggregation: '' });
+        onChange({ ...config, tables: values, column: '', aggregation: '' });
     };
 
     const handleAggregationChange = (value: string) => {
-        onChange({ aggregation: value });
+        onChange({ ...config, aggregation: value });
     };
 
     const handleColumnChange = (value: string) => {
-        onChange({ column: value });
+        onChange({ ...config, column: value });
     };
     
-    const numericTypes = ['integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint'];
+    const numericTypes = ['integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint', 'calculated'];
     const filteredColumns = aggregation === 'count' 
         ? availableColumns 
         : availableColumns.filter(c => numericTypes.includes(c.data_type));
+
+    const actionButton = {
+        label: "Nuevo Campo Calculado",
+        onClick: () => setIsModalOpen(true)
+    };
 
     return (
         <div className="space-y-4">
@@ -96,6 +112,7 @@ const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
                     </div>
                     <div>
                         <Label>Columna</Label>
+                        {/* El componente Select no tiene la prop actionButton, por lo que añadimos el botón manualmente */}
                         <Select onValueChange={handleColumnChange} value={selectedColumn}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Seleccione una columna" />
@@ -107,10 +124,128 @@ const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
                                 ))}
                             </SelectContent>
                         </Select>
+                         <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setIsModalOpen(true)}>
+                            <PlusCircle className="h-4 w-4 mr-2"/>
+                            Nuevo Campo Calculado
+                        </Button>
                     </div>
+                    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                        <CreateEditFieldModal 
+                            selectedTables={selectedTables} 
+                            onSave={() => {
+                                fetchAllColumns();
+                                setIsModalOpen(false);
+                            }} 
+                        />
+                    </Dialog>
                 </>
             )}
         </div>
+    );
+};
+
+// ... (CreateEditFieldModal es el mismo que en los otros componentes)
+const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: string[], onSave: () => void }) => {
+    const [name, setName] = useState('');
+    const [expression, setExpression] = useState('');
+    const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+    const [validationError, setValidationError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
+
+    const handleValidate = async () => {
+        if (!expression) {
+            toast({ title: "Error", description: "La expresión no puede estar vacía.", variant: "destructive" });
+            return;
+        }
+        setValidationStatus('validating');
+        setValidationError(null);
+
+        const { data, error } = await supabase.rpc('validate_sql_expression', {
+            p_expression: expression,
+            p_tables: selectedTables
+        });
+
+        if (error || !data.valid) {
+            setValidationStatus('invalid');
+            setValidationError(data.error || 'Error desconocido.');
+        } else {
+            setValidationStatus('valid');
+        }
+    };
+
+    const handleSave = async () => {
+        if (validationStatus !== 'valid') {
+            toast({ title: "Error", description: "La expresión debe ser validada antes de guardar.", variant: "destructive" });
+            return;
+        }
+        if (!name) {
+            toast({ title: "Error", description: "El nombre del campo es obligatorio.", variant: "destructive" });
+            return;
+        }
+
+        setIsSaving(true);
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+            toast({ title: "Error", description: "No se pudo autenticar al usuario.", variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+
+        const { error } = await supabase.from('calculated_fields').insert({
+            name,
+            expression,
+            tables_used: selectedTables,
+            user_id: userData.user.id
+        });
+
+        if (error) {
+            toast({ title: "Error", description: `No se pudo guardar el campo: ${error.message}`, variant: "destructive" });
+        } else {
+            toast({ title: "Éxito", description: "Campo calculado guardado." });
+            onSave();
+        }
+        setIsSaving(false);
+    };
+
+    return (
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Crear Nuevo Campo Calculado</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="name">Nombre del Campo</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tareas Completadas" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="expression">Expresión SQL</Label>
+                    <Textarea id="expression" value={expression} onChange={(e) => { setExpression(e.target.value); setValidationStatus('idle'); }} placeholder="CASE WHEN status = 'complete' THEN 1 ELSE 0 END" />
+                </div>
+                
+                {validationStatus === 'invalid' && (
+                    <div className="flex items-center text-red-600">
+                        <XCircle className="h-4 w-4 mr-2"/>
+                        <p className="text-sm">{validationError}</p>
+                    </div>
+                )}
+                {validationStatus === 'valid' && (
+                     <div className="flex items-center text-green-600">
+                        <CheckCircle className="h-4 w-4 mr-2"/>
+                        <p className="text-sm">La expresión es válida.</p>
+                    </div>
+                )}
+
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={handleValidate} disabled={validationStatus === 'validating'}>
+                    {validationStatus === 'validating' ? <Loader2 className="h-4 w-4 animate-spin"/> : "Validar"}
+                </Button>
+                <Button onClick={handleSave} disabled={isSaving || validationStatus !== 'valid'}>
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : "Guardar Campo"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
     );
 };
 

@@ -81,12 +81,12 @@ export const LoginForm = () => {
   
   return (
     <div 
-      className="flex h-screen w-full items-center justify-center bg-cover bg-center px-4"
+      className="flex h-screen w-full items-center justify-start bg-cover bg-center px-4 md:px-20 lg:px-96"
       style={{ backgroundImage: "url('/login-background.png')" }}
     >
       <Card className="w-full max-w-md bg-black/35 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl text-white">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 flex justify-center">
+          <div className="mx-auto mb-2 h-16 flex justify-center">
             <img src="/logo-dinamic-software.png" alt="Dinamic Software Logo" className="h-full w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl text-white [text-shadow:0_1px_4px_rgb(0_0_0_/_0.5)]">Bienvenido</CardTitle>

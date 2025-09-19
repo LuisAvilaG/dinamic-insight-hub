@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Command,
@@ -9,6 +9,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Command as CommandPrimitive } from "cmdk";
+import { Button } from './button';
 
 type Option = {
   value: string;
@@ -21,9 +22,13 @@ interface MultiSelectProps {
   onChange: (value: string[]) => void;
   placeholder?: string;
   className?: string;
+  actionButton?: {
+    label: string;
+    onClick: () => void;
+  }
 }
 
-export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, placeholder = "Select options...", className }) => {
+export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, placeholder = "Select options...", className, actionButton }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
@@ -73,7 +78,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
         </div>
       </div>
       <div className="relative mt-2">
-        {open && filteredOptions.length > 0 ? (
+        {open && (
           <div className="absolute w-full z-10 top-0 rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
             <CommandList>
               <CommandGroup className="h-full overflow-auto">
@@ -94,9 +99,24 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onC
                   </CommandItem>
                 ))}
               </CommandGroup>
+              {actionButton && (
+                <div className="p-1">
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                            actionButton.onClick();
+                            setOpen(false);
+                        }}
+                    >
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        {actionButton.label}
+                    </Button>
+                </div>
+              )}
             </CommandList>
           </div>
-        ) : null}
+        )}
       </div>
     </CommandPrimitive>
   );

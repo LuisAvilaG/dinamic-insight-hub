@@ -10,7 +10,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
-  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard, User, Calendar, Briefcase, Megaphone
+  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard, User, Calendar, Briefcase, Megaphone, GitBranch
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import DinamicLogo from "@/assets/logorecortado.png"; // IMPORTAMOS EL LOGO
@@ -60,6 +60,13 @@ const adminNavConfig = [
       { id: 'anuncios', title: 'Gestionar Anuncios', url: '/admin/GestionAnuncios', icon: Megaphone },
       { id: 'organigrama', title: 'Gestionar Organigrama', url: '/admin/recursos-humanos/organigrama/editar', icon: Users },
     ]
+  },
+    {
+    id: 'sync-hub',
+    title: 'Sync Hub',
+    icon: GitBranch,
+    url: '/admin/sync-hub',
+    roles: ['admin'],
   },
   {
     id: 'usuarios',

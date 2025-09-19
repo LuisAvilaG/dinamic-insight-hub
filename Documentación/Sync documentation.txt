@@ -1,0 +1,43 @@
+# Sync Module Documentation
+
+## Flujo de Trabajo: "Agregar Nueva Sincronización"
+
+### Paso 1: Conexión y Alcance (El "Plug" 🔌)
+*   **Nombre de la Sincronización:** El usuario le da un nombre único al flujo.
+*   **Autenticación y Selección:** Se conecta a ClickUp y elige Workspace/Espacio.
+*   **Modo de Sincronización:**
+    *   **Interruptor [ Sincronización Completa ]:**
+        *   **Activado:** El usuario quiere todos los datos sin configurar. Se saltan los pasos de mapeo y se va directamente al Paso 3.
+        *   **Desactivado (Modo Personalizado):** El usuario quiere elegir qué datos sincronizar. Se avanza al Paso 2.
+
+### Paso 2: Configuración de Datos (El "Play" ⚙️)
+*Este paso solo se muestra si la "Sincronización Completa" está desactivada.*
+*   **Modo de Configuración:** Detección automática de plantillas (con opción de modo manual) y reorganización con botón de "Mover".
+*   **Sincronización de Registros de Tiempo:** Interruptor para activar la extracción de registros de tiempo.
+
+### Paso 3: Destino y Programación (La Ejecución 🚀)
+
+**A. Consideraciones sobre la Base de Datos (Destino)**
+
+El sistema crea y gestiona tablas de forma dinámica en un esquema dedicado `clickup_data` cuando el usuario guarda la sincronización.
+
+*   **Paso 1: Capturar la Configuración:** El sistema guarda un JSON con la configuración del usuario, incluyendo los campos seleccionados y sus tipos de ClickUp. Para una **Sincronización Completa**, el sistema inspecciona todas las listas del Espacio, crea un "superconjunto" de todos los campos únicos encontrados y lo usa como plantilla universal.
+
+*   **Paso 2: Traductor de Tipos:** Una lógica interna convierte los tipos de ClickUp a tipos de columna de PostgreSQL.
+    *   `text`, `string` -> `TEXT`
+    *   `dropdown`, `email` -> `VARCHAR(255)`
+    *   `number`, `money` -> `NUMERIC`
+    *   `date` -> `TIMESTAMPTZ`
+    *   `checkbox` -> `BOOLEAN`
+    *   `labels`, `users` -> `JSONB`
+
+*   **Paso 3: Generación de SQL (`CREATE` vs `ALTER`):**
+    *   **Si la tabla no existe:** Se genera y ejecuta un comando `CREATE TABLE` en el esquema `clickup_data`. Se añaden columnas de sistema como `clickup_task_id` (PRIMARY KEY) y `last_synced_at`.
+    *   **Si la tabla ya existe (al editar):** El sistema la inspecciona y genera comandos `ALTER TABLE ... ADD COLUMN` para los nuevos campos. Los campos eliminados de la configuración se dejan intactos en la tabla para no perder datos históricos, pero ya no recibirán actualizaciones.
+
+**B. Configuración de la Sincronización (Cron Job)**
+
+*   **Frecuencia:** Un menú desplegable para elegir la periodicidad (cada hora, diariamente, etc.).
+*   **Modo de Sincronización:**
+    *   **Reemplazo Completo:** Borra todos los datos de la tabla y los carga de nuevo en cada ejecución.
+    *   **Incremental (Recomendado):** Solo sincroniza tareas nuevas o modificadas desde la última ejecución.

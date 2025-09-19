@@ -6,22 +6,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, BarChart as BarChartIcon, TrendingUp, Table } from 'lucide-react';
+import { ArrowLeft, Loader2, BarChart as BarChartIcon, TrendingUp, Table, Grid } from 'lucide-react';
 import { Tables } from '@/types/supabase';
 import DataTableConfig from './config/DataTableConfig';
 import { DataTableWidget } from './DataTableWidget';
-import KpiConfig from './config/KpiConfig';
+import { KpiConfig } from './config/KpiConfig';
 import { KpiWidget } from './KpiWidget';
-import BarChartConfig from './config/BarChartConfig';
+import { BarChartConfig } from './config/BarChartConfig';
 import { BarChartWidget } from './BarChartWidget';
+import { PivotTableConfig } from './config/PivotTableConfig';
+import { PivotTableWidget } from './PivotTableWidget';
 
 type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
 interface WidgetOption { type: string; name: string; description: string; icon: React.ElementType; }
 const WIDGET_OPTIONS: WidgetOption[] = [
   { type: 'kpi', name: 'KPI', description: 'Muestra una métrica clave', icon: TrendingUp },
-  { type: 'bar_chart', name: 'Gráfico de Barras', description: 'Compara valores entre categorías', icon: BarChartIcon },
-  { type: 'data_table', name: 'Tabla de Datos', description: 'Muestra datos en formato tabular', icon: Table },
+  { type: 'bar_chart', name: 'Gráfico de Barras', description: 'Compara valores', icon: BarChartIcon },
+  { type: 'data_table', name: 'Tabla de Datos', description: 'Muestra datos en formato plano', icon: Table },
+  { type: 'pivot_table', name: 'Tabla Dinámica', description: 'Agrupa y resume datos', icon: Grid },
 ];
 const DEFAULT_LAYOUT = { x: 0, y: 0, w: 6, h: 4 };
 
@@ -94,7 +97,9 @@ export const NewAddWidgetDialog = (props: any) => {
             const subqueries = newConfig.tables.map((table: string) => {
                 const [schema, tableName] = table.split('.');
                 const selectClauses = allColumns.map((col: string) => {
-                    const [colTable, colName] = col.split('.');
+                    const colParts = col.split('.');
+                    const colTable = colParts[colParts.length - 2];
+                    const colName = colParts[colParts.length - 1];
                     return tableName === colTable 
                         ? `"${colName}" AS "${col}"` 
                         : `NULL AS "${col}"`;
@@ -104,13 +109,18 @@ export const NewAddWidgetDialog = (props: any) => {
             query = subqueries.join(' UNION ALL ');
         } else if (selectedWidgetType === 'kpi' && newConfig.tables?.length > 0 && newConfig.aggregation && newConfig.column) {
             if (newConfig.column === '*') {
-                const subqueries = newConfig.tables.map((table: string) => `SELECT COUNT(*) as value FROM ${table.replace('.', '.')}`);
+                const subqueries = newConfig.tables.map((table: string) => {
+                  const [schema, tableName] = table.split('.');
+                  return `SELECT COUNT(*) as value FROM "${schema}"."${tableName}"`
+                });
                 query = `SELECT SUM(value) as value FROM (${subqueries.join(' UNION ALL ')}) as subquery`;
             } else {
                 const { column, aggregation } = newConfig;
                 const subqueries = newConfig.tables.map((table: string) => {
                     const [schema, tableName] = table.split('.');
-                    const [colTable, colName] = column.split('.');
+                    const colParts = column.split('.');
+                    const colTable = colParts[colParts.length - 2];
+                    const colName = colParts[colParts.length - 1];
                     if (tableName === colTable) {
                         return `SELECT "${colName}" AS value FROM "${schema}"."${tableName}"`;
                     }
@@ -124,14 +134,18 @@ export const NewAddWidgetDialog = (props: any) => {
             const { xAxis, yAxis, aggregation } = newConfig;
             const subqueries = newConfig.tables.map((table: string) => {
                 const [schema, tableName] = table.split('.');
-                const [xAxisTable, xAxisName] = xAxis.split('.');
+                const xAxisParts = xAxis.split('.');
+                const xAxisTable = xAxisParts[xAxisParts.length - 2];
+                const xAxisName = xAxisParts[xAxisParts.length - 1];
                 const selectX = tableName === xAxisTable ? `"${xAxisName}"` : `NULL`;
 
                 let selectY;
                 if (yAxis === '*') {
                     selectY = `1`;
                 } else {
-                    const [yAxisTable, yAxisName] = yAxis.split('.');
+                    const yAxisParts = yAxis.split('.');
+                    const yAxisTable = yAxisParts[yAxisParts.length - 2];
+                    const yAxisName = yAxisParts[yAxisParts.length - 1];
                     selectY = tableName === yAxisTable ? `"${yAxisName}"` : `NULL`;
                 }
                 
@@ -139,6 +153,23 @@ export const NewAddWidgetDialog = (props: any) => {
             });
             const yAxisFinal = yAxis === '*' ? `COUNT(*)` : `${aggregation.toUpperCase()}("${yAxis}")`;
             query = `SELECT "${xAxis}", ${yAxisFinal} as value FROM (${subqueries.join(' UNION ALL ')}) as subquery GROUP BY "${xAxis}"`;
+        }
+        else if (selectedWidgetType === 'pivot_table' && newConfig.tables?.length > 0 && newConfig.rows?.length > 0 && newConfig.measures?.length > 0) {
+            const allFields = [...newConfig.rows, ...(newConfig.columns || []), ...newConfig.measures.map((m: any) => m.column)];
+            const subqueries = newConfig.tables.map((table: string) => {
+                const [schema, tableName] = table.split('.');
+                const selectClauses = allFields.map((field: string) => {
+                    const fieldParts = field.split('.');
+                    const fieldTable = fieldParts[fieldParts.length - 2];
+                    const fieldName = fieldParts[fieldParts.length - 1];
+                    return tableName === fieldTable ? `"${fieldName}" AS "${field}"` : `NULL AS "${field}"`;
+                });
+                return `SELECT ${selectClauses.join(', ')} FROM "${schema}"."${tableName}"`;
+            });
+            const groupByClauses = [...newConfig.rows, ...(newConfig.columns || [])].map(f => `"${f}"`);
+            const measuresClauses = newConfig.measures.map((m: any) => `${m.aggregation.toUpperCase()}("${m.column}") AS "${m.aggregation}_of_${m.column}"`);
+            
+            query = `SELECT ${[...groupByClauses, ...measuresClauses].join(', ')} FROM (${subqueries.join(' UNION ALL ')}) as subquery GROUP BY ${groupByClauses.join(', ')}`;
         }
         
         return { ...newConfig, query };
@@ -152,6 +183,7 @@ export const NewAddWidgetDialog = (props: any) => {
         case 'data_table': return <DataTableConfigScreen config={widgetConfig} onConfigChange={handleConfigChange} />;
         case 'kpi': return <KpiConfigScreen config={widgetConfig} onConfigChange={handleConfigChange} />;
         case 'bar_chart': return <BarChartConfigScreen config={widgetConfig} onConfigChange={handleConfigChange} />;
+        case 'pivot_table': return <PivotTableConfigScreen config={widgetConfig} onConfigChange={handleConfigChange} />;
         default: return <div className="text-center p-8"><p>Configurador no disponible.</p></div>;
       }
     }
@@ -161,11 +193,11 @@ export const NewAddWidgetDialog = (props: any) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[80vh] flex flex-col">
         <DialogHeader><DialogTitle>{isEditMode ? 'Editar Widget' : 'Añadir Nuevo Widget'}</DialogTitle></DialogHeader>
-        <div className="flex-grow overflow-hidden">
+        <div className="flex-grow min-h-0">
           {step > 0 && !isEditMode && <Button variant="ghost" onClick={handleBack} className="mb-2"><ArrowLeft className="h-4 w-4 mr-2" /> Volver</Button>}
-          <div className="h-full overflow-y-auto px-1">{renderStepContent()}</div>
+          <div className="h-full">{renderStepContent()}</div>
         </div>
-        <DialogFooter className="mt-4">
+        <DialogFooter className="mt-4 flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {step === 1 && <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar</Button>}
         </DialogFooter>
@@ -174,62 +206,56 @@ export const NewAddWidgetDialog = (props: any) => {
   );
 };
 
-// ... (Config screens and previews remain the same, but now receive the centralized handleConfigChange)
-const DataTableConfigScreen = ({ config, onConfigChange }: any) => (
+const ConfigScreenLayout = ({ title, config, onConfigChange, children, previewWidget }: any) => (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-8 h-full">
-        <div className="md:col-span-4 space-y-6">
-            <h3 className="font-semibold text-lg border-b pb-2">Configurar Tabla de Datos</h3>
-            <div className="space-y-2">
-                <Label>Nombre del Widget</Label>
-                <Input value={config.name || ''} onChange={(e) => onConfigChange({ name: e.target.value })}/>
+        <div className="md:col-span-4 h-full flex flex-col">
+            <h3 className="font-semibold text-lg border-b pb-2 flex-shrink-0">{title}</h3>
+            <div className="flex-grow mt-4 overflow-y-auto pr-4">
+                <div className="space-y-2">
+                    <Label>Nombre del Widget</Label>
+                    <Input value={config.name || ''} onChange={(e) => onConfigChange({ name: e.target.value })}/>
+                </div>
+                <div className="pt-4">
+                    {children}
+                </div>
             </div>
-            <DataTableConfig config={config} onChange={onConfigChange} />
         </div>
         <div className="md:col-span-8 space-y-6 flex flex-col">
             <h3 className="font-semibold text-lg border-b pb-2">Vista Previa</h3>
             <div className="p-4 bg-slate-50 rounded-lg flex-grow">
-                <DataTableWidget widget={{ config }} isPreview={true} />
+                {previewWidget}
             </div>
         </div>
     </div>
+);
+
+const DataTableConfigScreen = ({ config, onConfigChange }: any) => (
+    <ConfigScreenLayout 
+        title="Configurar Tabla de Datos" 
+        config={config} 
+        onConfigChange={onConfigChange} 
+        previewWidget={<DataTableWidget key={config.query} widget={{ config }} isPreview={true} />}
+    >
+        <DataTableConfig config={config} onChange={onConfigChange} />
+    </ConfigScreenLayout>
 );
 
 const KpiConfigScreen = ({ config, onConfigChange }: any) => (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 h-full">
-        <div className="md:col-span-4 space-y-6">
-            <h3 className="font-semibold text-lg border-b pb-2">Configurar KPI</h3>
-            <div className="space-y-2">
-                <Label>Nombre del Widget</Label>
-                <Input value={config.name || ''} onChange={(e) => onConfigChange({ name: e.target.value })}/>
-            </div>
-            <KpiConfig config={config} onChange={onConfigChange} />
-        </div>
-        <div className="md:col-span-8 space-y-6 flex flex-col">
-            <h3 className="font-semibold text-lg border-b pb-2">Vista Previa</h3>
-            <div className="p-4 bg-slate-50 rounded-lg flex-grow">
-                <KpiWidget widget={{ config }} />
-            </div>
-        </div>
-    </div>
+    <ConfigScreenLayout title="Configurar KPI" config={config} onConfigChange={onConfigChange} previewWidget={<KpiWidget widget={{ config }} />}>
+        <KpiConfig config={config} onChange={onConfigChange} />
+    </ConfigScreenLayout>
 );
 
 const BarChartConfigScreen = ({ config, onConfigChange }: any) => (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 h-full">
-        <div className="md:col-span-4 space-y-6">
-            <h3 className="font-semibold text-lg border-b pb-2">Configurar Gráfico de Barras</h3>
-            <div className="space-y-2">
-                <Label>Nombre del Widget</Label>
-                <Input value={config.name || ''} onChange={(e) => onConfigChange({ name: e.target.value })}/>
-            </div>
-            <BarChartConfig config={config} onChange={onConfigChange} />
-        </div>
-        <div className="md:col-span-8 space-y-6 flex flex-col">
-            <h3 className="font-semibold text-lg border-b pb-2">Vista Previa</h3>
-            <div className="p-4 bg-slate-50 rounded-lg flex-grow">
-                <BarChartWidget widget={{ config }} />
-            </div>
-        </div>
-    </div>
+    <ConfigScreenLayout title="Configurar Gráfico de Barras" config={config} onConfigChange={onConfigChange} previewWidget={<BarChartWidget widget={{ config }} />}>
+        <BarChartConfig config={config} onChange={onConfigChange} />
+    </ConfigScreenLayout>
+);
+
+const PivotTableConfigScreen = ({ config, onConfigChange }: any) => (
+    <ConfigScreenLayout title="Configurar Tabla Dinámica" config={config} onConfigChange={onConfigChange} previewWidget={<PivotTableWidget widget={{ config }} isPreview={true} />}>
+        <PivotTableConfig config={config} onChange={onConfigChange} />
+    </ConfigScreenLayout>
 );
 
 const WidgetTypeSelector = ({ onSelect }: any) => (
