@@ -29,10 +29,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScheduleSelector, Schedule } from './ScheduleSelector';
 
-// --- List of mandatory fields ---
 const MANDATORY_FIELDS = new Set(['id', 'name', 'project', 'folder', 'space']);
-
-// --- Intelligent Grouping Logic ---
 const STOP_WORDS = new Set(['de', 'la', 'el', 'a', 'y', 'for', 'the', 'and', 'in', 'on', 'with', 'at', 'by']);
 const GENERIC_KEYS = new Set(['project', 'report', 'informe', 'reporte']);
 
@@ -47,9 +44,7 @@ const groupListsByName = (lists) => {
         const keywords = getCleanKeywords(list.name);
         if (keywords.length === 0) return;
         let key = keywords[0];
-        if (GENERIC_KEYS.has(key) && keywords.length > 1) {
-            key = keywords.slice(0, 2).join(' ');
-        }
+        if (GENERIC_KEYS.has(key) && keywords.length > 1) key = keywords.slice(0, 2).join(' ');
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(list);
     });
@@ -61,7 +56,6 @@ const groupListsByName = (lists) => {
     }));
 };
 
-// --- Reusable Panel Component for Templates ---
 const TemplatesPanel = ({ listTypeGroups, activeMappings, onConfigure, onToggleActive, onMoveList, listExclusions, onToggleListExclusion, onSelectAll, onDeselectAll, isModal = false, onExpand }) => (
     <div className={`p-4 border rounded-lg ${isModal ? 'h-full flex flex-col' : ''}`}>
         <div className="flex justify-between items-center mb-2">
@@ -107,9 +101,7 @@ const TemplatesPanel = ({ listTypeGroups, activeMappings, onConfigure, onToggleA
                                             <CommandEmpty>No se encontraron plantillas.</CommandEmpty>
                                             <CommandGroup>
                                                 {listTypeGroups.filter(g => g.typeName !== group.typeName).map(destGroup => (
-                                                    <CommandItem key={destGroup.typeName} onSelect={() => onMoveList(list.id, group.typeName, destGroup.typeName)}>
-                                                        {destGroup.typeName}
-                                                    </CommandItem>
+                                                    <CommandItem key={destGroup.typeName} onSelect={() => onMoveList(list.id, group.typeName, destGroup.typeName)}>{destGroup.typeName}</CommandItem>
                                                 ))}
                                             </CommandGroup>
                                         </Command>
@@ -141,21 +133,19 @@ const AddSyncWizard = ({ onCancel }) => {
   const [isFullSync, setIsFullSync] = useState(false);
   const [allLists, setAllLists] = useState([]);
   const [listTypeGroups, setListTypeGroups] = useState([]);
-  const [isTimeTrackingEnabled, setIsTimeTrackingEnabled] = useState(true);
   const [isTemplateMode, setIsTemplateMode] = useState(true);
   const [isColumnsModalOpen, setIsColumnsModalOpen] = useState(false);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [currentEditingItem, setCurrentEditingItem] = useState(null); 
-  const [fieldsForModal, setFieldsForModal] = useState([]); // Renamed from availableFields
-  const [allAvailableFields, setAllAvailableFields] = useState(new Map()); // New state to store all unique fields
+  const [fieldsForModal, setFieldsForModal] = useState([]);
+  const [allAvailableFields, setAllAvailableFields] = useState(new Map());
   const [fieldMappings, setFieldMappings] = useState({});
   const [activeMappings, setActiveMappings] = useState(new Set());
   const [listExclusions, setListExclusions] = useState(new Set());
-
-  // Step 3 State
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [cronSchedule, setCronSchedule] = useState('');
   const [syncMode, setSyncMode] = useState('incremental');
+  const [isTimeTrackingEnabled, setIsTimeTrackingEnabled] = useState(false);
 
   useEffect(() => {
     const checkForExistingToken = async () => {
@@ -189,12 +179,8 @@ const AddSyncWizard = ({ onCancel }) => {
   };
   
   const handleWorkspaceChange = async (workspaceId) => {
-    console.log(`%c[AddSyncWizard] Workspace changed to: ${workspaceId}`, 'color: dodgerblue');
     setSelectedWorkspace(workspaceId);
-    setSelectedSpace(null);
-    setSpaces([]);
-    setAllLists([]);
-    setListTypeGroups([]);
+    setSelectedSpace(null); setSpaces([]); setAllLists([]); setListTypeGroups([]);
     if (!workspaceId) return;
     setIsLoading(true);
     try { setSpaces(await getClickUpSpaces(token, workspaceId)); }
@@ -203,25 +189,15 @@ const AddSyncWizard = ({ onCancel }) => {
   };
   
   const handleSpaceChange = async (spaceId) => {
-    console.log(`%c[AddSyncWizard] Space changed to: ${spaceId}`, 'color: dodgerblue');
     setSelectedSpace(spaceId);
-    setAllLists([]);
-    setListTypeGroups([]);
+    setAllLists([]); setListTypeGroups([]);
     if (!spaceId) return; 
-    
     setIsLoading(true);
     try {
       const [spaceLists, folderData] = await Promise.all([ getClickUpListsInSpace(token, spaceId), getClickUpFolders(token, spaceId) ]);
       let combinedLists = [...spaceLists];
-       if (folderData?.length > 0) {
-        const listsFromFoldersPromises = folderData.map(f => 
-            getClickUpListsInFolder(token, f.id).catch(err => {
-                console.warn(`Could not fetch lists for folder ${f.name} (${f.id}):`, err);
-                toast({ title: `Advertencia`, description: `No se pudieron cargar las listas de la carpeta "${f.name}".`, variant: "default"});
-                return []; 
-            })
-        );
-        const listsFromFolders = (await Promise.all(listsFromFoldersPromises)).flat();
+      if (folderData?.length > 0) {
+        const listsFromFolders = (await Promise.all(folderData.map(f => getClickUpListsInFolder(token, f.id).catch(() => [])))).flat();
         combinedLists = combinedLists.concat(listsFromFolders);
       }
       setAllLists(combinedLists);
@@ -239,33 +215,18 @@ const AddSyncWizard = ({ onCancel }) => {
       try {
           const sampleListId = item.sampleListId || item.id;
           const fields = await getClickUpFieldsFromSampleTask(token, sampleListId);
-          
-          // Update allAvailableFields (the master map)
           setAllAvailableFields(prev => {
               const newMap = new Map(prev);
-              fields.forEach(field => {
-                  if (!newMap.has(field.id)) {
-                      newMap.set(field.id, field);
-                  }
-              });
+              fields.forEach(field => { if (!newMap.has(field.id)) newMap.set(field.id, field); });
               return newMap;
           });
-
-          // Set fields for the modal
           setFieldsForModal([
-              { name: 'Campos Estándar', fields: fields.filter(f => f.custom === false) },
-              { name: 'Campos Personalizados', fields: fields.filter(f => f.custom === true) }
+              { name: 'Campos Estándar', fields: fields.filter(f => !f.custom) },
+              { name: 'Campos Personalizados', fields: fields.filter(f => f.custom) }
           ]);
-          
-          const mandatoryFieldIds = new Set(
-              fields.filter(f => MANDATORY_FIELDS.has(f.name)).map(f => f.id)
-          );
+          const mandatoryFieldIds = new Set(fields.filter(f => MANDATORY_FIELDS.has(f.name)).map(f => f.id));
           const key = item.typeName || item.id;
-          setFieldMappings(prev => ({
-              ...prev,
-              [key]: new Set([...(prev[key] || []), ...mandatoryFieldIds])
-          }));
-
+          setFieldMappings(prev => ({ ...prev, [key]: new Set([...(prev[key] || []), ...mandatoryFieldIds]) }));
       } catch (error) { 
           toast({ title: "Error al leer la estructura", description: error.message, variant: "destructive"});
           setIsColumnsModalOpen(false);
@@ -278,21 +239,11 @@ const AddSyncWizard = ({ onCancel }) => {
       const key = currentEditingItem.typeName || currentEditingItem.id;
       setFieldMappings(prev => {
           const newMappings = { ...prev };
-          if (!newMappings[key]) {
-              newMappings[key] = new Set();
-          }
+          if (!newMappings[key]) newMappings[key] = new Set();
           isSelected ? newMappings[key].add(fieldId) : newMappings[key].delete(fieldId);
           return newMappings;
       });
   };
-
-    const handleToggleListExclusion = (listId, isExcluded) => {
-      setListExclusions(prev => {
-          const newExclusions = new Set(prev);
-          isExcluded ? newExclusions.add(listId) : newExclusions.delete(listId);
-          return newExclusions;
-      })
-  }
 
   const handleMoveList = (listId, sourceGroupName, destGroupName) => {
       setListTypeGroups(prev => {
@@ -316,7 +267,6 @@ const AddSyncWizard = ({ onCancel }) => {
         isActive ? next.add(key) : next.delete(key);
         return next;
     });
-    // If deactivating a template/list, ensure its field mappings are cleared
     if (!isActive) {
         setFieldMappings(prev => {
             const newMappings = { ...prev };
@@ -326,70 +276,100 @@ const AddSyncWizard = ({ onCancel }) => {
     }
   };
 
-
   const handleFinalizeSync = async () => {
-      console.log('%c[AddSyncWizard] Starting handleFinalizeSync...', 'color: green; font-weight: bold;');
-      setIsLoading(true);
-
-      const finalFieldSelections = new Set();
-
-      // Collect all selected fields from active mappings
-      for (const [key, selectedFieldIds] of Object.entries(fieldMappings)) {
-          if (activeMappings.has(key)) { // Only include fields from active templates/lists
-              selectedFieldIds.forEach(fieldId => finalFieldSelections.add(fieldId));
+    setIsLoading(true);
+  
+    // --- LÓGICA DE CONSTRUCCIÓN DE PAYLOAD MEJORADA ---
+    const templates = [];
+    let allSelectedFields = new Set();
+  
+    if (isTemplateMode) {
+      for (const group of listTypeGroups) {
+        if (activeMappings.has(group.typeName)) {
+          const selectedFieldsForGroup = fieldMappings[group.typeName] || new Set();
+          templates.push({
+            name: group.typeName,
+            field_ids: Array.from(selectedFieldsForGroup),
+            list_ids: group.lists
+              .filter(list => !listExclusions.has(list.id))
+              .map(list => list.id),
+          });
+          selectedFieldsForGroup.forEach(fieldId => allSelectedFields.add(fieldId));
+        }
+      }
+    } else { // Modo Manual
+      const manualLists = [];
+      for (const list of allLists) {
+          if(activeMappings.has(list.id)){
+              manualLists.push(list.id);
+              const selectedFieldsForList = fieldMappings[list.id] || new Set();
+              selectedFieldsForList.forEach(fieldId => allSelectedFields.add(fieldId));
           }
       }
-
-      // Construct the fields array from allAvailableFields based on finalFieldSelections
-      const selectedFieldsPayload = Array.from(finalFieldSelections).map(fieldId => allAvailableFields.get(fieldId));
-
-
-      const payload = {
-          syncConfig: {
-              name: syncName,
-              workspace: selectedWorkspace,
-              space: selectedSpace,
-              cron_schedule: cronSchedule,
-              config: schedule,
-              mode: syncMode,
-              is_full_sync: isFullSync,
-          },
-          mappings: {
-              fields: selectedFieldsPayload.filter(Boolean) // Filter out any undefined if a fieldId somehow didn't map
-          }
-      };
-
-      console.log('%c[AddSyncWizard] Payload to be sent:', 'color: orange;', payload);
-      
-      // Verification log
-      if (!payload.syncConfig.name || !payload.syncConfig.workspace || !payload.syncConfig.space || !payload.syncConfig.cron_schedule) {
-          console.error('%c[AddSyncWizard] VALIDATION FAILED: One or more key fields are missing in the payload.', 'color: red; font-weight: bold;', payload.syncConfig);
+      if(manualLists.length > 0){
+          templates.push({
+              name: 'manual_selection',
+              field_ids: Array.from(allSelectedFields),
+              list_ids: manualLists
+          });
       }
-
-      try {
-          console.log('%c[AddSyncWizard] Invoking Supabase function "setup-sync-tables"...', 'color: green;');
-          const { data, error } = await supabase.functions.invoke('setup-sync-tables', { body: payload });
-          
-          if (error) {
-            // This is the critical log for the 500 error
-            console.error('%c[AddSyncWizard] Supabase function returned an ERROR:', 'color: red; font-weight: bold;', error);
-            throw error;
-          }
-
-          console.log('%c[AddSyncWizard] Supabase function executed successfully. Response data:', 'color: green;', data);
-          toast({ title: "¡Sincronización Guardada!", description: `La tabla ${data.tableName} ha sido preparada.`});
-          onCancel(true); // Close wizard and signal a refresh
-      } catch (error) {
-          console.error('%c[AddSyncWizard] CATCH BLOCK: An error occurred during finalization.', 'color: red; font-weight: bold;', error);
-          toast({ title: "Error al Guardar", description: error.message, variant: "destructive"});
-      } finally {
-          setIsLoading(false);
-      }
+    }
+  
+    if (isFullSync) {
+        // En modo Full Sync, nos aseguramos de tener todos los campos de todas las listas
+        // (independientemente de la selección) para crear una tabla "universal".
+        const allFieldsPromises = allLists.map(list => getClickUpFieldsFromSampleTask(token, list.id).catch(() => []));
+        const allFieldsArrays = await Promise.all(allFieldsPromises);
+        const allFieldsMap = new Map();
+        allFieldsArrays.flat().forEach(field => {
+            if (!allFieldsMap.has(field.id)) allFieldsMap.set(field.id, field);
+        });
+        allSelectedFields = new Set(Array.from(allFieldsMap.keys()));
+    }
+  
+    if (allSelectedFields.size === 0) {
+      toast({ title: "No hay campos seleccionados", description: "Por favor, configura al menos una plantilla o lista y selecciona sus campos.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
+  
+    const finalFields = Array.from(allSelectedFields).map(id => allAvailableFields.get(id)).filter(Boolean);
+  
+    const selectedWorkspaceObj = workspaces.find(ws => ws.id === selectedWorkspace);
+    const selectedSpaceObj = spaces.find(sp => sp.id === selectedSpace);
+  
+    const payload = {
+      syncConfig: {
+        name: syncName,
+        workspace: selectedWorkspace,
+        workspaceName: selectedWorkspaceObj?.name,
+        space: selectedSpace,
+        spaceName: selectedSpaceObj?.name,
+        cron_schedule: cronSchedule,
+        is_full_sync_fields: isFullSync, // Indica si la ESTRUCTURA de la tabla debe ser universal
+      },
+      mappings: {
+        fields: finalFields, // La lista completa de campos únicos para la estructura de la tabla
+        templates: templates, // La estructura de plantillas con sus listas y campos específicos
+      },
+      schedule: schedule,
+      mode: syncMode, // 'incremental' o 'full' (reemplazo)
+    };
+  
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-sync-tables', { body: payload });
+      if (error) throw error;
+      toast({ title: "¡Sincronización Guardada!", description: "La primera importación de datos ha comenzado." });
+      onCancel(true);
+    } catch (error) {
+      toast({ title: "Error al Guardar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleNextStep = () => step === 1 && isFullSync ? setStep(3) : setStep(step + 1);
-  const goToPrevStep = () => setStep(step - 1);
-  
+  const handleNextStep = () => isFullSync ? setStep(3) : setStep(2);
+
   return (
     <>
       {step === 1 && (
@@ -402,7 +382,7 @@ const AddSyncWizard = ({ onCancel }) => {
                 <>
                   <div className="space-y-2"><Label><div className="flex items-center space-x-2"><Building className="h-4 w-4 text-muted-foreground"/><span>Workspace</span></div></Label><Select onValueChange={handleWorkspaceChange} value={selectedWorkspace}><SelectTrigger><SelectValue placeholder="Elige un Workspace..." /></SelectTrigger><SelectContent>{workspaces.map((ws) => (<SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>))}</SelectContent></Select></div>
                   {selectedWorkspace && <div className="space-y-2"><Label><div className="flex items-center space-x-2"><Box className="h-4 w-4 text-muted-foreground"/><span>Espacio</span></div></Label><Select onValueChange={handleSpaceChange} value={selectedSpace} disabled={!spaces.length}><SelectTrigger><SelectValue placeholder="Elige un Espacio..." /></SelectTrigger><SelectContent>{spaces.map((space) => (<SelectItem key={space.id} value={space.id}>{space.name}</SelectItem>))}</SelectContent></Select></div>}
-                  {selectedSpace && <div className="p-4 border rounded-lg space-y-3"><h3 className="font-semibold text-md">Modo de Sincronización</h3><div className="flex items-center justify-between"><Label htmlFor="full-sync-switch" className="flex flex-col space-y-1"><span>Sincronización Completa</span><span className="font-normal text-xs text-muted-foreground">Trae todos los datos sin configuración manual.</span></Label><Switch id="full-sync-switch" checked={isFullSync} onCheckedChange={setIsFullSync} /></div></div>}
+                  {selectedSpace && <div className="p-4 border rounded-lg space-y-3"><h3 className="font-semibold text-md">Modo de Configuración de Campos</h3><div className="flex items-center justify-between"><Label htmlFor="full-sync-switch" className="flex flex-col space-y-1"><span>Sincronización Completa de Campos</span><span className="font-normal text-xs text-muted-foreground">Analiza y sincroniza todos los campos disponibles en el espacio.</span></Label><Switch id="full-sync-switch" checked={isFullSync} onCheckedChange={setIsFullSync} /></div></div>}
                 </>
               )}
             </CardContent>
@@ -411,34 +391,30 @@ const AddSyncWizard = ({ onCancel }) => {
       )}
 
       {step === 2 && (
-        <Card className="border-0 shadow-none">
-            <CardHeader><div className="flex items-center space-x-3 mb-2"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"><Database className="h-6 w-6" /></div><div><CardTitle>Paso 2: Configuración de Datos</CardTitle><CardDescription>Define cómo quieres mapear los datos de ClickUp.</CardDescription></div></div></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md">Modo de Configuración</h3><div className="flex items-center justify-between"><Label htmlFor="template-mode-switch" className="flex flex-col space-y-1"><span>Detección Automática de Plantillas</span><span className="font-normal text-xs text-muted-foreground">Agrupa listas por nombre para una configuración más rápida.</span></Label><Switch id="template-mode-switch" checked={isTemplateMode} onCheckedChange={setIsTemplateMode} /></div></div>
-              <Separator />
-              { isTemplateMode ? <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={handleToggleListExclusion} onToggleActive={handleToggleActive} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} onExpand={() => setIsTemplatesModalOpen(true)} /> : (
-                <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md mb-2">Configuración Manual</h3><div className="space-y-2 max-h-60 overflow-y-auto pr-2">{allLists.map(list => (<div key={list.id} className="flex items-center justify-between p-3 border rounded-md"><div><p className="font-medium">{list.name}</p></div><div className="flex items-center space-x-4"><Button variant="outline" size="sm" onClick={() => handleConfigureColumns(list)} disabled={!activeMappings.has(list.id)}><Settings className="h-4 w-4 mr-2"/>Configurar</Button><Switch checked={activeMappings.has(list.id)} onCheckedChange={(checked) => handleToggleActive(list.id, checked)}/></div></div>))}</div></div>
-              )}
-              <Separator />
-              <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md mb-2">Registros de Tiempo</h3><div className="flex items-center justify-between"><Label htmlFor="time-tracking-switch" className="font-medium">Sincronizar Registros de Tiempo</Label><Switch id="time-tracking-switch" checked={isTimeTrackingEnabled} onCheckedChange={setIsTimeTrackingEnabled} /></div></div>
-            </CardContent>
-            <CardFooter className="flex justify-between"><Button variant="outline" onClick={goToPrevStep}><ArrowLeft className="h-4 w-4 mr-2" />Anterior</Button><Button onClick={handleNextStep}>Siguiente<ArrowRight className="h-4 w-4 ml-2" /></Button></CardFooter>
-        </Card>
+         <Card className="border-0 shadow-none">
+             <CardHeader><div className="flex items-center space-x-3 mb-2"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"><Database className="h-6 w-6" /></div><div><CardTitle>Paso 2: Configuración de Datos</CardTitle><CardDescription>Define cómo quieres mapear los datos de ClickUp.</CardDescription></div></div></CardHeader>
+             <CardContent className="space-y-6">
+               <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md">Modo de Configuración</h3><div className="flex items-center justify-between"><Label htmlFor="template-mode-switch" className="flex flex-col space-y-1"><span>Detección Automática de Plantillas</span><span className="font-normal text-xs text-muted-foreground">Agrupa listas por nombre para una configuración más rápida.</span></Label><Switch id="template-mode-switch" checked={isTemplateMode} onCheckedChange={setIsTemplateMode} /></div></div>
+               <Separator />
+               { isTemplateMode ? <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={(listId, isExcluded) => setListExclusions(prev => { const next = new Set(prev); isExcluded ? next.add(listId) : next.delete(listId); return next; })} onToggleActive={handleToggleActive} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} onExpand={() => setIsTemplatesModalOpen(true)} /> : (
+                 <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md mb-2">Configuración Manual</h3><div className="space-y-2 max-h-60 overflow-y-auto pr-2">{allLists.map(list => (<div key={list.id} className="flex items-center justify-between p-3 border rounded-md"><div><p className="font-medium">{list.name}</p></div><div className="flex items-center space-x-4"><Button variant="outline" size="sm" onClick={() => handleConfigureColumns(list)} disabled={!activeMappings.has(list.id)}><Settings className="h-4 w-4 mr-2"/>Configurar</Button><Switch checked={activeMappings.has(list.id)} onCheckedChange={(checked) => handleToggleActive(list.id, checked)}/></div></div>))}</div></div>
+               )}
+               <Separator />
+               <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md mb-2">Registros de Tiempo</h3><div className="flex items-center justify-between"><Label htmlFor="time-tracking-switch" className="font-medium">Sincronizar Registros de Tiempo</Label><Switch id="time-tracking-switch" checked={isTimeTrackingEnabled} onCheckedChange={setIsTimeTrackingEnabled} /></div></div>
+             </CardContent>
+             <CardFooter className="flex justify-between"><Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="h-4 w-4 mr-2" />Anterior</Button><Button onClick={() => setStep(3)}>Siguiente<ArrowRight className="h-4 w-4 ml-2" /></Button></CardFooter>
+         </Card>
       )}
       
       {step === 3 && (
         <Card className="border-0 shadow-none">
             <CardHeader><div className="flex items-center space-x-3 mb-2"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"><Clock className="h-6 w-6" /></div><div><CardTitle>Paso 3: Destino y Programación</CardTitle><CardDescription>Configura la frecuencia y el modo de la sincronización.</CardDescription></div></div></CardHeader>
             <CardContent className="space-y-6">
-                <ScheduleSelector onChange={(newSchedule, newCron) => {
-                    console.log('%c[AddSyncWizard] Schedule updated:', 'color: purple', { schedule: newSchedule, cron: newCron });
-                    setSchedule(newSchedule);
-                    setCronSchedule(newCron);
-                }} />
+                <ScheduleSelector onChange={(newSchedule, newCron) => { setSchedule(newSchedule); setCronSchedule(newCron); }} />
                 <div className="p-4 border rounded-lg">
                     <h3 className="font-semibold text-md mb-4">Modo de Sincronización</h3>
                     <RadioGroup value={syncMode} onValueChange={setSyncMode}>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="incremental" id="incremental" /><Label htmlFor="incremental">Incremental (Recomendado)</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="incremental" id="incremental" /><Label htmlFor="incremental">Incremental</Label></div>
                         <p className="text-xs text-muted-foreground pl-6">Solo sincroniza tareas nuevas o modificadas desde la última ejecución.</p>
                         <div className="flex items-center space-x-2"><RadioGroupItem value="full" id="full" /><Label htmlFor="full">Reemplazo Completo</Label></div>
                         <p className="text-xs text-muted-foreground pl-6">Borra todos los datos existentes en la tabla y los carga de nuevo.</p>
@@ -446,11 +422,8 @@ const AddSyncWizard = ({ onCancel }) => {
                 </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={goToPrevStep}><ArrowLeft className="h-4 w-4 mr-2" />Anterior</Button>
-                <Button onClick={handleFinalizeSync} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Guardar y Activar Sincronización
-                </Button>
+                <Button variant="outline" onClick={() => setStep(isFullSync ? 1 : 2)}><ArrowLeft className="h-4 w-4 mr-2" />Anterior</Button>
+                <Button onClick={handleFinalizeSync} disabled={isLoading}>{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Guardar y Activar Sincronización</Button>
             </CardFooter>
         </Card>
       )}
@@ -459,9 +432,7 @@ const AddSyncWizard = ({ onCancel }) => {
           <Dialog open={isColumnsModalOpen} onOpenChange={setIsColumnsModalOpen}>
             <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Configurar Columnas para: <span className="capitalize font-bold">{currentEditingItem?.typeName || currentEditingItem?.name}</span></DialogTitle><DialogDescription>Selecciona los campos para esta plantilla o lista.</DialogDescription></DialogHeader>
                 <div className="max-h-[50vh] overflow-y-auto p-1 pr-4">
-                {isModalLoading ? (
-                    <div className="flex items-center justify-center h-full"><Loader2 className="mr-2 h-6 w-6 animate-spin"/>Cargando campos...</div>
-                ) : (
+                {isModalLoading ? (<div className="flex items-center justify-center h-full"><Loader2 className="mr-2 h-6 w-6 animate-spin"/>Cargando...</div>) : (
                     fieldsForModal.map(group => ( group.fields.length > 0 && 
                         <div key={group.name} className="mb-4">
                             <h4 className="font-semibold text-sm mb-2 pb-1 border-b">{group.name}</h4>
@@ -470,15 +441,8 @@ const AddSyncWizard = ({ onCancel }) => {
                                     const isMandatory = MANDATORY_FIELDS.has(field.name);
                                     return (
                                         <div key={field.id} className="flex items-center space-x-2">
-                                            <Checkbox 
-                                                id={`field-${field.id}`} 
-                                                onCheckedChange={(checked) => handleFieldSelection(field.id, checked)}
-                                                checked={isMandatory || fieldMappings[currentEditingItem?.typeName || currentEditingItem?.id]?.has(field.id) || false}
-                                                disabled={isMandatory}
-                                            />
-                                            <Label htmlFor={`field-${field.id}`} className={`font-normal ${isMandatory ? 'text-muted-foreground' : ''}`}>
-                                                {field.name} {isMandatory && '(obligatorio)'}
-                                            </Label>
+                                            <Checkbox id={`field-${field.id}`} onCheckedChange={(checked) => handleFieldSelection(field.id, checked)} checked={isMandatory || fieldMappings[currentEditingItem?.typeName || currentEditingItem?.id]?.has(field.id) || false} disabled={isMandatory}/>
+                                            <Label htmlFor={`field-${field.id}`} className={`font-normal ${isMandatory ? 'text-muted-foreground' : ''}`}>{field.name} {isMandatory && '(obligatorio)'}</Label>
                                         </div>
                                     );
                                 })}
@@ -495,9 +459,9 @@ const AddSyncWizard = ({ onCancel }) => {
       {isTemplatesModalOpen && (
         <Dialog open={isTemplatesModalOpen} onOpenChange={setIsTemplatesModalOpen}>
             <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-                <DialogHeader><DialogTitle>Gestión de Plantillas de Listas</DialogTitle><DialogDescription>Vista expandida para gestionar todas las plantillas detectadas.</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>Gestión de Plantillas</DialogTitle><DialogDescription>Vista expandida para gestionar las plantillas detectadas.</DialogDescription></DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-4">
-                  <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={handleToggleListExclusion} onToggleActive={handleToggleActive} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} isModal={true} />
+                  <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={(listId, isExcluded) => setListExclusions(prev => { const next = new Set(prev); isExcluded ? next.add(listId) : next.delete(listId); return next; })} onToggleActive={handleToggleActive} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} isModal={true} />
                 </div>
                 <DialogFooter><Button onClick={() => setIsTemplatesModalOpen(false)}>Cerrar</Button></DialogFooter>
             </DialogContent>

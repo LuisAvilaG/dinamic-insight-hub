@@ -1,13 +1,15 @@
+// =====================================================================================
+// Supabase Edge Function: setup-sync-tables
+// v12: INVOCACIÓN ASÍNCRONA
+// OBJETIVO:
+// 1. Eliminar el 'await' al invocar la función de importación.
+// 2. Esto permite que la función de configuración responda inmediatamente al frontend,
+//    mientras que la importación de datos se ejecuta en segundo plano.
+// 3. Mejora drásticamente la experiencia de usuario, evitando largas esperas.
+// =====================================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { parseExpression } from 'https://esm.sh/cron-parser@4.9.0';
-
-// =====================================================================================
-// VERSIÓN 13 - GUARDAR NOMBRES DE WORKSPACE Y SPACE
-// PROPÓSITO:
-// 1. Aceptar y guardar `clickup_workspace_name` y `clickup_space_name` en la BBDD
-//    para mejorar la visualización en el frontend.
-// =====================================================================================
 
 const CLICKUP_TO_POSTGRE_TYPE_MAP = {
   'text': 'TEXT', 'string': 'TEXT', 'short_text': 'TEXT', 'url': 'TEXT',
@@ -22,41 +24,21 @@ const generateTableName = (syncName) => {
 };
 
 Deno.serve(async (req) => {
-  console.log('[setup-sync-tables] Function invoked.', { method: req.method });
-
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { syncConfig, mappings } = await req.json();
-    if (!syncConfig || !mappings) {
-      throw new Error('syncConfig and mappings are required in the request body.');
-    }
-    console.log('[setup-sync-tables] Received payload:', { syncConfig, mappings });
+    const { syncConfig, mappings, schedule, mode } = await req.json();
+    if (!syncConfig || !mappings) throw new Error('syncConfig and mappings are required.');
 
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    const authClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization')! } } });
     const { data: { user }, error: userError } = await authClient.auth.getUser();
-    if (userError || !user) throw new Error(`Authentication error: ${userError?.message ?? 'User not found'}`);
+    if (userError || !user) throw new Error(`Authentication error: ${userError?.message || 'User not found'}`);
     const userId = user.id;
-    console.log('[setup-sync-tables] User authenticated successfully.', { userId });
 
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const adminClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
     const tableName = generateTableName(syncConfig.name);
-    console.log('[setup-sync-tables] Generated table name:', { tableName });
-
-    let columnsSql = `
-      clickup_task_id TEXT PRIMARY KEY, clickup_list_id TEXT,
-      clickup_folder_id TEXT, clickup_space_id TEXT,
-    `;
+    let columnsSql = `clickup_task_id TEXT PRIMARY KEY, clickup_list_id TEXT, clickup_folder_id TEXT, clickup_space_id TEXT,\n`;
     if (mappings && Array.isArray(mappings.fields)) {
       mappings.fields.forEach(field => {
         const columnName = field.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
@@ -65,27 +47,21 @@ Deno.serve(async (req) => {
       });
     }
     columnsSql += `last_synced_at TIMESTAMPTZ DEFAULT NOW()`;
-    const createTableSql = `CREATE TABLE IF NOT EXISTS clickup_data.${tableName} (${columnsSql});`;
     
-    const { error: tableError } = await adminClient.rpc('execute_unrestricted_sql', { sql_command: createTableSql });
-    if (tableError) throw new Error(`DB RPC Error (execute_unrestricted_sql for create table): ${tableError.message}`);
-    console.log('[setup-sync-tables] Table creation successful.');
+    const createTableSql = `CREATE TABLE IF NOT EXISTS clickup_data."${tableName}" (${columnsSql});`;
+    await adminClient.rpc('execute_unrestricted_sql', { sql_command: createTableSql });
+    
+    const grantSql = `GRANT ALL ON TABLE clickup_data."${tableName}" TO service_role;`;
+    await adminClient.rpc('execute_unrestricted_sql', { sql_command: grantSql });
 
-    const clickupAdminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      { db: { schema: 'clickup' } }
-    );
+    const clickupAdminClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { db: { schema: 'clickup' } });
 
     let nextRunAt = null;
     if (syncConfig.cron_schedule) {
         try {
-            const interval = parseExpression(syncConfig.cron_schedule);
-            nextRunAt = interval.next().toISOString();
-            console.log(`[setup-sync-tables] Calculated next run at: ${nextRunAt}`);
+            nextRunAt = parseExpression(syncConfig.cron_schedule).next().toISOString();
         } catch (err) {
-            console.error(`[setup-sync-tables] Error parsing cron expression: ${err.message}`);
-            throw new Error(`Invalid cron schedule format: ${syncConfig.cron_schedule}`);
+            throw new Error(`Invalid cron schedule: ${syncConfig.cron_schedule}`);
         }
     }
 
@@ -100,71 +76,38 @@ Deno.serve(async (req) => {
       status: 'queued',
       is_active: true,
       cron_schedule: syncConfig.cron_schedule || null,
-      config: syncConfig.config || null,
+      config: {
+        schedule: schedule,
+        mappings: mappings,
+        mode: mode,
+        is_full_sync_fields: syncConfig.is_full_sync_fields,
+      },
       user_id: userId,
       next_run_at: nextRunAt,
     };
 
-    const { data: insertedData, error: insertError } = await clickupAdminClient
-      .from('sync_configs')
-      .insert(insertPayload)
-      .select('id')
-      .single();
-
-    if (insertError) {
-      console.error('[setup-sync-tables] DB Insert Error into clickup.sync_configs:', insertError);
-      throw new Error(`DB Insert Error (clickup.sync_configs): ${insertError.message}`);
-    }
-    console.log('[setup-sync-tables] Insert into clickup.sync_configs successful.', { insertedData });
-
+    const { data: insertedData, error: insertError } = await clickupAdminClient.from('sync_configs').insert(insertPayload).select('id').single();
+    if (insertError) throw new Error(`DB Insert Error (sync_configs): ${insertError.message}`);
     const syncId = insertedData.id;
 
     if (insertPayload.cron_schedule) {
         const functionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/import-clickup-full-be`;
         const cronPayload = JSON.stringify({ sync_id: syncId });
-        const cronHeaders = JSON.stringify({
-          "Authorization": `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          "Content-Type": "application/json"
-        });
+        const cronHeaders = JSON.stringify({ "Authorization": `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, "Content-Type": "application/json" });
         const cronCommand = `SELECT cron.schedule('sync-job-${syncId}', '${insertPayload.cron_schedule}', $$ SELECT net.http_post(url:='${functionUrl}', body:='${cronPayload}'::jsonb, headers:='${cronHeaders}'::jsonb) $$)`;
-        
-        const { error: cronError } = await adminClient.rpc('execute_unrestricted_sql', { sql_command: cronCommand });
-        if (cronError) console.error('[setup-sync-tables] CRON Job Scheduling failed:', cronError);
-        else console.log('[setup-sync-tables] CRON job scheduled successfully.');
+        await adminClient.rpc('execute_unrestricted_sql', { sql_command: cronCommand });
     }
 
-    console.log(`[setup-sync-tables] Invoking initial sync for sync_id: ${syncId}`);
-    await clickupAdminClient.from('sync_configs').update({ status: 'running' }).eq('id', syncId);
+    // --- CAMBIO CLAVE: INVOCACIÓN ASÍNCRONA ---
+    // No usamos 'await' para que la función responda inmediatamente.
+    adminClient.functions.invoke('import-clickup-full-be', { body: { sync_id: syncId } });
+    
+    // El estado se quedará como 'queued'. La función 'import-clickup-full-be' 
+    // es ahora responsable de actualizarlo a 'running' y luego a 'active' o 'failed'.
 
-    const { error: invokeError } = await adminClient.functions.invoke('import-clickup-full-be', {
-        body: { sync_id: syncId },
-    });
-
-    if (invokeError) {
-        console.error(`[setup-sync-tables] Initial sync invocation failed for sync_id: ${syncId}`, invokeError);
-        await clickupAdminClient.from('sync_configs').update({ 
-            status: 'failed',
-            last_run_status: 'error',
-            last_run_result: `Initial invocation failed: ${invokeError.message}`
-        }).eq('id', syncId);
-    } else {
-        console.log(`[setup-sync-tables] Initial sync invoked successfully for sync_id: ${syncId}`);
-    }
-
-    return new Response(JSON.stringify({ tableName: `clickup_data.${tableName}`, syncId: syncId }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    return new Response(JSON.stringify({ tableName: `clickup_data.${tableName}`, syncId: syncId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
   } catch (error) {
-    console.error('[setup-sync-tables] CATCH BLOCK ERROR:', { 
-      errorMessage: error.message, 
-      errorStack: error.stack,
-      fullError: error
-    });
-    return new Response(JSON.stringify({ error: 'An internal error occurred.', details: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: 'An internal error occurred.', details: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
