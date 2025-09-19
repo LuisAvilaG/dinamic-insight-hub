@@ -146,7 +146,8 @@ const AddSyncWizard = ({ onCancel }) => {
   const [isColumnsModalOpen, setIsColumnsModalOpen] = useState(false);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [currentEditingItem, setCurrentEditingItem] = useState(null); 
-  const [availableFields, setAvailableFields] = useState([]);
+  const [fieldsForModal, setFieldsForModal] = useState([]); // Renamed from availableFields
+  const [allAvailableFields, setAllAvailableFields] = useState(new Map()); // New state to store all unique fields
   const [fieldMappings, setFieldMappings] = useState({});
   const [activeMappings, setActiveMappings] = useState(new Set());
   const [listExclusions, setListExclusions] = useState(new Set());
@@ -239,7 +240,19 @@ const AddSyncWizard = ({ onCancel }) => {
           const sampleListId = item.sampleListId || item.id;
           const fields = await getClickUpFieldsFromSampleTask(token, sampleListId);
           
-          setAvailableFields([
+          // Update allAvailableFields (the master map)
+          setAllAvailableFields(prev => {
+              const newMap = new Map(prev);
+              fields.forEach(field => {
+                  if (!newMap.has(field.id)) {
+                      newMap.set(field.id, field);
+                  }
+              });
+              return newMap;
+          });
+
+          // Set fields for the modal
+          setFieldsForModal([
               { name: 'Campos Estándar', fields: fields.filter(f => f.custom === false) },
               { name: 'Campos Personalizados', fields: fields.filter(f => f.custom === true) }
           ]);
@@ -297,9 +310,39 @@ const AddSyncWizard = ({ onCancel }) => {
       });
   };
 
+  const handleToggleActive = (key, isActive) => {
+    setActiveMappings(prev => {
+        const next = new Set(prev);
+        isActive ? next.add(key) : next.delete(key);
+        return next;
+    });
+    // If deactivating a template/list, ensure its field mappings are cleared
+    if (!isActive) {
+        setFieldMappings(prev => {
+            const newMappings = { ...prev };
+            delete newMappings[key];
+            return newMappings;
+        });
+    }
+  };
+
+
   const handleFinalizeSync = async () => {
       console.log('%c[AddSyncWizard] Starting handleFinalizeSync...', 'color: green; font-weight: bold;');
       setIsLoading(true);
+
+      const finalFieldSelections = new Set();
+
+      // Collect all selected fields from active mappings
+      for (const [key, selectedFieldIds] of Object.entries(fieldMappings)) {
+          if (activeMappings.has(key)) { // Only include fields from active templates/lists
+              selectedFieldIds.forEach(fieldId => finalFieldSelections.add(fieldId));
+          }
+      }
+
+      // Construct the fields array from allAvailableFields based on finalFieldSelections
+      const selectedFieldsPayload = Array.from(finalFieldSelections).map(fieldId => allAvailableFields.get(fieldId));
+
 
       const payload = {
           syncConfig: {
@@ -312,7 +355,7 @@ const AddSyncWizard = ({ onCancel }) => {
               is_full_sync: isFullSync,
           },
           mappings: {
-              fields: availableFields.flatMap(group => group.fields) 
+              fields: selectedFieldsPayload.filter(Boolean) // Filter out any undefined if a fieldId somehow didn't map
           }
       };
 
@@ -373,7 +416,7 @@ const AddSyncWizard = ({ onCancel }) => {
             <CardContent className="space-y-6">
               <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md">Modo de Configuración</h3><div className="flex items-center justify-between"><Label htmlFor="template-mode-switch" className="flex flex-col space-y-1"><span>Detección Automática de Plantillas</span><span className="font-normal text-xs text-muted-foreground">Agrupa listas por nombre para una configuración más rápida.</span></Label><Switch id="template-mode-switch" checked={isTemplateMode} onCheckedChange={setIsTemplateMode} /></div></div>
               <Separator />
-              { isTemplateMode ? <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={handleToggleListExclusion} onToggleActive={(key, isActive) => setActiveMappings(prev => { const next = new Set(prev); isActive ? next.add(key) : next.delete(key); return next; })} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} onExpand={() => setIsTemplatesModalOpen(true)} /> : (
+              { isTemplateMode ? <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={handleToggleListExclusion} onToggleActive={handleToggleActive} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} onExpand={() => setIsTemplatesModalOpen(true)} /> : (
                 <div className="p-4 border rounded-lg"><h3 className="font-semibold text-md mb-2">Configuración Manual</h3><div className="space-y-2 max-h-60 overflow-y-auto pr-2">{allLists.map(list => (<div key={list.id} className="flex items-center justify-between p-3 border rounded-md"><div><p className="font-medium">{list.name}</p></div><div className="flex items-center space-x-4"><Button variant="outline" size="sm" onClick={() => handleConfigureColumns(list)} disabled={!activeMappings.has(list.id)}><Settings className="h-4 w-4 mr-2"/>Configurar</Button><Switch checked={activeMappings.has(list.id)} onCheckedChange={(checked) => handleToggleActive(list.id, checked)}/></div></div>))}</div></div>
               )}
               <Separator />
@@ -419,7 +462,7 @@ const AddSyncWizard = ({ onCancel }) => {
                 {isModalLoading ? (
                     <div className="flex items-center justify-center h-full"><Loader2 className="mr-2 h-6 w-6 animate-spin"/>Cargando campos...</div>
                 ) : (
-                    availableFields.map(group => ( group.fields.length > 0 && 
+                    fieldsForModal.map(group => ( group.fields.length > 0 && 
                         <div key={group.name} className="mb-4">
                             <h4 className="font-semibold text-sm mb-2 pb-1 border-b">{group.name}</h4>
                             <div className="space-y-2">
@@ -454,7 +497,7 @@ const AddSyncWizard = ({ onCancel }) => {
             <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
                 <DialogHeader><DialogTitle>Gestión de Plantillas de Listas</DialogTitle><DialogDescription>Vista expandida para gestionar todas las plantillas detectadas.</DialogDescription></DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-4">
-                  <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={handleToggleListExclusion} onToggleActive={(key, isActive) => setActiveMappings(prev => { const next = new Set(prev); isActive ? next.add(key) : next.delete(key); return next; })} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} isModal={true} />
+                  <TemplatesPanel listTypeGroups={listTypeGroups} activeMappings={activeMappings} onConfigure={handleConfigureColumns} listExclusions={listExclusions} onToggleListExclusion={handleToggleListExclusion} onToggleActive={handleToggleActive} onMoveList={handleMoveList} onSelectAll={() => setActiveMappings(new Set(listTypeGroups.map(g => g.typeName)))} onDeselectAll={() => setActiveMappings(new Set())} isModal={true} />
                 </div>
                 <DialogFooter><Button onClick={() => setIsTemplatesModalOpen(false)}>Cerrar</Button></DialogFooter>
             </DialogContent>
