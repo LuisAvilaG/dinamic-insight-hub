@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { RefreshCw, Trash2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Trash2, AlertTriangle, Briefcase, Clock } from 'lucide-react';
 
 const SyncHubPage = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -42,11 +42,14 @@ const SyncHubPage = () => {
     }
   };
 
-  const handleRetrySync = async (syncId) => {
-    toast({ title: "Iniciando sincronización manual...", description: `La sincronización ${syncId} ha sido puesta en cola.` });
-    setSyncs(prevSyncs => prevSyncs.map(s => s.id === syncId ? { ...s, status: 'running' } : s));
+  const handleRetrySync = async (sync) => {
+    const functionToInvoke = sync.sync_type === 'tasks' ? 'import-clickup-full-be' : 'import-clickup-time-entries';
+    
+    toast({ title: "Iniciando sincronización manual...", description: `La sincronización ${sync.id} ha sido puesta en cola.` });
+    setSyncs(prevSyncs => prevSyncs.map(s => s.id === sync.id ? { ...s, status: 'running' } : s));
+    
     try {
-      const { error } = await supabase.functions.invoke('import-clickup-full-be', { body: { sync_id: syncId } });
+      const { error } = await supabase.functions.invoke(functionToInvoke, { body: { sync_id: sync.id } });
       if (error) throw error;
       toast({ title: "Sincronización manual exitosa", description: "La sincronización se ha completado correctamente." });
     } catch (error) {
@@ -91,6 +94,7 @@ const SyncHubPage = () => {
   const renderSkeleton = () => (
     Array.from({ length: 3 }).map((_, index) => (
       <TableRow key={index}>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell><Skeleton className="h-4 w-40" /></TableCell>
         <TableCell><Skeleton className="h-4 w-52" /></TableCell>
         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -117,6 +121,7 @@ const SyncHubPage = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Fuente (ClickUp)</TableHead>
                   <TableHead>Estado</TableHead>
@@ -130,6 +135,12 @@ const SyncHubPage = () => {
                 {isLoading ? renderSkeleton() : (
                   syncs.length > 0 ? syncs.map((sync) => (
                     <TableRow key={sync.id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                           {sync.sync_type === 'tasks' ? <Briefcase className="h-4 w-4 text-muted-foreground" /> : <Clock className="h-4 w-4 text-muted-foreground" />}
+                           <span className="capitalize">{sync.sync_type === 'tasks' ? 'Tareas' : 'Tiempo'}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{sync.name}</TableCell>
                       <TableCell className="text-muted-foreground">{`${sync.clickup_workspace_name || ''} / ${sync.clickup_space_name || ''}`}</TableCell>
                       <TableCell>
@@ -146,14 +157,13 @@ const SyncHubPage = () => {
                       <TableCell className="text-muted-foreground">{sync.next_run_at ? format(new Date(sync.next_run_at), 'Pp') : 'N/A'}</TableCell>
                       <TableCell><Switch checked={sync.is_active} /></TableCell>
                       <TableCell className="space-x-2">
-                        {/* --- CAMBIO DE LÓGICA AQUÍ --- */}
-                        {sync.status !== 'running' && <Button variant="outline" size="sm" onClick={() => handleRetrySync(sync.id)}><RefreshCw className="h-4 w-4 mr-2" />Reintentar</Button>}
+                        {sync.status !== 'running' && <Button variant="outline" size="sm" onClick={() => handleRetrySync(sync)}><RefreshCw className="h-4 w-4 mr-2" />Reintentar</Button>}
                         {sync.status === 'running' && <Button variant="destructive" size="sm" onClick={() => handleForceReset(sync.id)}><AlertTriangle className="h-4 w-4 mr-2" />Forzar Detención</Button>}
                         <Button variant="destructive" size="sm" onClick={() => openDeleteConfirmation(sync)}><Trash2 className="h-4 w-4 mr-2" />Eliminar</Button>
                       </TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow><TableCell colSpan={7} className="h-24 text-center">No se encontraron sincronizaciones.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="h-24 text-center">No se encontraron sincronizaciones.</TableCell></TableRow>
                   )
                 )}
               </TableBody>
@@ -162,7 +172,15 @@ const SyncHubPage = () => {
         </Card>
       </div>
 
-      <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}><DialogContent className="max-w-2xl"><AddSyncWizard onCancel={handleCloseWizard} /></DialogContent></Dialog>
+      {/* --- CORRECCIÓN AQUÍ --- */}
+      <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Asistente de Nueva Sincronización</DialogTitle>
+          </DialogHeader>
+          <AddSyncWizard onCancel={handleCloseWizard} />
+        </DialogContent>
+      </Dialog>
       
       <Dialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
         <DialogContent>

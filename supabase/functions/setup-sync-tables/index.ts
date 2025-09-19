@@ -1,11 +1,12 @@
 // =====================================================================================
 // Supabase Edge Function: setup-sync-tables
-// v12: INVOCACIÓN ASÍNCRONA
+// v13: SOPORTE PARA TIPOS DE SINCRONIZACIÓN
 // OBJETIVO:
-// 1. Eliminar el 'await' al invocar la función de importación.
-// 2. Esto permite que la función de configuración responda inmediatamente al frontend,
-//    mientras que la importación de datos se ejecuta en segundo plano.
-// 3. Mejora drásticamente la experiencia de usuario, evitando largas esperas.
+// 1. Añadir un parámetro 'sync_type' al payload.
+// 2. Crear una estructura de tabla diferente si el tipo es 'time_entries'.
+// 3. Almacenar el 'sync_type' en la configuración de la base de datos.
+// 4. Invocar la Edge Function correcta ('import-clickup-full-be' o
+//    'import-clickup-time-entries') basado en el tipo.
 // =====================================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
@@ -27,8 +28,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { syncConfig, mappings, schedule, mode } = await req.json();
-    if (!syncConfig || !mappings) throw new Error('syncConfig and mappings are required.');
+    const { syncConfig, mappings, schedule, mode, sync_type } = await req.json();
+    if (!syncConfig || !sync_type) throw new Error('syncConfig and sync_type are required.');
 
     const authClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization')! } } });
     const { data: { user }, error: userError } = await authClient.auth.getUser();
@@ -36,17 +37,34 @@ Deno.serve(async (req) => {
     const userId = user.id;
 
     const adminClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-
     const tableName = generateTableName(syncConfig.name);
-    let columnsSql = `clickup_task_id TEXT PRIMARY KEY, clickup_list_id TEXT, clickup_folder_id TEXT, clickup_space_id TEXT,\n`;
-    if (mappings && Array.isArray(mappings.fields)) {
-      mappings.fields.forEach(field => {
-        const columnName = field.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-        const columnType = CLICKUP_TO_POSTGRE_TYPE_MAP[field.type] || 'TEXT';
-        columnsSql += `  "${columnName}" ${columnType},\n`;
-      });
+    let columnsSql = '';
+
+    if (sync_type === 'tasks') {
+        if (!mappings || !Array.isArray(mappings.fields)) throw new Error("Mappings are required for 'tasks' sync type.");
+        columnsSql = `clickup_task_id TEXT PRIMARY KEY, clickup_list_id TEXT, clickup_folder_id TEXT, clickup_space_id TEXT,\n`;
+        mappings.fields.forEach(field => {
+            const columnName = field.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+            const columnType = CLICKUP_TO_POSTGRE_TYPE_MAP[field.type] || 'TEXT';
+            columnsSql += `  "${columnName}" ${columnType},\n`;
+        });
+        columnsSql += `last_synced_at TIMESTAMPTZ DEFAULT NOW()`;
+    } else if (sync_type === 'time_entries') {
+        columnsSql = `
+            id TEXT PRIMARY KEY,
+            start_time TIMESTAMPTZ,
+            end_time TIMESTAMPTZ,
+            duration_ms BIGINT,
+            description TEXT,
+            clickup_user_id BIGINT,
+            clickup_task_id TEXT,
+            clickup_list_id TEXT,
+            clickup_space_id TEXT,
+            last_synced_at TIMESTAMPTZ DEFAULT NOW()
+        `;
+    } else {
+        throw new Error(`Unsupported sync_type: ${sync_type}`);
     }
-    columnsSql += `last_synced_at TIMESTAMPTZ DEFAULT NOW()`;
     
     const createTableSql = `CREATE TABLE IF NOT EXISTS clickup_data."${tableName}" (${columnsSql});`;
     await adminClient.rpc('execute_unrestricted_sql', { sql_command: createTableSql });
@@ -67,6 +85,7 @@ Deno.serve(async (req) => {
 
     const insertPayload = {
       name: syncConfig.name,
+      sync_type: sync_type,
       clickup_workspace_id: syncConfig.workspace,
       clickup_space_id: syncConfig.space,
       clickup_workspace_name: syncConfig.workspaceName,
@@ -78,9 +97,9 @@ Deno.serve(async (req) => {
       cron_schedule: syncConfig.cron_schedule || null,
       config: {
         schedule: schedule,
-        mappings: mappings,
+        mappings: mappings, // Can be null for time_entries
         mode: mode,
-        is_full_sync_fields: syncConfig.is_full_sync_fields,
+        time_sync_config: syncConfig.time_sync_config // New field for time entry specific settings
       },
       user_id: userId,
       next_run_at: nextRunAt,
@@ -90,20 +109,17 @@ Deno.serve(async (req) => {
     if (insertError) throw new Error(`DB Insert Error (sync_configs): ${insertError.message}`);
     const syncId = insertedData.id;
 
+    const functionToInvoke = sync_type === 'tasks' ? 'import-clickup-full-be' : 'import-clickup-time-entries';
+
     if (insertPayload.cron_schedule) {
-        const functionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/import-clickup-full-be`;
+        const functionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/${functionToInvoke}`;
         const cronPayload = JSON.stringify({ sync_id: syncId });
         const cronHeaders = JSON.stringify({ "Authorization": `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, "Content-Type": "application/json" });
         const cronCommand = `SELECT cron.schedule('sync-job-${syncId}', '${insertPayload.cron_schedule}', $$ SELECT net.http_post(url:='${functionUrl}', body:='${cronPayload}'::jsonb, headers:='${cronHeaders}'::jsonb) $$)`;
         await adminClient.rpc('execute_unrestricted_sql', { sql_command: cronCommand });
     }
 
-    // --- CAMBIO CLAVE: INVOCACIÓN ASÍNCRONA ---
-    // No usamos 'await' para que la función responda inmediatamente.
-    adminClient.functions.invoke('import-clickup-full-be', { body: { sync_id: syncId } });
-    
-    // El estado se quedará como 'queued'. La función 'import-clickup-full-be' 
-    // es ahora responsable de actualizarlo a 'running' y luego a 'active' o 'failed'.
+    adminClient.functions.invoke(functionToInvoke, { body: { sync_id: syncId } });
 
     return new Response(JSON.stringify({ tableName: `clickup_data.${tableName}`, syncId: syncId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 

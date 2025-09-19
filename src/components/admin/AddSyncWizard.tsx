@@ -279,7 +279,6 @@ const AddSyncWizard = ({ onCancel }) => {
   const handleFinalizeSync = async () => {
     setIsLoading(true);
   
-    // --- LÓGICA DE CONSTRUCCIÓN DE PAYLOAD MEJORADA ---
     const templates = [];
     let allSelectedFields = new Set();
   
@@ -297,7 +296,7 @@ const AddSyncWizard = ({ onCancel }) => {
           selectedFieldsForGroup.forEach(fieldId => allSelectedFields.add(fieldId));
         }
       }
-    } else { // Modo Manual
+    } else {
       const manualLists = [];
       for (const list of allLists) {
           if(activeMappings.has(list.id)){
@@ -316,8 +315,6 @@ const AddSyncWizard = ({ onCancel }) => {
     }
   
     if (isFullSync) {
-        // En modo Full Sync, nos aseguramos de tener todos los campos de todas las listas
-        // (independientemente de la selección) para crear una tabla "universal".
         const allFieldsPromises = allLists.map(list => getClickUpFieldsFromSampleTask(token, list.id).catch(() => []));
         const allFieldsArrays = await Promise.all(allFieldsPromises);
         const allFieldsMap = new Map();
@@ -346,14 +343,15 @@ const AddSyncWizard = ({ onCancel }) => {
         space: selectedSpace,
         spaceName: selectedSpaceObj?.name,
         cron_schedule: cronSchedule,
-        is_full_sync_fields: isFullSync, // Indica si la ESTRUCTURA de la tabla debe ser universal
+        is_full_sync_fields: isFullSync,
       },
       mappings: {
-        fields: finalFields, // La lista completa de campos únicos para la estructura de la tabla
-        templates: templates, // La estructura de plantillas con sus listas y campos específicos
+        fields: finalFields,
+        templates: templates,
       },
       schedule: schedule,
-      mode: syncMode, // 'incremental' o 'full' (reemplazo)
+      mode: syncMode,
+      sync_type: 'tasks' // Hardcoded for now
     };
   
     try {
