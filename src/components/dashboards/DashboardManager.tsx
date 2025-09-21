@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -7,19 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, PlusCircle, ChevronRight } from 'lucide-react';
+import { Loader2, PlusCircle, ChevronRight, Search, Briefcase, DollarSign, Users, Building, Zap, BarChart3 } from 'lucide-react';
 import { Tables } from '@/types/supabase';
 
-// El tipo de dato apunta a la definición de la tabla en el esquema be_exponential.
 type Dashboard = Tables<'report_dashboards', { schema: 'be_exponential' }>;
 
 const departmentOptions = [
-  "Operativo",
-  "Financiero",
-  "Consultoría",
-  "Directivo",
-  "Dinamic",
+  "Operativo", "Financiero", "Consultoría", "Directivo", "Dinamic",
 ];
+
+const departmentIcons: { [key: string]: React.ElementType } = {
+  Operativo: Briefcase,
+  Financiero: DollarSign,
+  Consultoría: Users,
+  Directivo: Building,
+  Dinamic: Zap,
+  default: BarChart3,
+};
+
+const DepartmentIcon = ({ department }: { department: string }) => {
+  const Icon = departmentIcons[department] || departmentIcons.default;
+  return <Icon className="w-6 h-6 text-white" />;
+};
+
 
 export const DashboardManager = () => {
   const { toast } = useToast();
@@ -27,6 +37,7 @@ export const DashboardManager = () => {
   const [newDashboard, setNewDashboard] = useState({ name: '', description: '', department: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchDashboards();
@@ -35,15 +46,12 @@ export const DashboardManager = () => {
   const fetchDashboards = async () => {
     setIsLoading(true);
     try {
-      // ---- CÓDIGO RESTAURADO ----
-      // Volvemos a usar la llamada RPC, que es la forma correcta según la arquitectura.
       const { data, error } = await supabase.rpc('get_dashboards');
       if (error) throw error;
       setDashboards(data || []);
     } catch (error: any) {
       toast({
         title: 'Error al cargar',
-        // El error "public.dashboards" viene de la ejecución de la RPC en el backend.
         description: 'No se pudieron cargar los dashboards: ' + error.message,
         variant: 'destructive',
       });
@@ -51,7 +59,7 @@ export const DashboardManager = () => {
       setIsLoading(false);
     }
   };
-
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewDashboard(prev => ({ ...prev, [name]: value }));
@@ -80,12 +88,9 @@ export const DashboardManager = () => {
           p_department: newDashboard.department 
         })
         .single();
-
       if (error) throw error;
-
       setDashboards(prev => [data, ...prev]);
       setNewDashboard({ name: '', description: '', department: '' });
-
       toast({
         title: '¡Éxito!',
         description: 'Dashboard creado correctamente.',
@@ -101,12 +106,18 @@ export const DashboardManager = () => {
       setIsSubmitting(false);
     }
   };
-  
+
+  const filteredDashboards = useMemo(() => {
+    return dashboards.filter(d =>
+      d.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [dashboards, searchQuery]);
+
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-8">
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Crear Nuevo Dashboard</CardTitle>
+          <CardTitle className="text-2xl font-bold">Crear Nuevo Dashboard</CardTitle>
           <CardDescription>
             Añade un nuevo dashboard, asignándole un nombre y un departamento.
           </CardDescription>
@@ -114,90 +125,64 @@ export const DashboardManager = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">Nombre del Dashboard</label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={newDashboard.name}
-                  onChange={handleInputChange}
-                  placeholder="Ej: Reporte de Ventas Q4"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="department" className="text-sm font-medium">Departamento</label>
-                <Select
-                  name="department"
-                  onValueChange={handleDepartmentChange}
-                  value={newDashboard.department}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger id="department">
-                    <SelectValue placeholder="Selecciona un departamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departmentOptions.map(option => (
-                      <SelectItem key={option} value={option}>{option}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+               <Input name="name" value={newDashboard.name} onChange={handleInputChange} placeholder="Nombre del Dashboard" disabled={isSubmitting} />
+               <Select name="department" onValueChange={handleDepartmentChange} value={newDashboard.department} disabled={isSubmitting}>
+                 <SelectTrigger><SelectValue placeholder="Selecciona un departamento" /></SelectTrigger>
+                 <SelectContent>{departmentOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+               </Select>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">Descripción (Opcional)</label>
-              <Textarea
-                id="description"
-                name="description"
-                value={newDashboard.description}
-                onChange={handleInputChange}
-                placeholder="Ej: Un resumen del rendimiento de ventas y KPIs clave para el último trimestre."
-                disabled={isSubmitting}
-                rows={3}
-              />
-            </div>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creando...
-                </>
-              ) : (
-                <>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Crear Dashboard
-                </>
-              )}
+            <Textarea name="description" value={newDashboard.description} onChange={handleInputChange} placeholder="Descripción (Opcional)" disabled={isSubmitting} rows={3} />
+            <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creando...</> : <><PlusCircle className="mr-2 h-4 w-4" /> Crear Dashboard</>}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Dashboards Existentes</CardTitle>
+          <CardTitle className="text-2xl font-bold">Dashboards Existentes</CardTitle>
           <CardDescription>
-            Selecciona un dashboard para ver sus detalles y añadirle widgets.
+            Busca y selecciona un dashboard para ver sus detalles y añadirle widgets.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 text-base"
+              />
             </div>
-          ) : dashboards.length === 0 ? (
-             <p className="text-center text-muted-foreground py-8">No hay dashboards creados todavía.</p>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
+          ) : filteredDashboards.length === 0 ? (
+             <p className="text-center text-muted-foreground py-12">
+               {searchQuery ? 'No se encontraron dashboards.' : 'No hay dashboards creados todavía.'}
+             </p>
           ) : (
-            <div className="space-y-2">
-              {dashboards.map(d => (
-                <Link to={`/admin/dashboards/${d.id}`} key={d.id} className="block p-4 bg-muted/50 rounded-lg transition-colors hover:bg-muted/90">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{d.name}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredDashboards.map(d => (
+                <Link to={`/admin/dashboards/${d.id}`} key={d.id} className="group block">
+                  <Card className="h-full transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 border-l-4 border-primary">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                          <DepartmentIcon department={d.department} />
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <h3 className="text-lg font-bold text-foreground truncate">{d.name}</h3>
                       <p className="text-sm text-muted-foreground">{d.department}</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
+                    </CardContent>
+                  </Card>
                 </Link>
               ))}
             </div>
