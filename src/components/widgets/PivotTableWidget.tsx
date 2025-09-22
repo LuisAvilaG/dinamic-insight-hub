@@ -34,6 +34,7 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
             }
 
             setIsLoading(true);
+            setError(null);
             try {
                 const { data, error } = await supabase.rpc('execute_query', { p_query: config.query });
                 if (error) throw error;
@@ -56,6 +57,8 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
         return <div className="text-red-500 p-4">{error}</div>;
     }
     
+    // **FIX**: The uniqueName for the measure must match the alias from the SQL query.
+    // The aggregation is done in the SQL, so WebDataRocks just needs to sum the pre-aggregated values.
     const report = {
         dataSource: {
             data: viewData
@@ -64,10 +67,14 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
             rows: config.rows?.map(r => ({ uniqueName: r })),
             columns: config.columns?.map(c => ({ uniqueName: c })),
             measures: config.measures?.map(m => ({
-                uniqueName: m.column,
-                aggregation: m.aggregation
+                uniqueName: `${m.aggregation}_of_${m.column}`,
+                aggregation: "sum" // Since data is pre-aggregated, sum works as a display mechanism.
             }))
-        }
+        },
+        formats: config.measures?.map(m => ({
+            name: `${m.aggregation}_of_${m.column}`,
+            caption: `${m.aggregation.charAt(0).toUpperCase() + m.aggregation.slice(1)} of ${m.column.split('.').pop()}`
+        }))
     };
 
     return (

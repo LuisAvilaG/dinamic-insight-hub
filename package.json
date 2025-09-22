@@ -13,6 +13,7 @@
   "dependencies": {
     "@balkangraph/orgchart.js": "^8.21.4",
     "@hookform/resolvers": "^3.9.0",
+    "@monaco-editor/react": "^4.7.0",
     "@nivo/bar": "^0.99.0",
     "@nivo/line": "^0.99.0",
     "@nivo/pie": "^0.99.0",

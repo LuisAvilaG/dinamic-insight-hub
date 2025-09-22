@@ -154,7 +154,13 @@ export const NewAddWidgetDialog = (props: any) => {
             const yAxisFinal = yAxis === '*' ? `COUNT(*)` : `${aggregation.toUpperCase()}("${yAxis}")`;
             query = `SELECT "${xAxis}", ${yAxisFinal} as value FROM (${subqueries.join(' UNION ALL ')}) as subquery GROUP BY "${xAxis}"`;
         }
-        else if (selectedWidgetType === 'pivot_table' && newConfig.tables?.length > 0 && newConfig.rows?.length > 0 && newConfig.measures?.length > 0) {
+        else if (
+            selectedWidgetType === 'pivot_table' && 
+            newConfig.tables?.length > 0 &&
+            (newConfig.rows?.length > 0 || newConfig.columns?.length > 0) && // <-- FIX: Allow rows OR columns
+            newConfig.measures?.length > 0 &&
+            newConfig.measures.every((m: any) => m.column)
+        ) {
             const allFields = [...newConfig.rows, ...(newConfig.columns || []), ...newConfig.measures.map((m: any) => m.column)];
             const subqueries = newConfig.tables.map((table: string) => {
                 const [schema, tableName] = table.split('.');
@@ -206,57 +212,78 @@ export const NewAddWidgetDialog = (props: any) => {
   );
 };
 
-const ConfigScreenLayout = ({ title, config, onConfigChange, children, previewWidget }: any) => (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 h-full">
-        <div className="md:col-span-4 h-full flex flex-col">
+const ConfigScreenLayout = ({ title, children, previewWidget }: any) => (
+    <div className="flex flex-col md:flex-row gap-8 h-full">
+        {/* Columna de Configuración (Scrollable) */}
+        <div className="md:w-2/5 h-full flex flex-col"> {/* <-- FIX: Adjusted width */}
             <h3 className="font-semibold text-lg border-b pb-2 flex-shrink-0">{title}</h3>
-            <div className="flex-grow mt-4 overflow-y-auto pr-4">
-                <div className="space-y-2">
-                    <Label>Nombre del Widget</Label>
-                    <Input value={config.name || ''} onChange={(e) => onConfigChange({ name: e.target.value })}/>
-                </div>
-                <div className="pt-4">
-                    {children}
-                </div>
+            <div className="flex-grow mt-4 overflow-y-auto pr-4 custom-scrollbar"> {/* <-- FIX: Added custom scrollbar class */}
+                {children}
             </div>
         </div>
-        <div className="md:col-span-8 space-y-6 flex flex-col">
+        {/* Columna de Vista Previa */}
+        <div className="md:w-3/5 flex flex-col"> {/* <-- FIX: Adjusted width */}
             <h3 className="font-semibold text-lg border-b pb-2">Vista Previa</h3>
-            <div className="p-4 bg-slate-50 rounded-lg flex-grow">
+            <div className="p-4 bg-slate-50 rounded-lg flex-grow mt-4">
                 {previewWidget}
             </div>
         </div>
     </div>
 );
 
+
 const DataTableConfigScreen = ({ config, onConfigChange }: any) => (
     <ConfigScreenLayout 
         title="Configurar Tabla de Datos" 
-        config={config} 
-        onConfigChange={onConfigChange} 
         previewWidget={<DataTableWidget key={config.query} widget={{ config }} isPreview={true} />}
     >
-        <DataTableConfig config={config} onChange={onConfigChange} />
+        <div className="space-y-2 mb-4">
+            <Label>Nombre del Widget</Label>
+            <Input value={config.name || ''} onChange={(e) => onConfigChange({ ...config, name: e.target.value })}/>
+        </div>
+        <DataTableConfig config={config} onChange={(newConf) => onConfigChange({ ...config, ...newConf })} />
     </ConfigScreenLayout>
 );
 
 const KpiConfigScreen = ({ config, onConfigChange }: any) => (
-    <ConfigScreenLayout title="Configurar KPI" config={config} onConfigChange={onConfigChange} previewWidget={<KpiWidget widget={{ config }} />}>
-        <KpiConfig config={config} onChange={onConfigChange} />
+    <ConfigScreenLayout 
+        title="Configurar KPI" 
+        previewWidget={<KpiWidget widget={{ config }} />}
+    >
+        <div className="space-y-2 mb-4">
+            <Label>Nombre del Widget</Label>
+            <Input value={config.name || ''} onChange={(e) => onConfigChange({ ...config, name: e.target.value })}/>
+        </div>
+        <KpiConfig config={config} onChange={(newConf) => onConfigChange({ ...config, ...newConf })} />
     </ConfigScreenLayout>
 );
 
 const BarChartConfigScreen = ({ config, onConfigChange }: any) => (
-    <ConfigScreenLayout title="Configurar Gráfico de Barras" config={config} onConfigChange={onConfigChange} previewWidget={<BarChartWidget widget={{ config }} />}>
-        <BarChartConfig config={config} onChange={onConfigChange} />
+    <ConfigScreenLayout 
+        title="Configurar Gráfico de Barras" 
+        previewWidget={<BarChartWidget widget={{ config }} />}
+    >
+        <div className="space-y-2 mb-4">
+            <Label>Nombre del Widget</Label>
+            <Input value={config.name || ''} onChange={(e) => onConfigChange({ ...config, name: e.target.value })}/>
+        </div>
+        <BarChartConfig config={config} onChange={(newConf) => onConfigChange({ ...config, ...newConf })} />
     </ConfigScreenLayout>
 );
 
 const PivotTableConfigScreen = ({ config, onConfigChange }: any) => (
-    <ConfigScreenLayout title="Configurar Tabla Dinámica" config={config} onConfigChange={onConfigChange} previewWidget={<PivotTableWidget widget={{ config }} isPreview={true} />}>
-        <PivotTableConfig config={config} onChange={onConfigChange} />
+    <ConfigScreenLayout 
+        title="Configurar Tabla Dinámica" 
+        previewWidget={<PivotTableWidget widget={{ config }} isPreview={true} />}
+    >
+        <div className="space-y-2 mb-4">
+            <Label>Nombre del Widget</Label>
+            <Input value={config.name || ''} onChange={(e) => onConfigChange({ ...config, name: e.target.value })}/>
+        </div>
+        <PivotTableConfig config={config} onChange={(newConf) => onConfigChange({ ...config, ...newConf })} />
     </ConfigScreenLayout>
 );
+
 
 const WidgetTypeSelector = ({ onSelect }: any) => (
   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4">

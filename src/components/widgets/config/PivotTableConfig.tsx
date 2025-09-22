@@ -4,12 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { MultiSelect } from '@/components/ui/multi-select'; 
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, CheckCircle, XCircle, ClipboardCopy } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import Editor, { OnMount } from '@monaco-editor/react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PivotTableConfigProps {
     config: any;
@@ -71,9 +77,15 @@ export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onCh
         handleUpdate('measures', [...measures, newMeasure]);
     };
 
-    const updateMeasure = (index: number, newMeasure: any) => {
+    const updateMeasure = (index: number, key: 'column' | 'aggregation', value: string) => {
         const newMeasures = [...measures];
-        newMeasures[index] = newMeasure;
+        const oldAggregation = newMeasures[index].aggregation;
+        newMeasures[index] = { ...newMeasures[index], [key]: value };
+
+        if (key === 'aggregation' && value !== oldAggregation) {
+            newMeasures[index].column = '';
+        }
+
         handleUpdate('measures', newMeasures);
     };
 
@@ -101,13 +113,21 @@ export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onCh
                     <div>
                         <Label>Medidas (Measures)</Label>
                         <div className="space-y-2 rounded-md border p-2">
-                            {measures.map((measure: any, index: number) => (
+                            {measures.map((measure: any, index: number) => {
+                                const columnOptions = measure.aggregation === 'count' ? availableColumns : numericColumns;
+                                return (
                                 <div key={index} className="flex items-center gap-2">
-                                    <Select value={measure.column} onValueChange={(v) => updateMeasure(index, { ...measure, column: v })}>
+                                    <Select 
+                                        value={measure.column} 
+                                        onValueChange={(v) => updateMeasure(index, 'column', v)}
+                                    >
                                         <SelectTrigger><SelectValue placeholder="Columna..." /></SelectTrigger>
-                                        <SelectContent>{numericColumns.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{columnOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                                     </Select>
-                                    <Select value={measure.aggregation} onValueChange={(v) => updateMeasure(index, { ...measure, aggregation: v })}>
+                                    <Select 
+                                        value={measure.aggregation} 
+                                        onValueChange={(v) => updateMeasure(index, 'aggregation', v)}
+                                    >
                                         <SelectTrigger><SelectValue placeholder="Agregación..." /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="sum">Suma</SelectItem>
@@ -117,7 +137,8 @@ export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onCh
                                     </Select>
                                     <Button variant="ghost" size="icon" onClick={() => removeMeasure(index)}><Trash2 className="h-4 w-4 text-red-500"/></Button>
                                 </div>
-                            ))}
+                                );
+                            })}
                             <Button variant="outline" size="sm" className="w-full" onClick={addMeasure}><PlusCircle className="h-4 w-4 mr-2"/>Añadir Medida</Button>
                         </div>
                     </div>
@@ -132,6 +153,7 @@ export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onCh
                             </DialogTrigger>
                             <CreateEditFieldModal 
                                 selectedTables={selectedTables} 
+                                availableColumns={availableColumns}
                                 onSave={() => {
                                     fetchAllColumns();
                                     setIsModalOpen(false);
@@ -145,14 +167,48 @@ export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onCh
     );
 };
 
-// ... (CreateEditFieldModal sigue siendo el mismo)
-const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: string[], onSave: () => void }) => {
+
+const CreateEditFieldModal = ({ selectedTables, availableColumns, onSave }: { selectedTables: string[], availableColumns: {value: string, label: string}[], onSave: () => void }) => {
     const [name, setName] = useState('');
     const [expression, setExpression] = useState('');
     const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
     const [validationError, setValidationError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
+
+    const handleEditorMount: OnMount = (editor, monaco) => {
+        const keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'AS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL'];
+        const functions = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX', 'CAST'];
+        
+        const columnSuggestions = availableColumns.map(col => ({
+            label: `"${col.label}"`,
+            kind: monaco.languages.CompletionItemKind.Field,
+            insertText: `"${col.value}"`,
+            documentation: `Columna de tabla`
+        }));
+
+        const keywordSuggestions = keywords.map(keyword => ({
+            label: keyword,
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: keyword,
+        }));
+        
+        const functionSuggestions = functions.map(func => ({
+            label: `${func}()`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: `${func}($1)`,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            documentation: `Función SQL ${func}`
+        }));
+
+        monaco.languages.registerCompletionItemProvider('sql', {
+            provideCompletionItems: (model, position) => {
+                return {
+                    suggestions: [...columnSuggestions, ...keywordSuggestions, ...functionSuggestions],
+                };
+            },
+        });
+    };
 
     const handleValidate = async () => {
         if (!expression) {
@@ -208,35 +264,73 @@ const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: stri
         }
         setIsSaving(false);
     };
+    
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(`"${text}"`);
+        toast({ title: "Copiado", description: `"${text}" copiado al portapapeles.`});
+    };
 
     return (
-        <DialogContent>
+        <DialogContent className="max-w-4xl">
             <DialogHeader>
                 <DialogTitle>Crear Nuevo Campo Calculado</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="name">Nombre del Campo</Label>
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tareas Completadas" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="expression">Expresión SQL</Label>
-                    <Textarea id="expression" value={expression} onChange={(e) => { setExpression(e.target.value); setValidationStatus('idle'); }} placeholder="CASE WHEN status = 'complete' THEN 1 ELSE 0 END" />
-                </div>
-                
-                {validationStatus === 'invalid' && (
-                    <div className="flex items-center text-red-600">
-                        <XCircle className="h-4 w-4 mr-2"/>
-                        <p className="text-sm">{validationError}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
+                <div className="md:col-span-1">
+                    <h4 className="font-semibold mb-2">Columnas Disponibles</h4>
+                    <div className="h-64 overflow-y-auto border rounded-md p-2 bg-slate-50 custom-scrollbar">
+                        <TooltipProvider>
+                            <ul className="space-y-1">
+                                {availableColumns.map(col => (
+                                    <li key={col.value} className="flex justify-between items-center text-sm p-1 rounded hover:bg-slate-200">
+                                        <Tooltip delayDuration={300}>
+                                            <TooltipTrigger asChild>
+                                                <span className="truncate cursor-default">{col.label}</span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{col.label}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => copyToClipboard(col.value)}>
+                                            <ClipboardCopy className="h-4 w-4"/>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </TooltipProvider>
                     </div>
-                )}
-                {validationStatus === 'valid' && (
-                     <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-4 w-4 mr-2"/>
-                        <p className="text-sm">La expresión es válida.</p>
+                </div>
+                <div className="md:col-span-2 space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nombre del Campo</Label>
+                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Margen de Beneficio" />
                     </div>
-                )}
-
+                    <div className="space-y-2">
+                        <Label htmlFor="expression">Expresión SQL</Label>
+                        <div className="border rounded-md">
+                            <Editor
+                                height="155px"
+                                defaultLanguage="sql"
+                                value={expression}
+                                onChange={(value) => { setExpression(value || ''); setValidationStatus('idle'); }}
+                                onMount={handleEditorMount}
+                                options={{ minimap: { enabled: false }, scrollbar: { verticalScrollbarSize: 5 }, 'semanticHighlighting.enabled': true }}
+                            />
+                        </div>
+                    </div>
+                     {validationStatus === 'invalid' && (
+                        <div className="flex items-center text-red-600">
+                            <XCircle className="h-4 w-4 mr-2"/>
+                            <p className="text-sm">{validationError}</p>
+                        </div>
+                    )}
+                    {validationStatus === 'valid' && (
+                         <div className="flex items-center text-green-600">
+                            <CheckCircle className="h-4 w-4 mr-2"/>
+                            <p className="text-sm">La expresión es válida.</p>
+                        </div>
+                    )}
+                </div>
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={handleValidate} disabled={validationStatus === 'validating'}>
