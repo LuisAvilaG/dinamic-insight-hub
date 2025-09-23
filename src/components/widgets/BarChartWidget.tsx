@@ -14,7 +14,7 @@ interface BarChartWidgetProps {
 
 export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
   const { config } = widget;
-  const { name, query, xAxis, yAxis } = config as any;
+  const { name, query, xAxis, yAxis } = config as any; 
   
   const [chartData, setChartData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,8 +23,9 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
   useEffect(() => {
     const fetchChartData = async () => {
       if (!query) {
-        setError('Configuración incompleta del widget.');
+        setError(null); 
         setIsLoading(false);
+        setChartData([]);
         return;
       }
       
@@ -49,6 +50,7 @@ export const BarChartWidget = ({ widget }: BarChartWidgetProps) => {
   const renderContent = () => {
     if (isLoading) return <Loader2 className="h-8 w-8 mx-auto animate-spin text-slate-400" />;
     if (error) return <p className="text-xs text-red-500 text-center px-2">{error}</p>;
+    if (!query && !isLoading) return <p className="text-sm text-slate-400 text-center">Configure el gráfico para ver los datos.</p>;
     if (chartData.length === 0) return <p className="text-sm text-slate-400 text-center">No hay datos para mostrar.</p>;
 
     return (

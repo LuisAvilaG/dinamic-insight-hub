@@ -58,18 +58,18 @@
   {
     "schema": "be_exponential",
     "function_name": "update_widget_config_and_type",
-    "arguments": "p_widget_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb",
-    "return_type": "void",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION be_exponential.update_widget_config_and_type(p_widget_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    UPDATE be_exponential.report_widgets\n    SET\n        widget_type = p_widget_type,\n        config = p_config,\n        layout = p_layout\n    WHERE\n        id = p_widget_id;\nEND;\n$function$\n"
-  },
-  {
-    "schema": "be_exponential",
-    "function_name": "update_widget_config_and_type",
     "arguments": "p_widget_id uuid, p_widget_type text, p_config jsonb",
     "return_type": "void",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION be_exponential.update_widget_config_and_type(p_widget_id uuid, p_widget_type text, p_config jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    UPDATE be_exponential.report_widgets\n    SET\n        type = p_widget_type,\n        config = p_config,\n        title = p_config->>'title',\n        query = p_config->>'query'\n    WHERE id = p_widget_id;\nEND;\n$function$\n"
+  },
+  {
+    "schema": "be_exponential",
+    "function_name": "update_widget_config_and_type",
+    "arguments": "p_widget_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION be_exponential.update_widget_config_and_type(p_widget_id uuid, p_widget_type text, p_config jsonb, p_layout jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    UPDATE be_exponential.report_widgets\n    SET\n        widget_type = p_widget_type,\n        config = p_config,\n        layout = p_layout\n    WHERE\n        id = p_widget_id;\nEND;\n$function$\n"
   },
   {
     "schema": "be_exponential",
@@ -186,26 +186,18 @@
   {
     "schema": "cron",
     "function_name": "unschedule",
-    "arguments": "job_name text",
-    "return_type": "boolean",
-    "description": "unschedule a pg_cron job",
-    "definition": "CREATE OR REPLACE FUNCTION cron.unschedule(job_name text)\n RETURNS boolean\n LANGUAGE c\n STRICT\nAS '$libdir/pg_cron', $function$cron_unschedule_named$function$\n"
-  },
-  {
-    "schema": "cron",
-    "function_name": "unschedule",
     "arguments": "job_id bigint",
     "return_type": "boolean",
     "description": "unschedule a pg_cron job",
     "definition": "CREATE OR REPLACE FUNCTION cron.unschedule(job_id bigint)\n RETURNS boolean\n LANGUAGE c\n STRICT\nAS '$libdir/pg_cron', $function$cron_unschedule$function$\n"
   },
   {
-    "schema": "extensions",
-    "function_name": "armor",
-    "arguments": "bytea",
-    "return_type": "text",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
+    "schema": "cron",
+    "function_name": "unschedule",
+    "arguments": "job_name text",
+    "return_type": "boolean",
+    "description": "unschedule a pg_cron job",
+    "definition": "CREATE OR REPLACE FUNCTION cron.unschedule(job_name text)\n RETURNS boolean\n LANGUAGE c\n STRICT\nAS '$libdir/pg_cron', $function$cron_unschedule_named$function$\n"
   },
   {
     "schema": "extensions",
@@ -214,6 +206,14 @@
     "return_type": "text",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea, text[], text[])\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "armor",
+    "arguments": "bytea",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
   },
   {
     "schema": "extensions",
@@ -298,18 +298,18 @@
   {
     "schema": "extensions",
     "function_name": "gen_salt",
-    "arguments": "text, integer",
-    "return_type": "text",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text, integer)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$\n"
-  },
-  {
-    "schema": "extensions",
-    "function_name": "gen_salt",
     "arguments": "text",
     "return_type": "text",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "gen_salt",
+    "arguments": "text, integer",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text, integer)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$\n"
   },
   {
     "schema": "extensions",
@@ -338,18 +338,18 @@
   {
     "schema": "extensions",
     "function_name": "hmac",
-    "arguments": "text, text, text",
-    "return_type": "bytea",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.hmac(text, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
-  },
-  {
-    "schema": "extensions",
-    "function_name": "hmac",
     "arguments": "bytea, bytea, text",
     "return_type": "bytea",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION extensions.hmac(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "hmac",
+    "arguments": "text, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.hmac(text, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
   },
   {
     "schema": "extensions",
@@ -394,14 +394,6 @@
   {
     "schema": "extensions",
     "function_name": "pgp_pub_decrypt",
-    "arguments": "bytea, bytea, text",
-    "return_type": "text",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
-  },
-  {
-    "schema": "extensions",
-    "function_name": "pgp_pub_decrypt",
     "arguments": "bytea, bytea",
     "return_type": "text",
     "description": null,
@@ -414,6 +406,22 @@
     "return_type": "text",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt",
+    "arguments": "bytea, bytea, text",
+    "return_type": "text",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_pub_decrypt_bytea",
+    "arguments": "bytea, bytea",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
   },
   {
     "schema": "extensions",
@@ -430,14 +438,6 @@
     "return_type": "bytea",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
-  },
-  {
-    "schema": "extensions",
-    "function_name": "pgp_pub_decrypt_bytea",
-    "arguments": "bytea, bytea",
-    "return_type": "bytea",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
   },
   {
     "schema": "extensions",
@@ -490,14 +490,6 @@
   {
     "schema": "extensions",
     "function_name": "pgp_sym_decrypt_bytea",
-    "arguments": "bytea, text, text",
-    "return_type": "bytea",
-    "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
-  },
-  {
-    "schema": "extensions",
-    "function_name": "pgp_sym_decrypt_bytea",
     "arguments": "bytea, text",
     "return_type": "bytea",
     "description": null,
@@ -505,11 +497,11 @@
   },
   {
     "schema": "extensions",
-    "function_name": "pgp_sym_encrypt",
-    "arguments": "text, text, text",
+    "function_name": "pgp_sym_decrypt_bytea",
+    "arguments": "bytea, text, text",
     "return_type": "bytea",
     "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt(text, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
   },
   {
     "schema": "extensions",
@@ -521,11 +513,11 @@
   },
   {
     "schema": "extensions",
-    "function_name": "pgp_sym_encrypt_bytea",
-    "arguments": "bytea, text, text",
+    "function_name": "pgp_sym_encrypt",
+    "arguments": "text, text, text",
     "return_type": "bytea",
     "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt(text, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
   },
   {
     "schema": "extensions",
@@ -534,6 +526,14 @@
     "return_type": "bytea",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
+  },
+  {
+    "schema": "extensions",
+    "function_name": "pgp_sym_encrypt_bytea",
+    "arguments": "bytea, text, text",
+    "return_type": "bytea",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
   },
   {
     "schema": "extensions",
@@ -817,6 +817,14 @@
   },
   {
     "schema": "public",
+    "function_name": "create_calculated_field",
+    "arguments": "p_name text, p_expression text, p_tables_used text[]",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.create_calculated_field(p_name text, p_expression text, p_tables_used text[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  -- La función inserta en la tabla correcta usando el ID del usuario autenticado.\r\n  -- Esto respeta las políticas de RLS existentes que aseguran que un usuario\r\n  -- solo puede crear campos para sí mismo.\r\n  INSERT INTO be_exponential.calculated_fields(name, expression, tables_used, user_id)\r\n  VALUES(p_name, p_expression, p_tables_used, auth.uid());\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
     "function_name": "create_dashboard",
     "arguments": "p_name text, p_description text, p_department text",
     "return_type": "be_exponential.report_dashboards",
@@ -865,6 +873,30 @@
   },
   {
     "schema": "public",
+    "function_name": "execute_unrestricted_sql",
+    "arguments": "sql_command text",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.execute_unrestricted_sql(sql_command text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  EXECUTE sql_command;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "force_reset_sync_status",
+    "arguments": "sync_id_to_reset uuid",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.force_reset_sync_status(sync_id_to_reset uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  -- We are using the clickup schema, so we need to set the search path\r\n  -- The security definer context will ensure permissions.\r\n  SET search_path = clickup;\r\n\r\n  UPDATE sync_configs\r\n  SET\r\n    status = 'failed',\r\n    last_run_result = 'Manually reset by user from a stuck \"running\" state.'\r\n  WHERE id = sync_id_to_reset AND status = 'running';\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_all_sync_configs",
+    "arguments": "",
+    "return_type": "SETOF clickup.sync_configs",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_all_sync_configs()\n RETURNS SETOF clickup.sync_configs\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  RETURN QUERY SELECT * FROM clickup.sync_configs ORDER BY created_at DESC;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
     "function_name": "get_calculated_fields",
     "arguments": "",
     "return_type": "TABLE(id uuid, name text, expression text, tables_used text[], user_id uuid, created_at timestamp with time zone, updated_at timestamp with time zone)",
@@ -877,7 +909,7 @@
     "arguments": "p_tables text[]",
     "return_type": "TABLE(display_name text, schema_name text, table_name text, column_name text, data_type text)",
     "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION public.get_columns_from_tables(p_tables text[])\n RETURNS TABLE(display_name text, schema_name text, table_name text, column_name text, data_type text)\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    table_identifier TEXT;\r\n    schema_part TEXT;\r\n    table_part TEXT;\r\nBEGIN\r\n    -- Iterar sobre cada identificador de tabla en el array de entrada (ej: 'be_exponential.tasks')\r\n    FOREACH table_identifier IN ARRAY p_tables\r\n    LOOP\r\n        -- Separar el esquema y el nombre de la tabla\r\n        schema_part := SPLIT_PART(table_identifier, '.', 1);\r\n        table_part := SPLIT_PART(table_identifier, '.', 2);\r\n\r\n        -- Unir con information_schema.columns para obtener las columnas de la tabla actual\r\n        RETURN QUERY\r\n        SELECT\r\n            -- Crear el nombre de visualización único, ej: 'tasks.status'\r\n            table_part || '.' || c.column_name AS display_name,\r\n            c.table_schema::TEXT AS schema_name,\r\n            c.table_name::TEXT AS table_name,\r\n            c.column_name::TEXT AS column_name,\r\n            c.data_type::TEXT AS data_type\r\n        FROM\r\n            information_schema.columns c\r\n        WHERE\r\n            c.table_schema = schema_part\r\n            AND c.table_name = table_part;\r\n    END LOOP;\r\nEND;\r\n$function$\n"
+    "definition": "CREATE OR REPLACE FUNCTION public.get_columns_from_tables(p_tables text[])\n RETURNS TABLE(display_name text, schema_name text, table_name text, column_name text, data_type text)\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    table_identifier TEXT;\r\n    schema_part TEXT;\r\n    table_part TEXT;\r\nBEGIN\r\n    FOREACH table_identifier IN ARRAY p_tables\r\n    LOOP\r\n        schema_part := SPLIT_PART(table_identifier, '.', 1);\r\n        table_part := SPLIT_PART(table_identifier, '.', 2);\r\n\r\n        RETURN QUERY\r\n        SELECT\r\n            -- FIX: Incluir el nombre del esquema en el display_name para consistencia.\r\n            table_identifier || '.' || c.column_name AS display_name,\r\n            c.table_schema::TEXT AS schema_name,\r\n            c.table_name::TEXT AS table_name,\r\n            c.column_name::TEXT AS column_name,\r\n            c.data_type::TEXT AS data_type\r\n        FROM\r\n            information_schema.columns c\r\n        WHERE\r\n            c.table_schema = schema_part\r\n            AND c.table_name = table_part;\r\n    END LOOP;\r\nEND;\r\n$function$\n"
   },
   {
     "schema": "public",
@@ -902,6 +934,14 @@
     "return_type": "SETOF be_exponential.report_dashboards",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION public.get_dashboards()\n RETURNS SETOF be_exponential.report_dashboards\n LANGUAGE sql\n STABLE\nAS $function$\n  -- Consulta la tabla correcta en el esquema correcto.\n  SELECT * FROM be_exponential.report_dashboards ORDER BY created_at DESC;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_dashboards_by_department",
+    "arguments": "p_department text",
+    "return_type": "TABLE(id uuid, name text, description text, department text, created_at timestamp with time zone, updated_at timestamp with time zone)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_dashboards_by_department(p_department text)\n RETURNS TABLE(id uuid, name text, description text, department text, created_at timestamp with time zone, updated_at timestamp with time zone)\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  RETURN QUERY\r\n  SELECT\r\n    t.id,\r\n    t.name,\r\n    t.description,\r\n    t.department,\r\n    t.created_at,\r\n    t.updated_at\r\n  FROM be_exponential.report_dashboards AS t\r\n  WHERE t.department = p_department\r\n  ORDER BY t.updated_at DESC;\r\nEND;\r\n$function$\n"
   },
   {
     "schema": "public",
@@ -966,6 +1006,14 @@
     "return_type": "TABLE(column_name text, data_type text)",
     "description": null,
     "definition": "CREATE OR REPLACE FUNCTION public.get_table_columns(p_schema_name text, p_table_name text)\n RETURNS TABLE(column_name text, data_type text)\n LANGUAGE sql\n STABLE\nAS $function$\n  SELECT c.column_name::text, c.data_type::text\n  FROM information_schema.columns c\n  WHERE c.table_schema = p_schema_name\n    AND c.table_name = p_table_name\n  ORDER BY c.ordinal_position;\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "function_name": "get_user_clickup_token",
+    "arguments": "",
+    "return_type": "TABLE(api_token text)",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.get_user_clickup_token()\n RETURNS TABLE(api_token text)\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  RETURN QUERY\r\n  SELECT t.api_token\r\n  FROM clickup.user_clickup_tokens t\r\n  WHERE t.user_id = auth.uid();\r\nEND;\r\n$function$\n"
   },
   {
     "schema": "public",
@@ -1049,6 +1097,14 @@
   },
   {
     "schema": "public",
+    "function_name": "save_user_clickup_token",
+    "arguments": "api_token_value text",
+    "return_type": "void",
+    "description": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.save_user_clickup_token(api_token_value text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  INSERT INTO clickup.user_clickup_tokens (user_id, api_token)\r\n  VALUES (auth.uid(), api_token_value)\r\n  ON CONFLICT (user_id)\r\n  DO UPDATE SET api_token = EXCLUDED.api_token, updated_at = NOW();\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
     "function_name": "set_current_timestamp_updated_at",
     "arguments": "",
     "return_type": "trigger",
@@ -1117,7 +1173,7 @@
     "arguments": "p_expression text, p_tables text[]",
     "return_type": "json",
     "description": null,
-    "definition": "CREATE OR REPLACE FUNCTION public.validate_sql_expression(p_expression text, p_tables text[])\n RETURNS json\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    subquery TEXT;\r\n    final_query TEXT;\r\n    table_identifier TEXT;\r\n    schema_part TEXT;\r\n    table_part TEXT;\r\n    select_clauses TEXT[];\r\nBEGIN\r\n    -- Construir una subconsulta UNION ALL para simular la estructura de datos\r\n    -- a partir de la cual se seleccionará la expresión.\r\n    FOREACH table_identifier IN ARRAY p_tables\r\n    LOOP\r\n        schema_part := SPLIT_PART(table_identifier, '.', 1);\r\n        table_part := SPLIT_PART(table_identifier, '.', 2);\r\n        select_clauses := array_append(select_clauses, 'SELECT * FROM \"' || schema_part || '\".\"' || table_part || '\"');\r\n    END LOOP;\r\n    \r\n    subquery := array_to_string(select_clauses, ' UNION ALL ');\r\n\r\n    -- Construir la consulta final que intentará ejecutar la expresión sobre un conjunto vacío.\r\n    final_query := 'SELECT ' || p_expression || ' FROM (' || subquery || ') as data LIMIT 0';\r\n\r\n    -- Intentar ejecutar la consulta. Si falla, el bloque de excepción capturará el error.\r\n    EXECUTE final_query;\r\n\r\n    -- Si la ejecución llega hasta aquí, la sintaxis es válida.\r\n    RETURN json_build_object('valid', true, 'error', null);\r\n\r\nEXCEPTION\r\n    -- Si ocurre un error durante la ejecución (ej: error de sintaxis), capturarlo.\r\n    WHEN others THEN\r\n        -- Devolver un JSON indicando que la validación falló, junto con el mensaje de error.\r\n        RETURN json_build_object('valid', false, 'error', SQLERRM);\r\nEND;\r\n$function$\n"
+    "definition": "CREATE OR REPLACE FUNCTION public.validate_sql_expression(p_expression text, p_tables text[])\n RETURNS json\n LANGUAGE plpgsql\n STABLE\nAS $function$\r\nDECLARE\r\n    subquery TEXT;\r\n    table_identifier TEXT;\r\n    schema_part TEXT;\r\n    table_part TEXT;\r\n    select_clauses TEXT[] := '{}';\r\n    aliased_columns TEXT;\r\nBEGIN\r\n    -- 1. Construir una subconsulta que simula la estructura de datos exacta que el frontend espera.\r\n    -- Para cada tabla, se seleccionan sus columnas y se les asigna un alias con el formato \"schema.table.column\".\r\n    FOREACH table_identifier IN ARRAY p_tables\r\n    LOOP\r\n        schema_part := SPLIT_PART(table_identifier, '.', 1);\r\n        table_part := SPLIT_PART(table_identifier, '.', 2);\r\n\r\n        -- Construir la lista de columnas con alias para la tabla actual.\r\n        SELECT string_agg(\r\n            FORMAT('\"%s\" AS \"%s\"', c.column_name, table_identifier || '.' || c.column_name),\r\n            ', '\r\n        )\r\n        INTO aliased_columns\r\n        FROM information_schema.columns c\r\n        WHERE c.table_schema = schema_part AND c.table_name = table_part;\r\n\r\n        -- Añadir la cláusula SELECT para esta tabla a nuestro array de cláusulas.\r\n        IF aliased_columns IS NOT NULL THEN\r\n            select_clauses := array_append(select_clauses, FORMAT('SELECT %s FROM \"%s\".\"%s\"', aliased_columns, schema_part, table_part));\r\n        END IF;\r\n    END LOOP;\r\n    \r\n    -- Unir todas las cláusulas SELECT con UNION ALL para formar la subconsulta completa.\r\n    subquery := array_to_string(select_clauses, ' UNION ALL ');\r\n\r\n    -- 2. Validar la expresión del usuario contra esta subconsulta vacía.\r\n    -- Si la expresión es sintácticamente correcta con los nombres de columna con alias, esto funcionará.\r\n    -- Si no, lanzará una excepción.\r\n    EXECUTE 'SELECT ' || p_expression || ' FROM (' || subquery || ') as data LIMIT 0';\r\n\r\n    -- 3. Si la ejecución llega aquí, la sintaxis es válida.\r\n    RETURN json_build_object('valid', true, 'error', null);\r\n\r\nEXCEPTION\r\n    -- Si ocurre un error de sintaxis (ej. la columna no existe en los alias), se captura aquí.\r\n    WHEN others THEN\r\n        RETURN json_build_object('valid', false, 'error', SQLERRM);\r\nEND;\r\n$function$\n"
   },
   {
     "schema": "realtime",

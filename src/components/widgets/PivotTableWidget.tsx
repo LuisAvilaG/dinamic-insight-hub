@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
@@ -23,6 +23,7 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
     const [viewData, setViewData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const pivotRef = useRef<any>(null);
     const { config } = widget;
 
     useEffect(() => {
@@ -30,6 +31,7 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
             if (!config.query) {
                 setError("La configuración del widget está incompleta.");
                 setIsLoading(false);
+                setViewData([]);
                 return;
             }
 
@@ -48,7 +50,30 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
 
         fetchData();
     }, [config.query]);
-    
+
+    // **ROBUST CLEANUP EFFECT**
+    useEffect(() => {
+        // This effect only returns a cleanup function, which runs on unmount.
+        return () => {
+            // Access the ref's current value at the time of cleanup.
+            if (pivotRef.current && pivotRef.current.webdatarocks) {
+                const pivotInstance = pivotRef.current.webdatarocks;
+                try {
+                    // Gracefully handle fullscreen mode before disposing.
+                    if (pivotInstance.isFullScreen()) {
+                        pivotInstance.closeFullscreen();
+                    }
+                    // Dispose the instance to prevent memory leaks and errors.
+                    pivotInstance.dispose();
+                } catch (e) {
+                    // Errors during cleanup can happen if the component is already gone,
+                    // so we can safely ignore them.
+                    console.warn("Harmless error during WebDataRocks cleanup:", e);
+                }
+            }
+        };
+    }, []); // Empty dependency array ensures this runs only once on mount and unmount.
+
     if (isLoading) {
         return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
@@ -57,8 +82,6 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
         return <div className="text-red-500 p-4">{error}</div>;
     }
     
-    // **FIX**: The uniqueName for the measure must match the alias from the SQL query.
-    // The aggregation is done in the SQL, so WebDataRocks just needs to sum the pre-aggregated values.
     const report = {
         dataSource: {
             data: viewData
@@ -68,7 +91,7 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
             columns: config.columns?.map(c => ({ uniqueName: c })),
             measures: config.measures?.map(m => ({
                 uniqueName: `${m.aggregation}_of_${m.column}`,
-                aggregation: "sum" // Since data is pre-aggregated, sum works as a display mechanism.
+                aggregation: "sum"
             }))
         },
         formats: config.measures?.map(m => ({
@@ -84,6 +107,7 @@ export const PivotTableWidget: React.FC<PivotTableWidgetProps> = ({ widget, isPr
             </h3>
             <CardContent className="flex-grow p-0">
                 <Pivot
+                    ref={pivotRef}
                     toolbar={isPreview}
                     width="100%" 
                     height="100%" 

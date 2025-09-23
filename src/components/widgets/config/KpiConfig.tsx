@@ -5,11 +5,17 @@ import { Label } from '@/components/ui/label';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PlusCircle, Loader2, CheckCircle, XCircle, ClipboardCopy } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import Editor, { OnMount } from '@monaco-editor/react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface KpiConfigProps {
     config: any;
@@ -30,7 +36,6 @@ export const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
             setAvailableColumns([]);
             return;
         }
-
         const { data: tableColumns, error: tableError } = await supabase.rpc('get_columns_from_tables', { p_tables: selectedTables });
         if (tableError) { console.error("Error fetching table columns:", tableError); return; }
         
@@ -38,20 +43,16 @@ export const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
         if (calcError) { console.error("Error fetching calculated fields:", calcError); return; }
 
         const filteredCalcFields = calcFields.filter(field => field.tables_used.every((table: string) => selectedTables.includes(table)));
-
-        const combinedColumns = [
+        const combined = [
             ...tableColumns.map(c => ({ value: c.display_name, label: c.display_name, data_type: c.data_type })),
             ...filteredCalcFields.map(f => ({ value: f.name, label: `${f.name} (Calculado)`, data_type: 'calculated' }))
         ];
-        
-        setAvailableColumns(combinedColumns);
+        setAvailableColumns(combined);
     };
 
     useEffect(() => {
         supabase.rpc('get_schema_tables').then(({ data }) => {
-            if (data) {
-                setAllTables(data.map(t => ({ value: `${t.table_schema}.${t.table_name}`, label: `${t.table_schema}.${t.table_name}` })));
-            }
+            if (data) setAllTables(data.map(t => ({ value: `${t.table_schema}.${t.table_name}`, label: `${t.table_schema}.${t.table_name}` })));
         });
     }, []);
 
@@ -73,14 +74,14 @@ export const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
     };
     
     const numericTypes = ['integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint', 'calculated'];
-    const filteredColumns = aggregation === 'count' 
-        ? availableColumns 
-        : availableColumns.filter(c => numericTypes.includes(c.data_type));
+    const isCalculatedField = availableColumns.find(c => c.value === selectedColumn)?.data_type === 'calculated';
 
-    const actionButton = {
-        label: "Nuevo Campo Calculado",
-        onClick: () => setIsModalOpen(true)
-    };
+    // If a calculated field is selected, aggregation is not needed. Otherwise, filter columns by type.
+    const filteredColumns = isCalculatedField 
+        ? availableColumns
+        : (aggregation === 'count' 
+            ? availableColumns 
+            : availableColumns.filter(c => numericTypes.includes(c.data_type)));
 
     return (
         <div className="space-y-4">
@@ -98,40 +99,46 @@ export const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
             {selectedTables.length > 0 && (
                 <>
                     <div>
-                        <Label>Agregación</Label>
-                        <Select onValueChange={handleAggregationChange} value={aggregation}>
+                        <Label>Métrica</Label>
+                         <Select onValueChange={handleColumnChange} value={selectedColumn}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Seleccione una agregación" />
+                                <SelectValue placeholder="Seleccione una columna o campo" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="count">Recuento (Count)</SelectItem>
-                                <SelectItem value="sum">Suma (Sum)</SelectItem>
-                                <SelectItem value="avg">Promedio (Average)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div>
-                        <Label>Columna</Label>
-                        {/* El componente Select no tiene la prop actionButton, por lo que añadimos el botón manualmente */}
-                        <Select onValueChange={handleColumnChange} value={selectedColumn}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccione una columna" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {aggregation === 'count' && <SelectItem value="*">* (Todas las filas)</SelectItem>}
-                                {filteredColumns.map(col => (
+                                <SelectItem value="*">* (Recuento de todas las filas)</SelectItem>
+                                {availableColumns.map(col => (
                                     <SelectItem key={col.value} value={col.value}>{col.label}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                         <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setIsModalOpen(true)}>
-                            <PlusCircle className="h-4 w-4 mr-2"/>
-                            Nuevo Campo Calculado
-                        </Button>
                     </div>
+
+                    {!isCalculatedField && selectedColumn !== '*' && (
+                         <div>
+                            <Label>Agregación</Label>
+                            <Select onValueChange={handleAggregationChange} value={aggregation}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione una agregación" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="sum">Suma (Sum)</SelectItem>
+                                    <SelectItem value="avg">Promedio (Average)</SelectItem>
+                                    <SelectItem value="count">Recuento (Count)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                   
                     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                        <DialogTrigger asChild>
+                             <Button variant="outline" className="w-full mt-2">
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Crear o Gestionar Campos Calculados
+                            </Button>
+                        </DialogTrigger>
                         <CreateEditFieldModal 
                             selectedTables={selectedTables} 
+                            availableColumns={availableColumns.map(c => ({ value: c.value, label: c.label }))}
                             onSave={() => {
                                 fetchAllColumns();
                                 setIsModalOpen(false);
@@ -144,14 +151,47 @@ export const KpiConfig: React.FC<KpiConfigProps> = ({ config, onChange }) => {
     );
 };
 
-// ... (CreateEditFieldModal es el mismo que en los otros componentes)
-const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: string[], onSave: () => void }) => {
+const CreateEditFieldModal = ({ selectedTables, availableColumns, onSave }: { selectedTables: string[], availableColumns: {value: string, label: string}[], onSave: () => void }) => {
     const [name, setName] = useState('');
     const [expression, setExpression] = useState('');
     const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
     const [validationError, setValidationError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
+
+    const handleEditorMount: OnMount = (editor, monaco) => {
+        const keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'AS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL'];
+        const functions = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX', 'CAST'];
+        
+        const columnSuggestions = availableColumns.map(col => ({
+            label: `"${col.label}"`,
+            kind: monaco.languages.CompletionItemKind.Field,
+            insertText: `"${col.value}"`,
+            documentation: `Columna de tabla`
+        }));
+
+        const keywordSuggestions = keywords.map(keyword => ({
+            label: keyword,
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: keyword,
+        }));
+        
+        const functionSuggestions = functions.map(func => ({
+            label: `${func}()`,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: `${func}($1)`,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            documentation: `Función SQL ${func}`
+        }));
+
+        monaco.languages.registerCompletionItemProvider('sql', {
+            provideCompletionItems: (model, position) => {
+                return {
+                    suggestions: [...columnSuggestions, ...keywordSuggestions, ...functionSuggestions],
+                };
+            },
+        });
+    };
 
     const handleValidate = async () => {
         if (!expression) {
@@ -185,18 +225,11 @@ const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: stri
         }
 
         setIsSaving(true);
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-            toast({ title: "Error", description: "No se pudo autenticar al usuario.", variant: "destructive" });
-            setIsSaving(false);
-            return;
-        }
-
-        const { error } = await supabase.from('calculated_fields').insert({
-            name,
-            expression,
-            tables_used: selectedTables,
-            user_id: userData.user.id
+        
+        const { error } = await supabase.rpc('create_calculated_field', {
+            p_name: name,
+            p_expression: expression,
+            p_tables_used: selectedTables
         });
 
         if (error) {
@@ -207,35 +240,73 @@ const CreateEditFieldModal = ({ selectedTables, onSave }: { selectedTables: stri
         }
         setIsSaving(false);
     };
+    
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(`"${text}"`);
+        toast({ title: "Copiado", description: `"${text}" copiado al portapapeles.`});
+    };
 
     return (
-        <DialogContent>
+        <DialogContent className="max-w-4xl">
             <DialogHeader>
                 <DialogTitle>Crear Nuevo Campo Calculado</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="name">Nombre del Campo</Label>
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tareas Completadas" />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="expression">Expresión SQL</Label>
-                    <Textarea id="expression" value={expression} onChange={(e) => { setExpression(e.target.value); setValidationStatus('idle'); }} placeholder="CASE WHEN status = 'complete' THEN 1 ELSE 0 END" />
-                </div>
-                
-                {validationStatus === 'invalid' && (
-                    <div className="flex items-center text-red-600">
-                        <XCircle className="h-4 w-4 mr-2"/>
-                        <p className="text-sm">{validationError}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
+                <div className="md:col-span-1">
+                    <h4 className="font-semibold mb-2">Columnas Disponibles</h4>
+                    <div className="h-64 overflow-y-auto border rounded-md p-2 bg-slate-50 custom-scrollbar">
+                        <TooltipProvider>
+                            <ul className="space-y-1">
+                                {availableColumns.map(col => (
+                                    <li key={col.value} className="flex justify-between items-center text-sm p-1 rounded hover:bg-slate-200">
+                                        <Tooltip delayDuration={300}>
+                                            <TooltipTrigger asChild>
+                                                <span className="truncate cursor-default">{col.label}</span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{col.label}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => copyToClipboard(col.value)}>
+                                            <ClipboardCopy className="h-4 w-4"/>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </TooltipProvider>
                     </div>
-                )}
-                {validationStatus === 'valid' && (
-                     <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-4 w-4 mr-2"/>
-                        <p className="text-sm">La expresión es válida.</p>
+                </div>
+                <div className="md:col-span-2 space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nombre del Campo</Label>
+                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Margen de Beneficio" />
                     </div>
-                )}
-
+                    <div className="space-y-2">
+                        <Label htmlFor="expression">Expresión SQL</Label>
+                        <div className="border rounded-md">
+                            <Editor
+                                height="155px"
+                                defaultLanguage="sql"
+                                value={expression}
+                                onChange={(value) => { setExpression(value || ''); setValidationStatus('idle'); }}
+                                onMount={handleEditorMount}
+                                options={{ minimap: { enabled: false }, scrollbar: { verticalScrollbarSize: 5 }, 'semanticHighlighting.enabled': true }}
+                            />
+                        </div>
+                    </div>
+                     {validationStatus === 'invalid' && (
+                        <div className="flex items-center text-red-600">
+                            <XCircle className="h-4 w-4 mr-2"/>
+                            <p className="text-sm">{validationError}</p>
+                        </div>
+                    )}
+                    {validationStatus === 'valid' && (
+                         <div className="flex items-center text-green-600">
+                            <CheckCircle className="h-4 w-4 mr-2"/>
+                            <p className="text-sm">La expresión es válida.</p>
+                        </div>
+                    )}
+                </div>
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={handleValidate} disabled={validationStatus === 'validating'}>

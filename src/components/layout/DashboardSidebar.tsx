@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,13 +10,12 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
-  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard, User, Calendar, Briefcase, Megaphone, GitBranch
+  BarChart3, DollarSign, Search, Users, Zap, Home, FileText, ShieldCheck, Settings, ChevronDown, LayoutDashboard, User, Calendar, Briefcase, Megaphone, GitBranch, Database
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import DinamicLogo from "@/assets/logorecortado.png"; // IMPORTAMOS EL LOGO
+import DinamicLogo from "@/assets/logorecortado.png";
 
-// --- ESTRUCTURA DE NAVEGACIÓN (Sin cambios) ---
-// (El resto del código de configuración permanece igual)
+// --- NAVIGATION STRUCTURE ---
 const baseNavItems = [
   { id: 'dashboard', title: "Dashboard", url: "/dashboard", icon: Home, exact: true },
 ];
@@ -61,12 +60,15 @@ const adminNavConfig = [
       { id: 'organigrama', title: 'Gestionar Organigrama', url: '/admin/recursos-humanos/organigrama/editar', icon: Users },
     ]
   },
-    {
-    id: 'sync-hub',
-    title: 'Sync Hub',
+  {
+    id: 'sync-management',
+    title: 'Sync Management',
     icon: GitBranch,
-    url: '/admin/sync-hub',
     roles: ['admin'],
+    subItems: [
+      { id: 'sync-hub', title: 'Sync Hub', url: '/admin/sync-hub', icon: Settings },
+      { id: 'sync-viewer', title: 'Data Viewer', url: '/admin/sync-viewer', icon: Database }
+    ]
   },
   {
     id: 'usuarios',
@@ -77,7 +79,7 @@ const adminNavConfig = [
   }
 ];
 
-// --- COMPONENTES AUXILIARES DE RENDERIZADO ---
+// --- RENDER HELPER COMPONENTS ---
 
 const NavItem = ({ item, collapsed }) => {
   const location = useLocation();
@@ -140,7 +142,7 @@ const CollapsibleNav = ({ item, collapsed, userRole }) => {
 };
 
 
-// --- COMPONENTE PRINCIPAL DE LA BARRA LATERAL ---
+// --- MAIN SIDEBAR COMPONENT ---
 export const DashboardSidebar = () => {
   const { state } = useSidebar();
   const { profile, loading } = useAuth();

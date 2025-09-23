@@ -1,10 +1,10 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from 'lucide-react';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tables } from '@/types/supabase';
-import { Loader2, AlertCircle } from 'lucide-react';
 
 type Widget = Tables<'report_widgets', { schema: 'be_exponential' }>;
 
@@ -12,79 +12,71 @@ interface LineChartWidgetProps {
   widget: Widget;
 }
 
-// Componente de estado reutilizado
-const WidgetStatus = ({ status, message }: { status: 'loading' | 'error' | 'empty', message: string }) => (
-  <div className="flex flex-col items-center justify-center h-full text-center p-4">
-    {status === 'loading' && <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />}
-    {status === 'error' && <AlertCircle className="h-8 w-8 text-red-400" />}
-    <p className={`mt-2 font-medium ${status === 'error' ? 'text-red-600' : 'text-slate-600'}`}>
-      {status === 'loading' && 'Cargando Datos...'}
-      {status === 'error' && 'Error al Cargar'}
-      {status === 'empty' && 'Sin Datos'}
-    </p>
-    <p className="text-xs text-slate-500 mt-1">{message}</p>
-  </div>
-);
-
 export const LineChartWidget = ({ widget }: LineChartWidgetProps) => {
-  const { title, config, query } = widget;
-  const widgetConfig = config as any;
+  const { config } = widget;
+  const { name, query, xAxis, yAxis } = config as any;
+  
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['widget_data', widget.id],
-    queryFn: async () => {
-      if (!query) throw new Error('La consulta SQL no está definida.');
-      const { data, error } = await supabase.rpc('execute_query', { p_query: query });
-      if (error) throw new Error(`Error en la consulta: ${error.message}`);
-      return data || [];
-    },
-    enabled: !!query,
-  });
+  useEffect(() => {
+    const fetchChartData = async () => {
+      if (!query) {
+        setError(null);
+        setIsLoading(false);
+        setChartData([]);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
 
-  if (isLoading) return <WidgetStatus status="loading" message="Ejecutando la consulta del widget."/>;
-  if (error) return <WidgetStatus status="error" message={error.message}/>;
-  if (!data || data.length === 0) return <WidgetStatus status="empty" message="La consulta no devolvió resultados."/>;
+      try {
+        const { data, error: rpcError } = await supabase.rpc('execute_query', { p_query: query });
+        if (rpcError) throw rpcError;
+        setChartData(data || []);
+      } catch (err: any) {
+        setError(`Error en consulta: ${err.message}`);
+        console.error("Error al ejecutar la consulta del gráfico:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const xAxisKey = widgetConfig.axes?.xAxis?.key;
-  const yAxisKey = 'value'; // La consulta SQL siempre devuelve el valor principal como 'value'
+    fetchChartData();
+  }, [query]);
 
-  if (!xAxisKey) {
-    return <WidgetStatus status="error" message="La configuración del eje X no está definida."/>;
+  const renderContent = () => {
+    if (isLoading) return <Loader2 className="h-8 w-8 mx-auto animate-spin text-slate-400" />;
+    if (error) return <p className="text-xs text-red-500 text-center px-2">{error}</p>;
+    if (!query && !isLoading) return <p className="text-sm text-slate-400 text-center">Configure el gráfico para ver los datos.</p>;
+    if (chartData.length === 0) return <p className="text-sm text-slate-400 text-center">La consulta no devolvió resultados.</p>;
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsLineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey={xAxis} tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={60} />
+            <YAxis tickFormatter={(value) => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)} />
+            <Tooltip formatter={(value) => new Intl.NumberFormat().format(value as number)} />
+            <Legend />
+            <Line type="monotone" dataKey="value" stroke="#8884d8" name={yAxis === '*' ? 'Total' : yAxis || 'Valor'} dot={false} />
+        </RechartsLineChart>
+      </ResponsiveContainer>
+    );
   }
 
   return (
-    <Card className="h-full w-full flex flex-col shadow-none border-none">
-      <CardHeader className='py-2 px-4'>
-        <CardTitle className='text-base font-medium'>{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow p-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <RechartsLineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey={xAxisKey}
-              stroke="#888888"
-              fontSize={10}
-              tickLine={false}
-              axisLine={false}
-              dy={10}
-            />
-            <YAxis 
-              stroke="#888888"
-              fontSize={10}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => `${value}`}
-            />
-            <Tooltip 
-              wrapperStyle={{ zIndex: 1000, fontSize: '12px' }}
-              formatter={(value: number, name: string) => [value, widgetConfig.axes.yAxis.key || name]}
-              labelFormatter={(label: string) => [label, xAxisKey]}
-            />
-            <Line type="monotone" dataKey={yAxisKey} stroke="#8884d8" strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
-          </RechartsLineChart>
-        </ResponsiveContainer>
-      </CardContent>
+    <Card className="h-full flex flex-col justify-center border-none shadow-none bg-transparent">
+        <CardHeader className="pb-2 text-center">
+            <CardTitle className="text-base font-medium truncate" title={name}>{name || 'Gráfico sin nombre'}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow flex items-center justify-center h-full w-full">
+            {renderContent()}
+        </CardContent>
     </Card>
   );
 };
+
+export default LineChartWidget;

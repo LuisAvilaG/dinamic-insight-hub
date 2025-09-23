@@ -1,72 +1,99 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Label } from '@/components/ui/label';
-import { MultiSelect } from '@/components/ui/multi-select'; 
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Loader2, CheckCircle, XCircle, ClipboardCopy } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import Editor, { OnMount } from '@monaco-editor/react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { MultiSelect } from '@/components/ui/multi-select';
+import { Label } from '@/components/ui/label';
+
+type CalculatedField = { name: string; expression: string; tables_used: string[] };
 
 interface PivotTableConfigProps {
     config: any;
     onChange: (newConfig: any) => void;
+    calculatedFields?: CalculatedField[]; // <-- Aceptar campos calculados
 }
 
-export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onChange }) => {
+// Helper para saber si un campo calculado ya es una agregación
+const isAggregateExpression = (expression: string): boolean => {
+    if (!expression) return false;
+    const upperExpr = expression.toUpperCase();
+    return upperExpr.includes('COUNT(') || upperExpr.includes('SUM(') || upperExpr.includes('AVG(') || upperExpr.includes('MIN(') || upperExpr.includes('MAX(');
+};
+
+export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onChange, calculatedFields = [] }) => {
     const [allTables, setAllTables] = useState<{ value: string; label: string }[]>([]);
-    const [availableColumns, setAvailableColumns] = useState<{ value: string; label: string }[]>([]);
-    const [numericColumns, setNumericColumns] = useState<{ value: string; label: string }[]>([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [tableColumns, setTableColumns] = useState<{ value: string; label: string }[]>([]);
 
-    const selectedTables = config?.tables || [];
-    const rows = config?.rows || [];
-    const columns = config?.columns || [];
-    const measures = config?.measures || [];
-
-    const fetchAllColumns = async () => {
-        if (selectedTables.length === 0) {
-            setAvailableColumns([]);
-            setNumericColumns([]);
-            return;
-        }
-
-        const { data: tableColumns, error: tableError } = await supabase.rpc('get_columns_from_tables', { p_tables: selectedTables });
-        if (tableError) { console.error("Error fetching table columns:", tableError); return; }
-        
-        const { data: calcFields, error: calcError } = await supabase.rpc('get_calculated_fields');
-        if (calcError) { console.error("Error fetching calculated fields:", calcError); return; }
-
-        const filteredCalcFields = calcFields.filter(field => field.tables_used.every((table: string) => selectedTables.includes(table)));
-        const combined = [
-            ...tableColumns.map(c => ({ value: c.display_name, label: c.display_name, data_type: c.data_type })),
-            ...filteredCalcFields.map(f => ({ value: f.name, label: `${f.name} (Calculado)`, data_type: 'calculated' }))
-        ];
-        
-        setAvailableColumns(combined.map(({ value, label }) => ({ value, label })));
-        const numericDataTypes = ['integer', 'bigint', 'numeric', 'real', 'double precision', 'smallint'];
-        setNumericColumns(combined.filter(c => numericDataTypes.includes(c.data_type) || c.data_type === 'calculated').map(({ value, label }) => ({ value, label })));
-    };
+    const selectedTable = config?.tables?.[0] || null;
 
     useEffect(() => {
         supabase.rpc('get_schema_tables').then(({ data }) => {
-            if (data) setAllTables(data.map(t => ({ value: `${t.table_schema}.${t.table_name}`, label: `${t.table_schema}.${t.table_name}` })));
+            if (data) {
+                const formattedTables = data.map(t => ({ 
+                    value: `${t.table_schema}.${t.table_name}`, 
+                    label: `${t.table_schema}.${t.table_name}` 
+                }));
+                setAllTables(formattedTables);
+            }
         });
     }, []);
 
-    const tablesKey = JSON.stringify(selectedTables);
     useEffect(() => {
-        fetchAllColumns();
-    }, [tablesKey]);
+        const fetchColumns = async () => {
+            if (!selectedTable) {
+                setTableColumns([]);
+                return;
+            }
+
+            // Usamos una RPC más robusta que devuelva tipos de datos si es posible
+            const { data, error } = await supabase.rpc('get_columns_from_tables', { p_tables: [selectedTable] });
+            
+            if (error) {
+                console.error("Error fetching columns:", error);
+                setTableColumns([]);
+                return;
+            }
+            
+            if (data) {
+                const allCols = data.map((c: any) => ({ value: c.display_name, label: c.display_name }));
+                setTableColumns(allCols);
+            }
+        };
+
+        fetchColumns();
+    }, [selectedTable]);
+    
+    // Unir columnas de la tabla y campos calculados para selectores de Filas y Columnas
+    const availableFields = useMemo(() => {
+        const calculatedOptions = calculatedFields
+            .filter(cf => !isAggregateExpression(cf.expression)) // Excluir agregados de filas/columnas
+            .map(cf => ({ value: cf.name, label: `${cf.name} (Calc)` }));
+        return [...tableColumns, ...calculatedOptions];
+    }, [tableColumns, calculatedFields]);
+
+    // Opciones para Medidas: AHORA INCLUYE TODAS LAS COLUMNAS Y CAMPOS CALCULADOS
+    const measureOptions = useMemo(() => {
+        const calculatedOptions = calculatedFields.map(cf => ({
+            value: cf.name,
+            label: `${cf.name} (Calc)`,
+            isAggregate: isAggregateExpression(cf.expression)
+        }));
+        // Ya no filtramos por numérico para arreglar el bug de la lista vacía
+        return [...tableColumns.map(c => ({...c, isAggregate: false})), ...calculatedOptions];
+    }, [tableColumns, calculatedFields]);
+
+
+    const handleTableChange = (newTable: string) => {
+        onChange({
+            ...config,
+            tables: newTable ? [newTable] : [],
+            rows: [],
+            columns: [],
+            measures: []
+        });
+    };
 
     const handleUpdate = (key: string, value: any) => {
         onChange({ ...config, [key]: value });
@@ -74,274 +101,112 @@ export const PivotTableConfig: React.FC<PivotTableConfigProps> = ({ config, onCh
 
     const addMeasure = () => {
         const newMeasure = { column: '', aggregation: 'sum' };
-        handleUpdate('measures', [...measures, newMeasure]);
+        handleUpdate('measures', [...(config.measures || []), newMeasure]);
     };
 
     const updateMeasure = (index: number, key: 'column' | 'aggregation', value: string) => {
-        const newMeasures = [...measures];
-        const oldAggregation = newMeasures[index].aggregation;
-        newMeasures[index] = { ...newMeasures[index], [key]: value };
-
-        if (key === 'aggregation' && value !== oldAggregation) {
-            newMeasures[index].column = '';
+        const newMeasures = [...(config.measures || [])];
+        const measureToUpdate = { ...newMeasures[index], [key]: value };
+        
+        const selectedOption = measureOptions.find(opt => opt.value === measureToUpdate.column);
+        if (selectedOption?.isAggregate) {
+            measureToUpdate.aggregation = ''; // Es un campo calculado agregado, no necesita otra agregación
+        } else if (!measureToUpdate.aggregation) {
+             measureToUpdate.aggregation = 'sum'; // Default si no es un campo agregado
         }
 
+        newMeasures[index] = measureToUpdate;
         handleUpdate('measures', newMeasures);
     };
 
     const removeMeasure = (index: number) => {
-        const newMeasures = measures.filter((_: any, i: number) => i !== index);
+        const newMeasures = (config.measures || []).filter((_: any, i: number) => i !== index);
         handleUpdate('measures', newMeasures);
     };
 
     return (
         <div className="space-y-4">
             <div>
-                <Label>Tablas</Label>
-                <MultiSelect options={allTables} selected={selectedTables} onChange={(v) => handleUpdate('tables', v)} className="w-full" placeholder="Seleccione una o más tablas..."/>
+                <Label>Tabla (Fuente Principal)</Label>
+                <Select value={selectedTable || ''} onValueChange={handleTableChange}>
+                    <SelectTrigger><SelectValue placeholder="Seleccione una tabla..." /></SelectTrigger>
+                    <SelectContent>{allTables.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                </Select>
             </div>
-            {selectedTables.length > 0 && (
+            
+            {selectedTable && (
                 <>
                     <div>
                         <Label>Filas (Rows)</Label>
-                        <MultiSelect options={availableColumns} selected={rows} onChange={(v) => handleUpdate('rows', v)} className="w-full" placeholder="Seleccione campos para las filas..."/>
+                        <MultiSelect 
+                            options={availableFields} 
+                            selected={config.rows || []} 
+                            onChange={(v) => handleUpdate('rows', v)} 
+                            className="w-full" 
+                            placeholder="Seleccione campos para las filas..."
+                        />
                     </div>
                     <div>
                         <Label>Columnas (Columns)</Label>
-                        <MultiSelect options={availableColumns} selected={columns} onChange={(v) => handleUpdate('columns', v)} className="w-full" placeholder="Seleccione campos para las columnas..."/>
+                        <MultiSelect 
+                            options={availableFields} 
+                            selected={config.columns || []} 
+                            onChange={(v) => handleUpdate('columns', v)} 
+                            className="w-full" 
+                            placeholder="Seleccione campos para las columnas..."
+                        />
                     </div>
                     <div>
                         <Label>Medidas (Measures)</Label>
                         <div className="space-y-2 rounded-md border p-2">
-                            {measures.map((measure: any, index: number) => {
-                                const columnOptions = measure.aggregation === 'count' ? availableColumns : numericColumns;
+                            {(config.measures || []).map((measure: any, index: number) => {
+                                const selectedMeasure = measureOptions.find(opt => opt.value === measure.column);
+                                const isAggregateCalc = selectedMeasure?.isAggregate;
+
                                 return (
-                                <div key={index} className="flex items-center gap-2">
-                                    <Select 
-                                        value={measure.column} 
-                                        onValueChange={(v) => updateMeasure(index, 'column', v)}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Columna..." /></SelectTrigger>
-                                        <SelectContent>{columnOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    <Select 
-                                        value={measure.aggregation} 
-                                        onValueChange={(v) => updateMeasure(index, 'aggregation', v)}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Agregación..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="sum">Suma</SelectItem>
-                                            <SelectItem value="count">Recuento</SelectItem>
-                                            <SelectItem value="average">Promedio</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button variant="ghost" size="icon" onClick={() => removeMeasure(index)}><Trash2 className="h-4 w-4 text-red-500"/></Button>
-                                </div>
+                                    <div key={index} className="flex items-center gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <Select 
+                                                value={measure.column} 
+                                                onValueChange={(v) => updateMeasure(index, 'column', v)}
+                                            >
+                                                <SelectTrigger className="truncate">
+                                                    <SelectValue placeholder="Columna o Campo Calculado..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {measureOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        
+                                        {!isAggregateCalc && (
+                                            <div className="w-auto">
+                                                <Select 
+                                                    value={measure.aggregation} 
+                                                    onValueChange={(v) => updateMeasure(index, 'aggregation', v)}
+                                                >
+                                                    <SelectTrigger><SelectValue placeholder="Agregación..." /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="sum">Suma</SelectItem>
+                                                        <SelectItem value="count">Recuento</SelectItem>
+                                                        <SelectItem value="avg">Promedio</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+                                        <Button variant="ghost" size="icon" onClick={() => removeMeasure(index)}>
+                                            <Trash2 className="h-4 w-4 text-red-500"/>
+                                        </Button>
+                                    </div>
                                 );
                             })}
-                            <Button variant="outline" size="sm" className="w-full" onClick={addMeasure}><PlusCircle className="h-4 w-4 mr-2"/>Añadir Medida</Button>
+                            <Button variant="outline" size="sm" className="w-full" onClick={addMeasure}>
+                                <PlusCircle className="h-4 w-4 mr-2"/>Añadir Medida
+                            </Button>
                         </div>
-                    </div>
-                    <div>
-                        <Label>Campos Calculados</Label>
-                        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="w-full mt-1">
-                                    <PlusCircle className="h-4 w-4 mr-2" />
-                                    Crear o Gestionar Campos
-                                </Button>
-                            </DialogTrigger>
-                            <CreateEditFieldModal 
-                                selectedTables={selectedTables} 
-                                availableColumns={availableColumns}
-                                onSave={() => {
-                                    fetchAllColumns();
-                                    setIsModalOpen(false);
-                                }} 
-                            />
-                        </Dialog>
                     </div>
                 </>
             )}
         </div>
     );
 };
-
-
-const CreateEditFieldModal = ({ selectedTables, availableColumns, onSave }: { selectedTables: string[], availableColumns: {value: string, label: string}[], onSave: () => void }) => {
-    const [name, setName] = useState('');
-    const [expression, setExpression] = useState('');
-    const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
-    const [validationError, setValidationError] = useState<string | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const { toast } = useToast();
-
-    const handleEditorMount: OnMount = (editor, monaco) => {
-        const keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'AS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL'];
-        const functions = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX', 'CAST'];
-        
-        const columnSuggestions = availableColumns.map(col => ({
-            label: `"${col.label}"`,
-            kind: monaco.languages.CompletionItemKind.Field,
-            insertText: `"${col.value}"`,
-            documentation: `Columna de tabla`
-        }));
-
-        const keywordSuggestions = keywords.map(keyword => ({
-            label: keyword,
-            kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: keyword,
-        }));
-        
-        const functionSuggestions = functions.map(func => ({
-            label: `${func}()`,
-            kind: monaco.languages.CompletionItemKind.Function,
-            insertText: `${func}($1)`,
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: `Función SQL ${func}`
-        }));
-
-        monaco.languages.registerCompletionItemProvider('sql', {
-            provideCompletionItems: (model, position) => {
-                return {
-                    suggestions: [...columnSuggestions, ...keywordSuggestions, ...functionSuggestions],
-                };
-            },
-        });
-    };
-
-    const handleValidate = async () => {
-        if (!expression) {
-            toast({ title: "Error", description: "La expresión no puede estar vacía.", variant: "destructive" });
-            return;
-        }
-        setValidationStatus('validating');
-        setValidationError(null);
-
-        const { data, error } = await supabase.rpc('validate_sql_expression', {
-            p_expression: expression,
-            p_tables: selectedTables
-        });
-
-        if (error || !data.valid) {
-            setValidationStatus('invalid');
-            setValidationError(data.error || 'Error desconocido.');
-        } else {
-            setValidationStatus('valid');
-        }
-    };
-
-    const handleSave = async () => {
-        if (validationStatus !== 'valid') {
-            toast({ title: "Error", description: "La expresión debe ser validada antes de guardar.", variant: "destructive" });
-            return;
-        }
-        if (!name) {
-            toast({ title: "Error", description: "El nombre del campo es obligatorio.", variant: "destructive" });
-            return;
-        }
-
-        setIsSaving(true);
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) {
-            toast({ title: "Error", description: "No se pudo autenticar al usuario.", variant: "destructive" });
-            setIsSaving(false);
-            return;
-        }
-
-        const { error } = await supabase.from('calculated_fields').insert({
-            name,
-            expression,
-            tables_used: selectedTables,
-            user_id: userData.user.id
-        });
-
-        if (error) {
-            toast({ title: "Error", description: `No se pudo guardar el campo: ${error.message}`, variant: "destructive" });
-        } else {
-            toast({ title: "Éxito", description: "Campo calculado guardado." });
-            onSave();
-        }
-        setIsSaving(false);
-    };
-    
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(`"${text}"`);
-        toast({ title: "Copiado", description: `"${text}" copiado al portapapeles.`});
-    };
-
-    return (
-        <DialogContent className="max-w-4xl">
-            <DialogHeader>
-                <DialogTitle>Crear Nuevo Campo Calculado</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
-                <div className="md:col-span-1">
-                    <h4 className="font-semibold mb-2">Columnas Disponibles</h4>
-                    <div className="h-64 overflow-y-auto border rounded-md p-2 bg-slate-50 custom-scrollbar">
-                        <TooltipProvider>
-                            <ul className="space-y-1">
-                                {availableColumns.map(col => (
-                                    <li key={col.value} className="flex justify-between items-center text-sm p-1 rounded hover:bg-slate-200">
-                                        <Tooltip delayDuration={300}>
-                                            <TooltipTrigger asChild>
-                                                <span className="truncate cursor-default">{col.label}</span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{col.label}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => copyToClipboard(col.value)}>
-                                            <ClipboardCopy className="h-4 w-4"/>
-                                        </Button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </TooltipProvider>
-                    </div>
-                </div>
-                <div className="md:col-span-2 space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Nombre del Campo</Label>
-                        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Margen de Beneficio" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="expression">Expresión SQL</Label>
-                        <div className="border rounded-md">
-                            <Editor
-                                height="155px"
-                                defaultLanguage="sql"
-                                value={expression}
-                                onChange={(value) => { setExpression(value || ''); setValidationStatus('idle'); }}
-                                onMount={handleEditorMount}
-                                options={{ minimap: { enabled: false }, scrollbar: { verticalScrollbarSize: 5 }, 'semanticHighlighting.enabled': true }}
-                            />
-                        </div>
-                    </div>
-                     {validationStatus === 'invalid' && (
-                        <div className="flex items-center text-red-600">
-                            <XCircle className="h-4 w-4 mr-2"/>
-                            <p className="text-sm">{validationError}</p>
-                        </div>
-                    )}
-                    {validationStatus === 'valid' && (
-                         <div className="flex items-center text-green-600">
-                            <CheckCircle className="h-4 w-4 mr-2"/>
-                            <p className="text-sm">La expresión es válida.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={handleValidate} disabled={validationStatus === 'validating'}>
-                    {validationStatus === 'validating' ? <Loader2 className="h-4 w-4 animate-spin"/> : "Validar"}
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving || validationStatus !== 'valid'}>
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : "Guardar Campo"}
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    );
-};
-
-export default PivotTableConfig;

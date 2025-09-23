@@ -9,61 +9,69 @@ La aplicación sigue un modelo cliente-servidor:
 -   **Cliente (Frontend):** Una Single Page Application (SPA) construida con React (Vite) y TypeScript. Maneja la interfaz de usuario, el estado y la comunicación con Supabase.
 -   **Servidor (Backend):** Supabase provee la base de datos PostgreSQL, una API REST y funciones RPC personalizadas, que son el método principal de interacción.
 
-## 2. Lógica de Datos y Flujo
+## 2. Entidades Principales de la Base de Datos
 
-El núcleo de la aplicación es la gestión de dashboards y widgets. La lógica de negocio está encapsulada en funciones de PostgreSQL (RPC) para mantener el cliente ligero y centrado en la UI.
+Todas las tablas residen en el esquema `be_exponential`.
 
-### 2.1. Entidades Principales
+-   `report_dashboards`: Almacena la información de cada dashboard (nombre, departamento, etc.).
+-   `report_widgets`: Contiene la configuración de cada widget. Las columnas clave son:
+    -   `widget_type`: Un `enum` (`kpi`, `bar_chart`, `line_chart`, `data_table`, `pivot_table`) que determina qué componente renderizar.
+    -   `config`: Un campo `JSONB` flexible que almacena todas las selecciones del usuario (nombre del widget, tablas, columnas, ejes, etc.). **Crucialmente, la consulta SQL final (`query`) también se almacena aquí.**
+    -   `layout`: Un objeto JSON que define la posición y tamaño del widget en la cuadrícula.
+-   `calculated_fields`: Una tabla global que almacena los campos personalizados creados por los usuarios. Contiene el nombre del campo, su expresión SQL y las tablas que utiliza.
 
--   `report_dashboards`: Almacena la información de cada dashboard.
--   `report_widgets`: Contiene la configuración de cada widget, incluyendo su tipo (`widget_type`), configuración (`config`), layout (`layout`) y el `dashboard_id` al que pertenece.
+## 3. Flujo de Configuración de Widgets y Lógica de Consultas
 
-**Nota sobre Esquemas:** Todas las tablas residen en el esquema `be_exponential`, no en el `public`. Las funciones RPC gestionan esto internamente, simplificando el código del cliente.
+El componente central para la creación y edición de widgets es `NewAddWidgetDialog.tsx`. Este diálogo actúa como un orquestador que gestiona el estado de configuración y es **responsable de construir la propiedad `query`** que se guardará en el `config` del widget.
 
-### 2.2. Flujo de Creación y Configuración de Widgets
+El flujo es el siguiente:
 
-1.  **Obtención de Metadatos:** El diálogo de configuración (`NewAddWidgetDialog`) obtiene las tablas y esquemas disponibles a través de la función RPC `get_schema_tables()`.
-2.  **Selección de Columnas:** Al seleccionar una tabla, se utiliza la RPC `get_table_columns()` para obtener sus columnas específicas.
-3.  **Configuración de la Consulta:** El usuario selecciona agregaciones y columnas para construir dinámicamente una consulta SQL. La interfaz diferencia entre columnas numéricas y de texto según la agregación seleccionada.
-4.  **Vista Previa Dinámica:** La consulta generada se envía a la RPC `execute_query()`, que la ejecuta y devuelve los datos para una vista previa en tiempo real.
-5.  **Guardado del Widget:** Se utiliza la RPC `create_widget()` para guardar el nuevo widget. Esta función maneja la inserción en el esquema correcto (`be_exponential`) y abstrae la lógica de la base de datos del cliente.
+1.  **Selección del Tipo de Widget:** El usuario elige un tipo de widget (KPI, Gráfico de Barras, etc.).
+2.  **Renderizado del Configurador:** El diálogo renderiza el componente de configuración específico (ej: `BarChartConfig.tsx`, `DataTableConfig.tsx`).
+3.  **Configuración del Usuario:**
+    -   El usuario selecciona tablas, columnas y/o campos calculados.
+    -   Cada vez que una opción cambia, el componente de configuración (`...Config.tsx`) notifica al diálogo principal (`NewAddWidgetDialog`) a través de la función `onConfigChange`.
+4.  **Construcción de la Consulta (en `handleConfigChange`):**
+    -   Esta función en `NewAddWidgetDialog.tsx` es el cerebro del sistema. Recibe la nueva configuración y, basándose en el `selectedWidgetType` y las opciones elegidas, construye la consulta SQL final.
+    -   Si la configuración es válida, la `query` se almacena en el estado `widgetConfig`. Si no, la `query` se establece en `null`.
+5.  **Vista Previa en Tiempo Real:**
+    -   El componente del widget (ej: `BarChartWidget.tsx`) se renderiza en la sección de vista previa.
+    -   Este componente recibe el `widgetConfig` completo. Es un componente "tonto": su única responsabilidad es tomar la `query` del `config`, ejecutarla a través de la RPC `execute_query`, y mostrar los resultados (o un mensaje de error/carga).
+6.  **Guardado:** Al hacer clic en "Guardar", se guarda el `widgetConfig` completo (incluida la `query`) en la base de datos.
 
-### 2.3. Visualización y Diseño de Widgets
+### 3.1. Campos Calculados
 
--   **Carga de Datos:** Al cargar un dashboard, la RPC `get_dashboard_details()` devuelve toda la información necesaria, incluyendo un array anidado con la configuración de cada widget.
--   **Renderizado de Widgets:** El frontend itera sobre los widgets y renderiza el componente adecuado (`KpiWidget`, `BarChartWidget`, `DataTableWidget`, etc.) basándose en el `widget_type`.
--   **Diseño Unificado sin Títulos Externos:**
-    -   Para maximizar el espacio y mantener una apariencia limpia y moderna, **se ha eliminado la barra de título externa de todos los widgets**.
-    -   El título de cada widget ahora se muestra **dentro** del propio componente, utilizando el nombre definido en su objeto de `config`.
-    -   Esta decisión de diseño se aplica de manera consistente a todos los tipos de widgets, incluyendo KPI, gráficos de barras y cualquier otro que se desarrolle en el futuro.
--   **Funcionalidad en Modo Edición:**
-    -   Los controles para editar y eliminar un widget siguen estando disponibles en la esquina superior derecha, apareciendo únicamente cuando el modo de edición del dashboard está activo. Esto mantiene la interfaz limpia en el modo de visualización.
--   **Responsividad y Escalado:**
-    -   Los componentes de widget están diseñados para ser responsivos. Los gráficos (como el de barras) utilizan contenedores flexibles para ajustarse al tamaño del widget.
-    -   Para componentes de texto como el KPI, se utiliza un SVG con un `viewBox` dinámico para asegurar que el texto escale correctamente y sea visible incluso en tamaños de widget muy pequeños.
+La funcionalidad de campos calculados se maneja de la siguiente manera:
 
-## 3. Integración de WebDataRocks para Tablas de Datos
+-   **Creación:** El modal de creación, disponible en todos los configuradores, utiliza la RPC `create_calculated_field` para guardar el nuevo campo en la tabla global `calculated_fields`.
+-   **Disponibilidad:** Cada configurador obtiene las columnas de las tablas seleccionadas (`get_columns_from_tables`) y los campos calculados (`get_calculated_fields`) y los presenta al usuario como una lista unificada.
+-   **Sanitización de Expresiones:** Para que las expresiones de los campos calculados (que se guardan con nombres completos como `COUNT("schema"."table"."column")`) funcionen en las consultas, `NewAddWidgetDialog.tsx` utiliza una función auxiliar `sanitizeExpression` para limpiarlas y convertirlas a un formato simple (ej: `COUNT("column")`).
 
-Para ofrecer una experiencia de análisis de datos avanzada y familiar para el usuario, se ha integrado la librería **WebDataRocks**.
+### 3.2. Lógica de Consulta por Tipo de Widget
 
-### 3.1. ¿Qué es WebDataRocks?
+#### a) Gráfico de Barras y Gráfico de Líneas
 
-WebDataRocks es una herramienta de informes web gratuita y potente, escrita en JavaScript, que permite el análisis y la visualización de datos en una tabla dinámica (pivot grid) interactiva. Es ligera, se integra fácilmente sin dependencias de frameworks externos y ofrece una interfaz similar a Excel, ideal para usuarios sin conocimientos de programación.
+-   **Requisitos:** `xAxis`, `yAxis`.
+-   **Lógica:**
+    -   **Si el `yAxis` es un Campo Calculado:** La consulta se construye usando una **única tabla de origen**, que se determina a partir de la columna seleccionada en el `xAxis`. Esto es crucial para la coherencia del `GROUP BY`.
+        -   *Consulta Ejemplo:* `SELECT "status" as "...", (COUNT(*)) as value FROM "be_exponential"."tasks" GROUP BY "status"`
+        -   Para el `line_chart`, se añade un `ORDER BY` en la columna del `xAxis`.
+    -   **Si el `yAxis` es una Columna Normal:** La consulta se construye usando `UNION ALL` para permitir datos de múltiples tablas. Se aplica la `aggregation` seleccionada.
 
-### 3.2. Características Clave Utilizadas
+#### b) Tabla de Datos (DataTable)
 
--   **Análisis Interactivo:** Permite a los usuarios finales manipular los datos directamente en la tabla.
--   **Vista de Tabla Plana (Flat Table):** Para el widget "Tabla de Datos", se utiliza la vista plana, que presenta los datos en su forma cruda, sin agregaciones, permitiendo una visión general y acceso a los detalles de cada registro.
--   **Funcionalidades de Grid:** Incluso en la vista plana, los usuarios pueden filtrar, ordenar y cambiar el orden de las columnas, así como ver totales generales para valores numéricos.
--   **Exportación:** Los usuarios pueden exportar los informes a formatos como PDF, Excel y HTML directamente desde la barra de herramientas del widget.
+-   **Requisitos:** `columns`.
+-   **Lógica:**
+    -   **Detección de Agregación:** El sistema revisa si alguno de los campos calculados seleccionados contiene una función de agregación (`COUNT`, `SUM`, `AVG`).
+    -   **Si hay Agregaciones:** Se activa un modo de "agregación". La consulta se construye a partir de una **única tabla de origen** (la primera seleccionada). Se genera automáticamente una cláusula `GROUP BY` que incluye todas las columnas normales seleccionadas.
+        -   *Consulta Ejemplo:* `SELECT "name", COUNT(*) as "Conteo" FROM "be_exponential"."tasks" GROUP BY "name"`
+    -   **Si NO hay Agregaciones:** La tabla funciona en modo "plano". Se utiliza `UNION ALL` para mostrar las filas de todas las tablas seleccionadas.
 
-### 3.3. Proceso de Integración
+#### c) KPI
 
-1.  **Instalación:** La librería se instala en el proyecto a través de npm con el paquete `@webdatarocks/react-webdatarocks`.
-2.  **Carga de Estilos:** El CSS de la librería se importa directamente en el componente que la utiliza (`DataTableWidget.tsx`) para asegurar que los estilos se apliquen correctamente.
-3.  **Componente Contenedor (`DataTableWidget.tsx`):**
-    -   Este componente sigue la lógica del proyecto, obteniendo su configuración (tabla, columnas, etc.) del objeto `widget`.
-    -   Utiliza la RPC `execute_query` para construir y ejecutar una consulta `SELECT` que obtiene los datos crudos de la base de datos.
-    -   Los datos obtenidos se pasan al componente `<WebDataRocks.Pivot>`.
-    -   Se configura el `report` para usar la vista `flat` y se activan la `toolbar` para que los usuarios puedan interactuar con los datos.
-4.  **Actualización de la Base de Datos:** Se añadió el valor `'data_table'` al tipo `enum` `widget_type` en la base de datos de Supabase a través de una migración, permitiendo que el nuevo tipo de widget sea guardado correctamente.
+-   **Requisitos:** `column`.
+-   **Lógica:**
+    -   **Si `column` es un Campo Calculado:** La consulta se construye usando la expresión del campo directamente. Se utiliza la primera tabla de las dependencias del campo como `FROM`.
+        -   *Consulta Ejemplo:* `SELECT (COUNT(*)) as value FROM "be_exponential"."tasks"`
+    -   **Si `column` es `*` (Recuento Total):** Se construye una consulta con `UNION ALL` y `SUM` para contar filas de todas las tablas seleccionadas.
+    -   **Si `column` es una Columna Normal:** Se usa `UNION ALL` para recopilar los valores de la columna en todas las tablas y luego se aplica la `aggregation` seleccionada.

@@ -22,7 +22,8 @@ const SyncHubPage = () => {
 
   const fetchSyncConfigs = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.rpc('get_all_sync_configs');
+    // Use the new, dedicated function for the Sync Hub
+    const { data, error } = await supabase.rpc('get_sync_hub_details');
     if (error) {
       toast({ title: "Error al cargar las sincronizaciones", description: error.message, variant: "destructive" });
     } else {
@@ -172,7 +173,6 @@ const SyncHubPage = () => {
         </Card>
       </div>
 
-      {/* --- CORRECCIÓN AQUÍ --- */}
       <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

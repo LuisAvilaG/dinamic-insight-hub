@@ -18,7 +18,7 @@ import { ReportManager } from "./components/reports/ReportManager";
 import { ReportViewer } from "./pages/ReportViewer";
 import { RecursosHumanosPage } from "./pages/RecursosHumanosPage";
 import { GestionRecursosHumanosPage } from "./pages/admin/GestionRecursosHumanosPage";
-import { GestionAnunciosPage } from "./pages/admin/GestionAnuncios"; // IMPORTACIÓN AÑADIDA
+import { GestionAnunciosPage } from "./pages/admin/GestionAnuncios";
 import OrganigramaViewerPage from "./pages/OrganigramaViewerPage";
 import GestionarOrganigramaPage from "./pages/admin/GestionarOrganigramaPage";
 import VistaGlobalContratos from "./pages/admin/contratos";
@@ -29,6 +29,7 @@ import UsersAdmin from "./pages/UsersAdmin";
 import ProfileSettings from "./pages/ProfileSettings";
 import { supabase } from "@/integrations/supabase/client";
 import SyncHubPage from "./pages/admin/SyncHubPage";
+import SyncDataViewerPage from "./pages/admin/SyncDataViewerPage";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,7 @@ const AppRoutes = () => {
           <Route element={<AdminRoute />}>
             <Route path="admin/usuarios" element={<UsersAdmin />} />
             <Route path="admin/sync-hub" element={<SyncHubPage />} />
+            <Route path="admin/sync-viewer" element={<SyncDataViewerPage />} />
           </Route>
 
           {/* Rutas para Admin y RRHH */}
@@ -113,7 +115,7 @@ const AppRoutes = () => {
             <Route path="admin/recursos-humanos/organigrama/editar" element={<GestionarOrganigramaPage />} />
             <Route path="admin/contratos" element={<VistaGlobalContratos />} />
             <Route path="admin/GestionDashboards" element={<GestionDashboardsPage />} />
-            <Route path="admin/GestionAnuncios" element={<GestionAnunciosPage />} /> {/* RUTA AÑADIDA */}
+            <Route path="admin/GestionAnuncios" element={<GestionAnunciosPage />} />
             <Route path="admin/dashboards/:id" element={<DashboardDetailPage />} />
           </Route>
 

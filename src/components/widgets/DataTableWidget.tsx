@@ -20,12 +20,14 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
     const [viewData, setViewData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const pivotRef = useRef<any>(null);
     const { config } = widget;
 
     useEffect(() => {
         const fetchData = async () => {
             if (!config.query) {
                 setIsLoading(false);
+                setViewData([]);
                 return;
             }
 
@@ -45,6 +47,29 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
         fetchData();
     }, [config.query]);
     
+    // **ROBUST CLEANUP EFFECT**
+    useEffect(() => {
+        // This effect only returns a cleanup function, which runs on unmount.
+        return () => {
+            // Access the ref's current value at the time of cleanup.
+            if (pivotRef.current && pivotRef.current.webdatarocks) {
+                const pivotInstance = pivotRef.current.webdatarocks;
+                try {
+                    // Gracefully handle fullscreen mode before disposing.
+                    if (pivotInstance.isFullScreen()) {
+                        pivotInstance.closeFullscreen();
+                    }
+                    // Dispose the instance to prevent memory leaks and errors.
+                    pivotInstance.dispose();
+                } catch (e) {
+                    // Errors during cleanup can happen if the component is already gone,
+                    // so we can safely ignore them.
+                    console.warn("Harmless error during WebDataRocks cleanup:", e);
+                }
+            }
+        };
+    }, []); // Empty dependency array ensures this runs only once on mount and unmount.
+
     if (isLoading) {
         return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
@@ -66,12 +91,9 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
         }
     };
 
-    // This function customizes the toolbar using the WebDataRocks API
     const customizeToolbar = (toolbar: any) => {
         const tabs = toolbar.getTabs();
-        // We create a new getTabs function that returns a filtered list
         toolbar.getTabs = () => {
-            // This filters out the "Fields" tab, removing the button
             return tabs.filter((tab: any) => tab.id !== "wdr-tab-fields");
         };
     };
@@ -83,8 +105,9 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ widget, isPrev
             </CardHeader>
             <CardContent className="flex-grow p-0">
                 <Pivot
-                    toolbar={true} // Toolbar is now always enabled
-                    beforetoolbarcreated={customizeToolbar} // Hook to customize the toolbar
+                    ref={pivotRef}
+                    toolbar={true}
+                    beforetoolbarcreated={customizeToolbar}
                     width="100%" 
                     height="100%" 
                     report={report}
