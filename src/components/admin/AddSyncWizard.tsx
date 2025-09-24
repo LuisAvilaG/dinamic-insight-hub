@@ -120,7 +120,8 @@ const AddSyncWizard = ({ onCancel }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
+  const [syncType, setSyncType] = useState('tasks');
   const [isLoading, setIsLoading] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [syncName, setSyncName] = useState('');
