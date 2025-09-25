@@ -1,43 +1,126 @@
-# Sync Module Documentation
+# Documentación del Módulo de Sincronización
 
-## Flujo de Trabajo: "Agregar Nueva Sincronización"
+Este documento describe la arquitectura modular del módulo de sincronización y su flujo de trabajo para "Agregar Nueva Sincronización". El objetivo principal es importar datos de ClickUp (tareas o registros de tiempo) a una base de datos de Supabase para su análisis.
+
+---
+
+## I. Estructura Modular del Código (Refactorización)
+
+El componente original `AddSyncWizard.tsx` ha sido refactorizado para mejorar la mantenibilidad y escalabilidad, siguiendo un patrón de custom hooks para la lógica y componentes de presentación para la UI.
+
+### Componentes Clave:
+
+*   **`src/components/admin/AddSyncWizard.tsx`**:
+    *   Este es ahora el componente principal (contenedor) del asistente.
+    *   Su rol es minimalista: importa y utiliza el `useSyncWizard` hook para obtener el estado y las funciones de lógica.
+    *   Renderiza condicionalmente los componentes de presentación (`Step0_SyncTypeSelection`, `Step1_Connection`, etc.) y los modales, pasándoles las props necesarias desde el hook.
+
+*   **`src/components/admin/syncwizard/useSyncWizard.ts` (Custom Hook)**:
+    *   Centraliza **toda la lógica de negocio y gestión de estado** del asistente de sincronización.
+    *   Contiene todos los `useState`, `useEffect` y las funciones manejadoras (`handle...`) que dictan el comportamiento del asistente (ej. manejo de tokens, carga de workspaces/espacios, mapeo de campos, navegación entre pasos).
+    *   Exporta un objeto con todos los estados y funciones que los componentes de presentación necesitan para funcionar.
+
+*   **`src/components/admin/syncwizard/utils.ts`**:
+    *   Almacena funciones puras y constantes que son reutilizadas por el custom hook o los componentes de presentación (ej. `groupListsByName`, `MANDATORY_FIELDS`).
+
+*   **Componentes de Presentación (UI) - Ejemplos:**
+    *   **`src/components/admin/syncwizard/Step0_SyncTypeSelection.tsx` (NUEVO)**: Componente UI para el primer paso, donde el usuario elige el tipo de sincronización (tareas o tiempos).
+    *   **`src/components/admin/syncwizard/Step1_Connection.tsx`**: Componente UI para la conexión a ClickUp y selección de alcance.
+    *   **`src/components/admin/syncwizard/Step2_Configuration.tsx`**: Componente UI para la configuración detallada de los datos (mapeo de campos, selección de listas).
+    *   **`src/components/admin/syncwizard/Step3_Schedule.tsx`**: Componente UI para la programación de la sincronización y modo de actualización.
+
+*   **Modales Reutilizables - Ejemplos:**
+    *   **`src/components/admin/syncwizard/ConfigureColumnsModal.tsx`**: Modal para configurar los campos de una plantilla o lista específica.
+    *   **`src/components/admin/syncwizard/ManageTemplatesModal.tsx`**: Modal para una gestión expandida de las plantillas detectadas.
+
+*   **Componente de Selección de Horario:**
+    *   **`src/components/admin/ScheduleSelector.tsx`**: Componente UI para seleccionar la frecuencia de la sincronización. (Se encuentra fuera de la carpeta `syncwizard/` y se importa con una ruta relativa adecuada).
+
+---
+
+## II. Flujo de Trabajo Detallado: "Agregar Nueva Sincronización"
+
+El flujo ha sido extendido con un Paso 0 inicial para la selección del tipo de sincronización.
+
+### Paso 0: Seleccionar Tipo de Sincronización (El "Propósito" 🎯)
+
+*   **Decisión Inicial:** El usuario es presentado con dos opciones fundamentales:
+    *   **Sincronizar Tareas:** Enfocado en la extracción de datos de tareas de ClickUp, incluyendo sus campos y detalles. Este es el flujo principal y funcional actual.
+    *   **Sincronizar Registros de Tiempo:** Una opción futura para extraer datos de seguimiento de tiempo de ClickUp. (Actualmente implementado como un placeholder deshabilitado en la UI, pero el `sync_type` se almacena correctamente).
+
+*   **Navegación:** Al seleccionar "Sincronizar Tareas" y presionar "Siguiente", el asistente avanza al Paso 1.
 
 ### Paso 1: Conexión y Alcance (El "Plug" 🔌)
-*   **Nombre de la Sincronización:** El usuario le da un nombre único al flujo.
-*   **Autenticación y Selección:** Se conecta a ClickUp y elige Workspace/Espacio.
-*   **Modo de Sincronización:**
-    *   **Interruptor [ Sincronización Completa ]:**
-        *   **Activado:** El usuario quiere todos los datos sin configurar. Se saltan los pasos de mapeo y se va directamente al Paso 3.
-        *   **Desactivado (Modo Personalizado):** El usuario quiere elegir qué datos sincronizar. Se avanza al Paso 2.
+
+*   **Nombre de la Sincronización:** El usuario proporciona un nombre descriptivo para esta configuración de sincronización.
+*   **Autenticación y Selección:**
+    *   El usuario ingresa su ClickUp API Token. Este token se guarda de forma segura y se utiliza para todas las interacciones con la API de ClickUp.
+    *   Se le pide al usuario que seleccione un Workspace y un Espacio (Space) de ClickUp desde donde se extraerán los datos.
+*   **Modo de Sincronización de Campos (Solo para `sync_type = 'tasks'`):**
+    *   **Interruptor [ Sincronización Completa de Campos ]:**
+        *   **Activado (`isFullSync = true`):** El sistema analizará y sincronizará automáticamente *todos* los campos disponibles en el espacio seleccionado. Si está activado, el asistente **saltará el Paso 2** (Configuración de Datos) y avanzará directamente al Paso 3.
+        *   **Desactivado (`isFullSync = false`, Modo Personalizado):** El usuario desea tener control granular sobre qué campos y listas sincronizar. El asistente avanzará al Paso 2.
+*   **Navegación:** Botón "Anterior" regresa al Paso 0. Botón "Siguiente" avanza al Paso 2 (o Paso 3 si `isFullSync` está activado).
 
 ### Paso 2: Configuración de Datos (El "Play" ⚙️)
-*Este paso solo se muestra si la "Sincronización Completa" está desactivada.*
-*   **Modo de Configuración:** Detección automática de plantillas (con opción de modo manual) y reorganización con botón de "Mover".
-*   **Sincronización de Registros de Tiempo:** Interruptor para activar la extracción de registros de tiempo.
+
+*Este paso **solo** se muestra si el `sync_type` es `'tasks'` y "Sincronización Completa de Campos" en el Paso 1 está desactivada.*
+
+*   **Modo de Configuración:**
+    *   **Detección Automática de Plantillas (por defecto):** El sistema agrupa automáticamente las listas de ClickUp por nombres similares (detectando "plantillas"). Esto facilita la configuración masiva de campos para grupos de listas homogéneas. Permite mover listas entre grupos para refinar la clasificación.
+    *   **Modo Manual (alternativo):** Permite al usuario configurar cada lista individualmente.
+*   **Configuración de Columnas/Campos:** Para cada plantilla o lista seleccionada, el usuario puede elegir qué campos de ClickUp (estándar y personalizados) desea importar. Se muestran campos obligatorios que no pueden ser deseleccionados.
+*   **Sincronización de Registros de Tiempo (Solo para `sync_type = 'tasks'`):** Un interruptor permite al usuario decidir si, además de las tareas, también desea sincronizar los registros de tiempo asociados a esas tareas.
+*   **Navegación:** Botón "Anterior" regresa al Paso 1. Botón "Siguiente" avanza al Paso 3.
 
 ### Paso 3: Destino y Programación (La Ejecución 🚀)
 
 **A. Consideraciones sobre la Base de Datos (Destino)**
 
-El sistema crea y gestiona tablas de forma dinámica en un esquema dedicado `clickup_data` cuando el usuario guarda la sincronización.
+El sistema se encarga de preparar la base de datos de Supabase en un esquema dedicado `clickup_data` de forma dinámica cuando el usuario guarda la sincronización.
 
-*   **Paso 1: Capturar la Configuración:** El sistema guarda un JSON con la configuración del usuario, incluyendo los campos seleccionados y sus tipos de ClickUp. Para una **Sincronización Completa**, el sistema inspecciona todas las listas del Espacio, crea un "superconjunto" de todos los campos únicos encontrados y lo usa como plantilla universal.
+*   **1. Captura de la Configuración:** El sistema persiste un objeto JSON en la tabla `clickup.sync_configs` con toda la configuración del usuario, incluyendo:
+    *   El `sync_type` seleccionado (tareas o tiempos).
+    *   El `clickup_workspace_id` y `clickup_space_id`.
+    *   El mapeo de campos seleccionados (para `sync_type = 'tasks'`).
+    *   La frecuencia de la sincronización (`cron_schedule`).
+    *   El modo de sincronización (`incremental` o `full`).
+    *   Para `sync_type = 'tasks'` y `isFullSync = true`, el sistema inspecciona todas las listas del Espacio, identifica todos los campos únicos y los usa para construir una plantilla de tabla universal.
 
-*   **Paso 2: Traductor de Tipos:** Una lógica interna convierte los tipos de ClickUp a tipos de columna de PostgreSQL.
-    *   `text`, `string` -> `TEXT`
-    *   `dropdown`, `email` -> `VARCHAR(255)`
-    *   `number`, `money` -> `NUMERIC`
-    *   `date` -> `TIMESTAMPTZ`
-    *   `checkbox` -> `BOOLEAN`
-    *   `labels`, `users` -> `JSONB`
+*   **2. Traductor de Tipos:** Una lógica interna (`CLICKUP_TO_POSTGRE_TYPE_MAP` en la Edge Function `setup-sync-tables`) convierte los tipos de datos de ClickUp a tipos de columna de PostgreSQL compatibles (ej., `text`, `string` -> `TEXT`; `number`, `money` -> `NUMERIC`; `date` -> `TIMESTAMPTZ`; `labels`, `users` -> `JSONB`).
 
-*   **Paso 3: Generación de SQL (`CREATE` vs `ALTER`):**
-    *   **Si la tabla no existe:** Se genera y ejecuta un comando `CREATE TABLE` en el esquema `clickup_data`. Se añaden columnas de sistema como `clickup_task_id` (PRIMARY KEY) y `last_synced_at`.
-    *   **Si la tabla ya existe (al editar):** El sistema la inspecciona y genera comandos `ALTER TABLE ... ADD COLUMN` para los nuevos campos. Los campos eliminados de la configuración se dejan intactos en la tabla para no perder datos históricos, pero ya no recibirán actualizaciones.
+*   **3. Generación de SQL (`CREATE` vs `ALTER`):**
+    *   **Si la tabla de destino no existe:** Se genera y ejecuta un comando `CREATE TABLE` en el esquema `clickup_data`, utilizando el nombre de la sincronización como base para el nombre de la tabla. Se añaden columnas de sistema como `clickup_task_id` (PRIMARY KEY para tareas) y `last_synced_at`. La estructura de la tabla variará drásticamente si `sync_type` es `'tasks'` o `'time_entries'`.
+    *   **Si la tabla ya existe (al editar una sincronización):** El sistema la inspecciona y genera comandos `ALTER TABLE ... ADD COLUMN` para los nuevos campos que el usuario haya agregado a la configuración. Los campos que el usuario elimine de la configuración *no* se eliminan de la tabla para evitar la pérdida de datos históricos, pero dejarán de recibir actualizaciones.
 
-**B. Configuración de la Sincronización (Cron Job)**
+**B. Configuración de la Sincronización (Programación con `pg_cron`)**
 
-*   **Frecuencia:** Un menú desplegable para elegir la periodicidad (cada hora, diariamente, etc.).
+*   **Frecuencia:** El usuario selecciona la periodicidad de la importación de datos (ej., cada hora, diariamente, semanalmente) utilizando el `ScheduleSelector`. Esto se traduce en una expresión `cron`.
 *   **Modo de Sincronización:**
-    *   **Reemplazo Completo:** Borra todos los datos de la tabla y los carga de nuevo en cada ejecución.
-    *   **Incremental (Recomendado):** Solo sincroniza tareas nuevas o modificadas desde la última ejecución.
+    *   **Incremental (Recomendado):** En cada ejecución, solo se sincronizan y actualizan las tareas o registros de tiempo que son nuevos o que han sido modificados desde la última importación exitosa. Esto optimiza el rendimiento.
+    *   **Reemplazo Completo:** En cada ejecución, se borran *todos* los datos existentes en la tabla de destino y se vuelven a cargar desde cero. Esto asegura una copia fresca pero es menos eficiente.
+*   **Invocación de Edge Function:** Al guardar la configuración, la Edge Function `setup-sync-tables` utiliza `pg_cron` para programar la ejecución periódica de la Edge Function de importación correspondiente (`import-clickup-full-be` para tareas, o una futura función `import-clickup-time-entries` para registros de tiempo), pasando el ID de la configuración de sincronización. Adicionalmente, se realiza una invocación inmediata para iniciar la primera importación.
+
+---
+
+## III. Flujo de Datos y Conexión Backend (Supabase Edge Functions)
+
+Las Edge Functions de Supabase juegan un rol crucial en el backend para manejar la creación de tablas y la importación de datos.
+
+*   **`setup-sync-tables` (Edge Function):**
+    *   Recibe el `payload` completo del frontend, incluyendo el `sync_type`.
+    *   Usa el `sync_type` para determinar la estructura de la tabla a crear en el esquema `clickup_data` (columnas específicas para `tasks` o `time_entries`).
+    *   Genera y ejecuta el SQL (`CREATE TABLE` o `ALTER TABLE`).
+    *   Programa el `pg_cron` job para la función de importación relevante (ej. `import-clickup-full-be` o `import-clickup-time-entries`), asegurando que el `sync_id` y el `sync_type` se pasen a la función de importación.
+
+*   **`import-clickup-full-be` (Edge Function - Para Tareas):**
+    *   Se invoca por `pg_cron`.
+    *   Lee la configuración específica de `sync_configs` usando el `sync_id` proporcionado.
+    *   Realiza llamadas a la API de ClickUp para extraer las tareas y sus campos según la configuración.
+    *   Procesa los datos y realiza operaciones `UPSERT` en la tabla `clickup_data.sync_[nombre_sincronizacion]` correspondiente.
+    *   Actualiza el `last_run_at` y `last_run_status` en `clickup.sync_configs`.
+
+*   **`import-clickup-time-entries` (Edge Function - Para Registros de Tiempo - Futuro):**
+    *   (Se implementará de manera similar a `import-clickup-full-be`, pero se centrará en la extracción y almacenamiento de los datos de tiempo de ClickUp).
+
+Este esquema proporciona una base sólida para el desarrollo futuro, permitiendo añadir nuevas funcionalidades de sincronización de manera controlada y modular.

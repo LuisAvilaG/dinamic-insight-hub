@@ -22,12 +22,11 @@ const SyncHubPage = () => {
 
   const fetchSyncConfigs = async () => {
     setIsLoading(true);
-    // Use the new, dedicated function for the Sync Hub
     const { data, error } = await supabase.rpc('get_sync_hub_details');
     if (error) {
       toast({ title: "Error al cargar las sincronizaciones", description: error.message, variant: "destructive" });
     } else {
-      setSyncs(data);
+      setSyncs(data || []);
     }
     setIsLoading(false);
   };
@@ -43,8 +42,42 @@ const SyncHubPage = () => {
     }
   };
 
+  const handleToggleActive = async (sync, newCheckedState) => {
+    setSyncs(prevSyncs =>
+      prevSyncs.map(s =>
+        s.id === sync.id ? { ...s, is_active: newCheckedState } : s
+      )
+    );
+
+    // ========================== INICIO DE LA CORRECCIÓN ==========================
+    // Se reemplaza la llamada directa a la BD por la llamada a la función RPC.
+    const { error } = await supabase.rpc('update_sync_config_status', {
+        sync_id_to_update: sync.id,
+        new_status: newCheckedState
+    });
+    // =========================== FIN DE LA CORRECCIÓN ============================
+
+    if (error) {
+      toast({
+        title: "Error al actualizar",
+        description: `No se pudo cambiar el estado. ${error.message}`,
+        variant: "destructive",
+      });
+      setSyncs(prevSyncs =>
+        prevSyncs.map(s =>
+          s.id === sync.id ? { ...s, is_active: !newCheckedState } : s
+        )
+      );
+    } else {
+        toast({
+            title: "Estado Actualizado",
+            description: `La sincronización "${sync.name}" ha sido ${newCheckedState ? 'activada' : 'desactivada'}.`
+        });
+    }
+  };
+
   const handleRetrySync = async (sync) => {
-    const functionToInvoke = sync.sync_type === 'tasks' ? 'import-clickup-full-be' : 'import-clickup-time-entries';
+    const functionToInvoke = sync.sync_type === 'tasks' ? 'import-clickup-full-be' : 'import-time-entries-prod';
     
     toast({ title: "Iniciando sincronización manual...", description: `La sincronización ${sync.id} ha sido puesta en cola.` });
     setSyncs(prevSyncs => prevSyncs.map(s => s.id === sync.id ? { ...s, status: 'running' } : s));
@@ -146,7 +179,7 @@ const SyncHubPage = () => {
                       <TableCell className="text-muted-foreground">{`${sync.clickup_workspace_name || ''} / ${sync.clickup_space_name || ''}`}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          sync.status === 'active' ? 'bg-green-100 text-green-800' :
+                          sync.status === 'succeeded' ? 'bg-green-100 text-green-800' :
                           sync.status === 'running' ? 'bg-blue-100 text-blue-800' :
                           sync.status === 'failed' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
@@ -156,7 +189,12 @@ const SyncHubPage = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">{sync.last_run_at ? format(new Date(sync.last_run_at), 'Pp') : 'N/A'}</TableCell>
                       <TableCell className="text-muted-foreground">{sync.next_run_at ? format(new Date(sync.next_run_at), 'Pp') : 'N/A'}</TableCell>
-                      <TableCell><Switch checked={sync.is_active} /></TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={sync.is_active}
+                          onCheckedChange={(newCheckedState) => handleToggleActive(sync, newCheckedState)}
+                        />
+                      </TableCell>
                       <TableCell className="space-x-2">
                         {sync.status !== 'running' && <Button variant="outline" size="sm" onClick={() => handleRetrySync(sync)}><RefreshCw className="h-4 w-4 mr-2" />Reintentar</Button>}
                         {sync.status === 'running' && <Button variant="destructive" size="sm" onClick={() => handleForceReset(sync.id)}><AlertTriangle className="h-4 w-4 mr-2" />Forzar Detención</Button>}
